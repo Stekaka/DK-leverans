@@ -831,10 +831,10 @@ export default function DashboardPage() {
                     </div>
                   )}
 
-                  {/* Comment indicator - shows on hover for files with notes */}
+                  {/* Comment indicator - always visible for files with notes */}
                   {file.customer_notes && file.customer_notes.trim() !== '' && (
                     <div 
-                      className="absolute top-2 left-2 bg-blue-500 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-lg"
+                      className="absolute top-2 left-2 bg-blue-500 text-white rounded-full p-1.5 shadow-lg hover:bg-blue-600 transition-colors duration-200"
                       title={`Kommentar: ${file.customer_notes}`}
                     >
                       <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
