@@ -16,7 +16,7 @@ interface UploadCallbackRequest {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🚀 === UPLOAD CALLBACK STARTED ===')
+    console.log('🚀 === UPLOAD CALLBACK STARTED === [v1.1]')
     console.log('📅 Timestamp:', new Date().toISOString())
     
     // Debug: Environment check

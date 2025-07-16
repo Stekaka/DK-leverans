@@ -484,7 +484,7 @@ export default function DirectUploadComponent({
         console.log('🔐 Using password for callback:', passwordToUse.substring(0, 15) + '...')
         
         try {
-          const callbackResponse = await fetch('/api/admin/upload-callback', {
+          const callbackResponse = await fetch('/api/admin/simple-callback', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
