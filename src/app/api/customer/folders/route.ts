@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     // Hämta alla mappar för kunden (från files och folders tabeller)
     const { data: fileFolders, error: fileError } = await supabaseAdmin
       .from('files')
-      .select('folder_path')
+      .select('folder_path, customer_folder_path')
       .eq('customer_id', customer.id)
       .eq('is_deleted', false)
 
@@ -69,12 +69,14 @@ export async function GET(request: NextRequest) {
     // Kombinera alla mappar och ta bort dubletter
     const allFolderPaths = new Set(['']) // Start med rot
     
-    // Lägg till mappar från filer
+    // Lägg till mappar från filer (prioritera kundspecifika mappar)
     fileFolders?.forEach(f => {
-      if (f.folder_path) {
-        allFolderPaths.add(f.folder_path)
+      // Använd customer_folder_path om det finns, annars fallback till folder_path
+      const folderPath = f.customer_folder_path || f.folder_path
+      if (folderPath) {
+        allFolderPaths.add(folderPath)
         // Lägg till föräldermappar för nested paths
-        const parts = f.folder_path.split('/')
+        const parts = folderPath.split('/')
         for (let i = 1; i < parts.length; i++) {
           allFolderPaths.add(parts.slice(0, i).join('/'))
         }

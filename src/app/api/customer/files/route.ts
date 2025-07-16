@@ -60,9 +60,10 @@ export async function GET(request: NextRequest) {
       .eq('customer_id', customer.id)
       .eq('is_deleted', false)
 
-    // Filtrera på mapp om specificerad (använd customer_folder_path för kundvy)
+    // Filtrera på mapp om specificerad (använd customer_folder_path för kundvy, fallback till folder_path)
     if (folderPath !== null) {
-      query = query.eq('customer_folder_path', folderPath || '')
+      // För att matcha både customer_folder_path och folder_path (fallback)
+      query = query.or(`customer_folder_path.eq.${folderPath || ''},and(customer_folder_path.is.null,folder_path.eq.${folderPath || ''})`)
     }
 
     const { data: files, error } = await query.order('uploaded_at', { ascending: false })

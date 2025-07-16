@@ -60,10 +60,17 @@ export default function DashboardPage() {
     }
   }
 
-  const loadFiles = async () => {
+  const loadFiles = async (folderPath?: string) => {
     try {
       setLoading(true)
-      const response = await fetch('/api/customer/files')
+      
+      // Använd provided folderPath eller currentFolder
+      const folder = folderPath !== undefined ? folderPath : currentFolder
+      const url = folder 
+        ? `/api/customer/files?folderPath=${encodeURIComponent(folder)}`
+        : '/api/customer/files'
+      
+      const response = await fetch(url)
       if (response.ok) {
         const data = await response.json()
         setFiles(data.files || [])
@@ -102,6 +109,7 @@ export default function DashboardPage() {
   }
 
   // Filter filer baserat på aktuell filter-inställning
+  // Observera: Mappfiltrering sker nu på serversidan
   const filteredFiles = files.filter(file => {
     switch (filter) {
       case 'images':
@@ -260,20 +268,34 @@ export default function DashboardPage() {
   }
 
   // Hantera mappnavigering
-  const navigateToFolder = (folderPath: string) => {
+  const navigateToFolder = async (folderPath: string) => {
     setCurrentFolder(folderPath)
     setSelectedItems([])
+    await loadFiles(folderPath)
   }
 
-  const navigateUp = () => {
+  const navigateUp = async () => {
     if (currentFolder) {
       const parentPath = currentFolder.split('/').slice(0, -1).join('/')
-      navigateToFolder(parentPath)
+      await navigateToFolder(parentPath)
     }
   }
 
   // Hantera rating-uppdateringar
   const updateFileRating = async (fileId: string, rating: string, notes?: string) => {
+    // Optimistisk uppdatering - uppdatera UI direkt
+    setFiles(prevFiles => 
+      prevFiles.map(file => 
+        file.id === fileId 
+          ? { 
+              ...file, 
+              customer_rating: rating as 'unrated' | 'favorite' | 'good' | 'poor',
+              customer_notes: notes || file.customer_notes
+            }
+          : file
+      )
+    )
+
     try {
       const response = await fetch('/api/customer/rating', {
         method: 'PUT',
@@ -281,19 +303,20 @@ export default function DashboardPage() {
         body: JSON.stringify({ fileId, rating, notes }),
       })
 
-      if (response.ok) {
-        // Istället för att bara uppdatera lokalt, ladda om filerna från servern
-        // för att säkerställa att vi har den senaste datan
-        await loadFiles()
-        
-        console.log('Rating updated successfully and files reloaded')
-      } else {
+      if (!response.ok) {
+        // Om API-anropet misslyckas, återställ till föregående tillstånd
         const error = await response.json()
         console.error('Rating update failed:', error)
+        
+        // Ladda om filerna för att återställa korrekt state
+        await loadFiles()
         alert('Kunde inte uppdatera betyg: ' + error.error)
       }
     } catch (error) {
       console.error('Error updating rating:', error)
+      
+      // Ladda om filerna för att återställa korrekt state
+      await loadFiles()
       alert('Ett fel uppstod vid uppdatering av betyg')
     }
   }
@@ -322,6 +345,26 @@ export default function DashboardPage() {
 
   // Spara filorganisation
   const saveFileOrganization = async (fileId: string, displayName: string, customerFolderPath: string) => {
+    // Optimistisk uppdatering - uppdatera UI direkt
+    setFiles(prevFiles => 
+      prevFiles.map(file => 
+        file.id === fileId 
+          ? { 
+              ...file, 
+              display_name: displayName,
+              name_for_display: displayName,
+              customer_folder_path: customerFolderPath,
+              folder_display: customerFolderPath || '/'
+            }
+          : file
+      )
+    )
+
+    // Uppdatera mapplistan om en ny mapp skapades
+    if (customerFolderPath && !folders.includes(customerFolderPath)) {
+      setFolders(prev => [...prev, customerFolderPath].sort())
+    }
+
     try {
       const response = await fetch('/api/customer/organize', {
         method: 'PUT',
@@ -337,15 +380,10 @@ export default function DashboardPage() {
 
       if (!response.ok) {
         const errorData = await response.json()
+        
+        // Om API-anropet misslyckas, ladda om filerna för att återställa korrekt state
+        await loadFiles()
         throw new Error(errorData.error || 'Kunde inte spara ändringar')
-      }
-
-      // Ladda om filerna för att visa ändringarna
-      await loadFiles()
-      
-      // Uppdatera mapplistan om en ny mapp skapades
-      if (customerFolderPath && !folders.includes(customerFolderPath)) {
-        setFolders(prev => [...prev, customerFolderPath].sort())
       }
 
     } catch (error) {
