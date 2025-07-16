@@ -213,6 +213,19 @@ export default function AdminDashboard() {
     if (e.target.files) {
       const files = Array.from(e.target.files)
       console.log('Selected files:', files.map(f => ({ name: f.name, size: f.size, type: f.type })))
+      
+      // Kontrollera filstorlekar och varna
+      const MAX_FILE_SIZE = 4 * 1024 * 1024 // 4MB
+      const oversizedFiles = files.filter(file => file.size > MAX_FILE_SIZE)
+      
+      if (oversizedFiles.length > 0) {
+        alert(`⚠️ Varning: Följande filer är större än 4MB och kan inte laddas upp:\n\n${oversizedFiles.map(f => `• ${f.name}: ${Math.round(f.size / 1024 / 1024)}MB`).join('\n')}\n\nDe kommer att ignoreras.`)
+        // Filtrera bort för stora filer
+        const validFiles = files.filter(file => file.size <= MAX_FILE_SIZE)
+        if (validFiles.length === 0) return
+        files.splice(0, files.length, ...validFiles)
+      }
+      
       setSelectedFiles(prev => {
         const newFiles = [...prev, ...files]
         console.log('Updated selectedFiles:', newFiles.map(f => f.name))
@@ -232,6 +245,22 @@ export default function AdminDashboard() {
     
     if (!selectedCustomer || selectedFiles.length === 0) {
       alert('Välj filer att ladda upp')
+      return
+    }
+
+    // Validera filstorlekar före upload (Vercel serverless function-begränsningar)
+    const MAX_FILE_SIZE = 4 * 1024 * 1024 // 4MB
+    const MAX_BATCH_SIZE = 3.5 * 1024 * 1024 // 3.5MB total
+    
+    const oversizedFiles = selectedFiles.filter(file => file.size > MAX_FILE_SIZE)
+    if (oversizedFiles.length > 0) {
+      alert(`⚠️ Följande filer är för stora (max 4MB per fil):\n\n${oversizedFiles.map(f => `• ${f.name}: ${Math.round(f.size / 1024 / 1024)}MB`).join('\n')}\n\n💡 Förslag: Komprimera bilderna eller kontakta support för stora videor.`)
+      return
+    }
+    
+    const totalSize = selectedFiles.reduce((sum, file) => sum + file.size, 0)
+    if (totalSize > MAX_BATCH_SIZE) {
+      alert(`⚠️ Total batch-storlek för stor: ${Math.round(totalSize / 1024 / 1024)}MB (max 3.5MB)\n\n💡 Förslag: Ladda upp färre filer åt gången eller komprimera filer.`)
       return
     }
 
@@ -279,6 +308,10 @@ export default function AdminDashboard() {
       console.log('Upload result:', result)
 
       if (!response.ok) {
+        // Hantera specifika fel för Vercel-begränsningar
+        if (response.status === 413 || result.error?.includes('too large') || result.error?.includes('FUNCTION_PAYLOAD_TOO_LARGE')) {
+          throw new Error(`Filer för stora för upload!\n\n${result.error || 'Request Entity Too Large'}\n\n💡 Lösningar:\n• Ladda upp färre filer åt gången\n• Komprimera bilder före upload\n• Kontakta support för stora videor`)
+        }
         throw new Error(result.error || 'Upload failed')
       }
       
@@ -587,7 +620,10 @@ export default function AdminDashboard() {
                       </label>
                       <p className="pl-1">eller dra och släpp</p>
                     </div>
-                    <p className="text-xs text-gray-500">PNG, JPG, MP4 upp till 100MB per fil</p>
+                    <p className="text-xs text-gray-500">PNG, JPG, MP4 upp till 4MB per fil</p>
+                    <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-700">
+                      ⚠️ Vercel-begränsning: Max 4MB per fil, 3.5MB total per batch
+                    </div>
                   </div>
                 </div>
               </div>
@@ -853,7 +889,10 @@ export default function AdminDashboard() {
                             </div>
                             <div>
                               <p className="text-sm font-medium text-gray-900">{file.name}</p>
-                              <p className="text-xs text-gray-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                              <p className={`text-xs ${file.size > 4 * 1024 * 1024 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>
+                                {(file.size / 1024 / 1024).toFixed(2)} MB
+                                {file.size > 4 * 1024 * 1024 && ' ⚠️ För stor för upload'}
+                              </p>
                             </div>
                           </div>
                           <button

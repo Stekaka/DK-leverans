@@ -66,6 +66,16 @@ export async function POST(request: NextRequest) {
 
     console.log('Customer found:', customer.name)
 
+    // Kontrollera total batch-storlek för Vercel serverless functions
+    const totalBatchSize = files.reduce((sum, file) => sum + file.size, 0)
+    const MAX_BATCH_SIZE = 3.5 * 1024 * 1024 // 3.5MB total för att lämna utrymme för andra data
+    
+    if (totalBatchSize > MAX_BATCH_SIZE) {
+      return NextResponse.json({ 
+        error: `Total batch size too large: ${Math.round(totalBatchSize / 1024 / 1024)}MB. Please upload files in smaller batches (max 3.5MB total per batch).`
+      }, { status: 413 }) // 413 = Request Entity Too Large
+    }
+
     const uploadResults = []
     const uploadErrors = []
 
@@ -76,10 +86,10 @@ export async function POST(request: NextRequest) {
       try {
         console.log(`Processing file ${i + 1}/${files.length}: ${file.name}, size: ${file.size}, type: ${file.type}`)
         
-        // Validera filstorlek (100MB max)
-        const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100MB
+        // Vercel serverless function-begränsningar: 4.5MB max per request
+        const MAX_FILE_SIZE = 4 * 1024 * 1024 // 4MB (lämnar utrymme för andra data)
         if (file.size > MAX_FILE_SIZE) {
-          const error = `File ${file.name} is too large: ${Math.round(file.size / 1024 / 1024)}MB (max 100MB)`
+          const error = `File ${file.name} is too large: ${Math.round(file.size / 1024 / 1024)}MB (max 4MB för Vercel serverless functions)`
           console.warn(error)
           uploadErrors.push(error)
           continue

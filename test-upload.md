@@ -1,5 +1,12 @@
 # Test av Upload-funktionalitet
 
+## VIKTIGT: Vercel Serverless Function Begränsningar
+
+⚠️ **Nya begränsningar för Vercel deployment:**
+- **Max filstorlek**: 4MB per fil
+- **Max batch-storlek**: 3.5MB total per batch
+- **Orsak**: Vercel serverless functions har 4.5MB payload-gräns
+
 ## Förbättringar som gjorts för batch-upload:
 
 ### 1. Retry-logik för R2-uppladdningar
@@ -32,19 +39,20 @@
 ## Testscenarios att verifiera:
 
 ### Test 1: Normal upload av flera filer
-- Välj 3-5 bilder/videor < 10MB
+- Välj 3-5 bilder < 4MB vardera
+- Total batch-storlek < 3.5MB
 - Kontrollera att alla laddas upp framgångsrikt
 - Verifiera att thumbnails genereras för bilder
 
-### Test 2: Stora filer
-- Testa med filer > 10MB (men < 100MB)
-- Kontrollera att timeout-hantering fungerar
-- Verifiera att stora filer markeras som "large file"
+### Test 2: Stora filer (begränsad på Vercel)
+- Testa med filer mellan 2-4MB
+- Kontrollera att frontend varnar för filer > 4MB
+- Verifiera att batch-storlek kontrolleras
 
-### Test 3: Batch med blandade resultat
-- Inkludera ogiltiga filtyper (.txt, .zip)
-- Inkludera en fil > 100MB
-- Verifiera att giltiga filer laddas upp trots fel på andra
+### Test 3: Överstorlek-hantering
+- Försök ladda upp fil > 4MB (ska avvisas av frontend)
+- Försök ladda upp batch > 3.5MB total (ska avvisas)
+- Kontrollera felmeddelanden är tydliga
 
 ### Test 4: Nätverksproblem
 - Simulera svag anslutning
