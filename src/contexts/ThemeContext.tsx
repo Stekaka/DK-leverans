@@ -35,11 +35,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     // Apply theme to document - simplified and robust
     const htmlElement = document.documentElement
     
-    if (theme === 'dark') {
-      htmlElement.classList.add('dark')
-    } else {
-      htmlElement.classList.remove('dark')
-    }
+    // Remove all existing theme classes first
+    htmlElement.classList.remove('dark', 'light')
+    
+    // Add the current theme class
+    htmlElement.classList.add(theme)
     
     // Save to localStorage
     localStorage.setItem('dk-theme', theme)

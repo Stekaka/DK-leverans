@@ -17,8 +17,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="sv">
-      <body className="font-sans bg-slate-50 dark:bg-slate-900 transition-colors">
+    <html lang="sv" className="">
+      <body className="font-sans transition-colors min-h-screen bg-slate-50 dark:bg-slate-900">
         <ThemeProvider>
           <div className="min-h-screen">
             {children}

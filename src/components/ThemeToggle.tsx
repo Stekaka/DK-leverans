@@ -8,13 +8,11 @@ export default function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      className="group relative p-2 sm:p-3 rounded-xl transition-all duration-300 shadow-sm"
-      style={{
-        backgroundColor: theme === 'dark' ? '#374151' : '#f1f5f9',
-        borderColor: theme === 'dark' ? '#4b5563' : '#e2e8f0',
-        color: theme === 'dark' ? '#d1d5db' : '#475569',
-        border: '1px solid'
-      }}
+      className={`group relative p-2 sm:p-3 rounded-xl transition-all duration-300 shadow-sm border
+        ${theme === 'dark' 
+          ? 'bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600' 
+          : 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200'
+        }`}
       title={theme === 'light' ? 'Växla till mörkt läge' : 'Växla till ljust läge'}
     >
       <div className="relative w-5 h-5 sm:w-6 sm:h-6">
