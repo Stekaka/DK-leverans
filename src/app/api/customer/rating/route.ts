@@ -84,6 +84,8 @@ export async function PUT(request: NextRequest) {
     }
 
     // Uppdatera betyg
+    console.log(`Updating rating for file ${fileId}: rating=${rating}, notes=${notes || 'null'}`)
+    
     const { error: updateError } = await supabaseAdmin
       .from('files')
       .update({
@@ -101,6 +103,8 @@ export async function PUT(request: NextRequest) {
       )
     }
 
+    console.log(`Successfully updated rating for file ${fileId}`)
+    
     return NextResponse.json({ 
       success: true,
       message: 'Betyg uppdaterat'

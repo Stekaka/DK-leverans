@@ -309,15 +309,14 @@ export default function DashboardPage() {
       })
 
       if (response.ok) {
-        setFiles(prevFiles => 
-          prevFiles.map(file => 
-            file.id === fileId 
-              ? { ...file, customer_rating: rating as any, customer_notes: notes }
-              : file
-          )
-        )
+        // Istället för att bara uppdatera lokalt, ladda om filerna från servern
+        // för att säkerställa att vi har den senaste datan
+        await loadFiles()
+        
+        console.log('Rating updated successfully and files reloaded')
       } else {
         const error = await response.json()
+        console.error('Rating update failed:', error)
         alert('Kunde inte uppdatera betyg: ' + error.error)
       }
     } catch (error) {
@@ -925,26 +924,101 @@ export default function DashboardPage() {
                     <span>{new Date(file.uploaded_at).toLocaleDateString('sv-SE')}</span>
                   </div>
                   
-                  {/* Rating Stars */}
-                  <div className="flex items-center space-x-1 mb-3">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          const rating = star <= 2 ? 'poor' : star <= 3 ? 'good' : 'favorite'
-                          updateFileRating(file.id, rating)
-                        }}
-                        className={`text-lg transition-colors ${
-                          file.customer_rating === 'favorite' && star >= 4 ? 'text-yellow-400' :
-                          file.customer_rating === 'good' && star >= 2 && star <= 3 ? 'text-yellow-400' :
-                          file.customer_rating === 'poor' && star <= 2 ? 'text-red-400' :
-                          'text-slate-300 dark:text-slate-600 hover:text-yellow-400'
-                        }`}
-                      >
-                        ★
-                      </button>
-                    ))}
+                  {/* Rating with specific icons */}
+                  <div className="flex items-center justify-center mb-3">
+                    {file.customer_rating === 'favorite' ? (
+                      <div className="flex items-center space-x-1 text-yellow-500">
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                        <span className="text-xs text-yellow-600 dark:text-yellow-400">Favorit</span>
+                      </div>
+                    ) : file.customer_rating === 'good' ? (
+                      <div className="flex items-center space-x-1 text-green-500">
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-xs text-green-600 dark:text-green-400">Bra</span>
+                      </div>
+                    ) : file.customer_rating === 'poor' ? (
+                      <div className="flex items-center space-x-1 text-red-500">
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-xs text-red-600 dark:text-red-400">Mindre bra</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center space-x-1 text-gray-400">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">Ej betygsatt</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Quick rating buttons */}
+                  <div className="flex justify-center space-x-1 mb-3">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        updateFileRating(file.id, 'poor')
+                      }}
+                      className={`p-1 rounded transition-colors ${
+                        file.customer_rating === 'poor' 
+                          ? 'bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-400' 
+                          : 'text-gray-400 hover:text-red-500'
+                      }`}
+                      title="Mindre bra"
+                    >
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        updateFileRating(file.id, 'good')
+                      }}
+                      className={`p-1 rounded transition-colors ${
+                        file.customer_rating === 'good' 
+                          ? 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-400' 
+                          : 'text-gray-400 hover:text-green-500'
+                      }`}
+                      title="Bra"
+                    >
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        updateFileRating(file.id, 'favorite')
+                      }}
+                      className={`p-1 rounded transition-colors ${
+                        file.customer_rating === 'favorite' 
+                          ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900 dark:text-yellow-400' 
+                          : 'text-gray-400 hover:text-yellow-500'
+                      }`}
+                      title="Favorit"
+                    >
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        updateFileRating(file.id, 'unrated')
+                      }}
+                      className="p-1 rounded text-gray-400 hover:text-gray-600 transition-colors"
+                      title="Ta bort betyg"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
                   </div>
                   
                   <div className="flex space-x-2">
@@ -1104,25 +1178,88 @@ export default function DashboardPage() {
                         {new Date(file.uploaded_at).toLocaleDateString('sv-SE')}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center space-x-1">
-                          {[1, 2, 3, 4, 5].map((star) => (
+                        <div className="flex items-center space-x-2">
+                          {file.customer_rating === 'favorite' ? (
+                            <div className="flex items-center space-x-1 text-yellow-500">
+                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                              </svg>
+                              <span className="text-xs">Favorit</span>
+                            </div>
+                          ) : file.customer_rating === 'good' ? (
+                            <div className="flex items-center space-x-1 text-green-500">
+                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                              <span className="text-xs">Bra</span>
+                            </div>
+                          ) : file.customer_rating === 'poor' ? (
+                            <div className="flex items-center space-x-1 text-red-500">
+                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                              </svg>
+                              <span className="text-xs">Mindre bra</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center space-x-1 text-gray-400">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <span className="text-xs">Ej betygsatt</span>
+                            </div>
+                          )}
+                          
+                          {/* Quick rating buttons for list view */}
+                          <div className="flex space-x-1 ml-2">
                             <button
-                              key={star}
                               onClick={(e) => {
                                 e.stopPropagation()
-                                const rating = star <= 2 ? 'poor' : star <= 3 ? 'good' : 'favorite'
-                                updateFileRating(file.id, rating)
+                                updateFileRating(file.id, 'poor')
                               }}
-                              className={`text-sm transition-colors ${
-                                file.customer_rating === 'favorite' && star >= 4 ? 'text-yellow-400' :
-                                file.customer_rating === 'good' && star >= 2 && star <= 3 ? 'text-yellow-400' :
-                                file.customer_rating === 'poor' && star <= 2 ? 'text-red-400' :
-                                'text-slate-300 dark:text-slate-600 hover:text-yellow-400'
+                              className={`p-1 rounded transition-colors ${
+                                file.customer_rating === 'poor' 
+                                  ? 'bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-400' 
+                                  : 'text-gray-400 hover:text-red-500'
                               }`}
+                              title="Mindre bra"
                             >
-                              ★
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                              </svg>
                             </button>
-                          ))}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                updateFileRating(file.id, 'good')
+                              }}
+                              className={`p-1 rounded transition-colors ${
+                                file.customer_rating === 'good' 
+                                  ? 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-400' 
+                                  : 'text-gray-400 hover:text-green-500'
+                              }`}
+                              title="Bra"
+                            >
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                updateFileRating(file.id, 'favorite')
+                              }}
+                              className={`p-1 rounded transition-colors ${
+                                file.customer_rating === 'favorite' 
+                                  ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900 dark:text-yellow-400' 
+                                  : 'text-gray-400 hover:text-yellow-500'
+                              }`}
+                              title="Favorit"
+                            >
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                              </svg>
+                            </button>
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">

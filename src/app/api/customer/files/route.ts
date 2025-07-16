@@ -72,6 +72,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
+    console.log(`Fetched ${files?.length || 0} files for customer ${customer.id}`)
+    if (files && files.length > 0) {
+      console.log('Sample file data:', {
+        id: files[0].id,
+        customer_rating: files[0].customer_rating,
+        customer_notes: files[0].customer_notes ? 'has notes' : 'no notes'
+      })
+    }
+
     // Lägg till formaterad filstorlek och generera nedladdningslänkar
     const filesWithDetails = await Promise.all(
       (files || []).map(async (file) => {
