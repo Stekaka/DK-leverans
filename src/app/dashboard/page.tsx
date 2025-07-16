@@ -34,6 +34,12 @@ interface Customer {
 
 export default function DashboardPage() {
   const { theme } = useTheme()
+  
+  console.log('Dashboard rendering with theme:', theme)
+  console.log('Background style:', theme === 'dark' 
+    ? 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' 
+    : 'linear-gradient(135deg, #f8fafc 0%, #fefce8 100%)')
+  
   const [files, setFiles] = useState<CustomerFile[]>([])
   const [customer, setCustomer] = useState<Customer | null>(null)
   const [folders, setFolders] = useState<string[]>([])
@@ -369,18 +375,20 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen transition-colors" style={{
       background: theme === 'dark'
-        ? 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' 
-        : 'linear-gradient(135deg, #f8fafc 0%, #fefce8 100%)'
+        ? 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important' 
+        : 'linear-gradient(135deg, #f8fafc 0%, #fefce8 100%) !important'
     }}>
       {/* Debug info - remove later */}
       <div className="fixed top-0 right-0 z-50 bg-red-500 text-white p-2 text-xs">
-        Theme: {theme.toUpperCase()}
+        <div>Theme: {theme.toUpperCase()}</div>
+        <div>BG: {theme === 'dark' ? 'DARK-GRADIENT' : 'LIGHT-GRADIENT'}</div>
+        <div>Header: {theme === 'dark' ? 'DARK-HEADER' : 'LIGHT-HEADER'}</div>
       </div>
       
       {/* Header - Modern Design Matching Admin Panel */}
       <header className="shadow-lg border-b transition-colors" style={{
-        backgroundColor: theme === 'dark' ? '#1e293b' : '#ffffff',
-        borderColor: theme === 'dark' ? '#475569' : '#fef3c7'
+        backgroundColor: theme === 'dark' ? '#1e293b !important' : '#ffffff !important',
+        borderColor: theme === 'dark' ? '#475569 !important' : '#fef3c7 !important'
       }}>
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
           {/* Mobile Layout */}
