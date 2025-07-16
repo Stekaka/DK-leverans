@@ -764,11 +764,18 @@ export default function DashboardPage() {
                     }}
                   >
                     {file.is_image ? (
-                      file.thumbnail_url ? (
+                      file.thumbnail_url || file.download_url ? (
                         <img
-                          src={file.thumbnail_url}
+                          src={file.thumbnail_url || file.download_url || '/placeholder-image.png'}
                           alt={file.original_name}
                           className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // Fallback to download_url if thumbnail fails
+                            const target = e.target as HTMLImageElement
+                            if (target.src === file.thumbnail_url && file.download_url) {
+                              target.src = file.download_url
+                            }
+                          }}
                         />
                       ) : (
                         <div className="text-center p-4">
@@ -778,12 +785,39 @@ export default function DashboardPage() {
                           <span className="text-xs text-slate-500 dark:text-slate-400 mt-2 block">Tryck för att visa</span>
                         </div>
                       )
+                    ) : file.is_video ? (
+                      <div className="relative w-full h-full">
+                        {file.thumbnail_url ? (
+                          <img
+                            src={file.thumbnail_url}
+                            alt={file.original_name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
+                            <svg className="w-12 h-12 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                        )}
+                        {/* Video overlay */}
+                        <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
+                          <div className="bg-white bg-opacity-90 rounded-full p-3">
+                            <svg className="w-8 h-8 text-slate-800" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M8 5v10l8-5-8-5z"/>
+                            </svg>
+                          </div>
+                        </div>
+                        <div className="absolute bottom-2 right-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded">
+                          VIDEO
+                        </div>
+                      </div>
                     ) : (
                       <div className="text-center p-4">
                         <svg className="w-12 h-12 text-slate-400 dark:text-slate-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
-                        <span className="text-xs text-slate-500 dark:text-slate-400 mt-2 block">Tryck för att öppna</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400 mt-2 block">Tryck för att ladda ner</span>
                       </div>
                     )}
                   </div>
@@ -893,15 +927,54 @@ export default function DashboardPage() {
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <div className="flex-shrink-0 h-8 w-8 mr-3">
+                          <div className="flex-shrink-0 h-12 w-12 mr-3">
                             {file.is_image ? (
-                              <svg className="h-8 w-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
+                              file.thumbnail_url || file.download_url ? (
+                                <img
+                                  src={file.thumbnail_url || file.download_url || '/placeholder-image.png'}
+                                  alt={file.original_name}
+                                  className="h-12 w-12 rounded-lg object-cover border border-gray-200 dark:border-slate-600"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement
+                                    if (target.src === file.thumbnail_url && file.download_url) {
+                                      target.src = file.download_url
+                                    }
+                                  }}
+                                />
+                              ) : (
+                                <div className="h-12 w-12 rounded-lg bg-green-100 dark:bg-green-900 flex items-center justify-center">
+                                  <svg className="h-6 w-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                  </svg>
+                                </div>
+                              )
+                            ) : file.is_video ? (
+                              file.thumbnail_url ? (
+                                <div className="relative h-12 w-12 rounded-lg overflow-hidden">
+                                  <img
+                                    src={file.thumbnail_url}
+                                    alt={file.original_name}
+                                    className="h-12 w-12 object-cover"
+                                  />
+                                  <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+                                    <svg className="h-4 w-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                      <path d="M8 5v10l8-5-8-5z"/>
+                                    </svg>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="h-12 w-12 rounded-lg bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
+                                  <svg className="h-6 w-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                  </svg>
+                                </div>
+                              )
                             ) : (
-                              <svg className="h-8 w-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                              </svg>
+                              <div className="h-12 w-12 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                                <svg className="h-6 w-6 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                              </div>
                             )}
                           </div>
                           <div>
