@@ -90,6 +90,35 @@ export default function DirectUploadComponent({
     return `${Math.round(remainingTime / 60000)}min`
   }
 
+  // Helper function to test different admin passwords
+  const tryPresignedRequest = async (payload: any, possiblePasswords: string[]) => {
+    for (const password of possiblePasswords) {
+      console.log(`🔑 Trying password: ${password.substring(0, 10)}...`)
+      
+      try {
+        const response = await fetch('/api/admin/presigned-upload', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-password': password
+          },
+          body: JSON.stringify(payload)
+        })
+        
+        if (response.ok) {
+          console.log(`✅ Password works: ${password.substring(0, 10)}...`)
+          return { response, workingPassword: password }
+        } else {
+          console.log(`❌ Password failed (${response.status}): ${password.substring(0, 10)}...`)
+        }
+      } catch (error) {
+        console.log(`❌ Request failed with password ${password.substring(0, 10)}...:`, error)
+      }
+    }
+    
+    throw new Error('No working admin password found')
+  }
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const selectedFiles = Array.from(e.target.files)
@@ -287,35 +316,6 @@ export default function DirectUploadComponent({
     } finally {
       setUploading(false)
     }
-  }
-
-  // Helper function to test different admin passwords
-  const tryPresignedRequest = async (payload: any, possiblePasswords: string[]) => {
-    for (const password of possiblePasswords) {
-      console.log(`🔑 Trying password: ${password.substring(0, 10)}...`)
-      
-      try {
-        const response = await fetch('/api/admin/presigned-upload', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-admin-password': password
-          },
-          body: JSON.stringify(payload)
-        })
-        
-        if (response.ok) {
-          console.log(`✅ Password works: ${password.substring(0, 10)}...`)
-          return { response, workingPassword: password }
-        } else {
-          console.log(`❌ Password failed (${response.status}): ${password.substring(0, 10)}...`)
-        }
-      } catch (error) {
-        console.log(`❌ Request failed with password ${password.substring(0, 10)}...:`, error)
-      }
-    }
-    
-    throw new Error('No working admin password found')
   }
 
   return (
