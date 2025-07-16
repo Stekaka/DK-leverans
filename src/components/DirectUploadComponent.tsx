@@ -290,8 +290,20 @@ export default function DirectUploadComponent({
         resolve(false)
       })
       
+      // Optimera för Cloudflare R2 och stora filer
       xhr.open('PUT', presignedUrl)
-      xhr.setRequestHeader('Content-Type', file.type)
+      
+      // Optimerade headers för R2 och hastighet
+      xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream')
+      
+      // Cloudflare R2 specifika optimeringar
+      if (file.size > 100 * 1024 * 1024) { // För filer > 100MB
+        xhr.setRequestHeader('Content-Encoding', 'identity') // Förhindra kompression
+        xhr.setRequestHeader('Cache-Control', 'no-cache') // Undvik cache-problem
+      }
+      
+      // Timeout för stora filer (30 minuter för stora uploads)
+      xhr.timeout = file.size > 1000 * 1024 * 1024 ? 30 * 60 * 1000 : 10 * 60 * 1000
       
       setUploadStatus(prev => ({ ...prev, [file.name]: 'uploading' }))
       xhr.send(file)
@@ -458,19 +470,47 @@ export default function DirectUploadComponent({
       
       console.log(`📝 Total presigned URLs generated: ${allPresignedUrls.length}`)
 
-      // Steg 2: Ladda upp alla filer direkt till R2
-      const uploadPromises = files.map(async (file, index) => {
-        const presignedData = allPresignedUrls[index]
-        if (!presignedData) {
-          console.error(`No presigned URL for file: ${file.name}`)
-          return { success: false, file, presignedData: null }
-        }
+      // Steg 2: Ladda upp filer med begränsad parallellism för att optimera hastighet
+      console.log('🚀 Starting parallel uploads with concurrency control...')
+      
+      const CONCURRENT_UPLOADS = 3 // Begränsa till 3 parallella uploads för optimal hastighet
+      const uploadResults = []
+      
+      for (let i = 0; i < files.length; i += CONCURRENT_UPLOADS) {
+        const batch = files.slice(i, i + CONCURRENT_UPLOADS)
+        console.log(`📦 Processing upload batch ${Math.floor(i / CONCURRENT_UPLOADS) + 1}: ${batch.length} files`)
         
-        const success = await uploadFileDirectly(file, presignedData.presignedUrl)
-        return { success, file, presignedData }
-      })
+        const batchPromises = batch.map(async (file, batchIndex) => {
+          const fileIndex = i + batchIndex
+          const presignedData = allPresignedUrls[fileIndex]
+          
+          if (!presignedData) {
+            console.error(`No presigned URL for file: ${file.name}`)
+            return { success: false, file, presignedData: null }
+          }
+          
+          console.log(`⬆️ Starting upload: ${file.name} (${(file.size / 1024 / 1024).toFixed(1)}MB)`)
+          const success = await uploadFileDirectly(file, presignedData.presignedUrl)
+          
+          if (success) {
+            console.log(`✅ Upload completed: ${file.name}`)
+          } else {
+            console.log(`❌ Upload failed: ${file.name}`)
+          }
+          
+          return { success, file, presignedData }
+        })
+        
+        const batchResults = await Promise.all(batchPromises)
+        uploadResults.push(...batchResults)
+        
+        // Kort paus mellan batchar för att inte överbelasta
+        if (i + CONCURRENT_UPLOADS < files.length) {
+          console.log('⏱️ Brief pause between batches...')
+          await new Promise(resolve => setTimeout(resolve, 500))
+        }
+      }
 
-      const uploadResults = await Promise.all(uploadPromises)
       const successfulUploads = uploadResults.filter(r => r.success && r.presignedData)
 
       console.log(`✅ ${successfulUploads.length}/${files.length} uploads successful`)

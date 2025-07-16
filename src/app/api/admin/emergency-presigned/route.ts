@@ -50,11 +50,11 @@ export async function POST(request: NextRequest) {
       console.log(`📁 Original folder path: ${file.folderPath || '<root>'}`)
       console.log(`📄 File size: ${(file.size / (1024 * 1024)).toFixed(1)} MB`)
 
-      // Skapa presigned URL för R2 upload - förbättrad för stora filer
+      // Skapa presigned URL för R2 upload - optimerad för hastighet och stora filer
       const putCommand = new PutObjectCommand({
         Bucket: process.env.CLOUDFLARE_R2_BUCKET_NAME!,
         Key: fileKey,
-        ContentType: file.type,
+        ContentType: file.type || 'application/octet-stream',
         ContentLength: file.size,
         Metadata: {
           'original-name': file.name,
@@ -63,12 +63,17 @@ export async function POST(request: NextRequest) {
           'folder-path': file.folderPath || '',
           'relative-path': (file as any).relativePath || file.name,
           'file-size': file.size.toString()
-        }
+        },
+        // Cloudflare R2 optimeringar för stora filer
+        StorageClass: 'STANDARD',
+        ServerSideEncryption: undefined // Undvik extra overhead
       })
 
       try {
+        // Förlängd giltighet och optimerade inställningar för stora filer
         const presignedUrl = await getSignedUrl(r2Client, putCommand, { 
-          expiresIn: 7200 // Utöka till 2 timmar för stora filer
+          expiresIn: 10800, // 3 timmar för extra stora filer
+          signableHeaders: new Set(['content-type']), // Begränsa headers för hastighet
         })
 
         presignedUrls.push({
