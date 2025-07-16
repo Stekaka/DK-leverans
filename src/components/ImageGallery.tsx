@@ -84,7 +84,18 @@ export default function ImageGallery({
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Prevent default behavior for navigation keys
+      // Block all shortcuts when notes modal is open
+      if (showNotesModal) {
+        // Only allow Escape to close the modal
+        if (e.key === 'Escape') {
+          e.preventDefault()
+          setShowNotesModal(false)
+          setNotes('')
+        }
+        return // Exit early to prevent any other shortcuts
+      }
+
+      // Prevent default behavior for navigation keys (only when modal is closed)
       if (['ArrowLeft', 'ArrowRight', ' ', 'Escape'].includes(e.key)) {
         e.preventDefault()
       }
@@ -120,7 +131,7 @@ export default function ImageGallery({
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [currentIndex, currentFile])
+  }, [currentIndex, currentFile, showNotesModal])
 
   const goToNext = () => {
     setCurrentIndex((prev) => {
@@ -573,6 +584,9 @@ export default function ImageGallery({
               <span>3: Favorit</span>
               <span>F: Fullskärm</span>
               <span>D: Ladda ner</span>
+              {showNotesModal && (
+                <span className="text-yellow-400">Ctrl+Enter: Spara kommentar</span>
+              )}
             </div>
           </div>
         </div>
@@ -583,13 +597,33 @@ export default function ImageGallery({
         <div className="absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center z-20">
           <div className="bg-white dark:bg-slate-800 rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Anteckningar</h3>
+            <p className="text-xs text-gray-500 dark:text-slate-400 mb-3">
+              💡 Tangentbordsgenvägar är tillfälligt blockerade medan du skriver
+            </p>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Lägg till dina anteckningar..."
-              className="w-full h-32 p-3 border border-gray-300 dark:border-slate-600 rounded-lg resize-none text-gray-900 dark:text-white bg-white dark:bg-slate-700"
+              className="w-full h-32 p-3 border border-gray-300 dark:border-slate-600 rounded-lg resize-none text-gray-900 dark:text-white bg-white dark:bg-slate-700 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+              autoFocus
+              onKeyDown={(e) => {
+                // Allow Ctrl+Enter or Cmd+Enter to save
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                  e.preventDefault()
+                  handleNotesUpdate()
+                }
+                // Prevent Escape from propagating to parent handler
+                if (e.key === 'Escape') {
+                  e.stopPropagation()
+                  setShowNotesModal(false)
+                  setNotes('')
+                }
+              }}
             />
             <div className="flex justify-end space-x-3 mt-4">
+              <div className="flex-1 text-xs text-gray-500 dark:text-slate-400 flex items-center">
+                <span>Ctrl+Enter för att spara snabbt</span>
+              </div>
               <button
                 onClick={() => setShowNotesModal(false)}
                 className="px-4 py-2 text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200"
