@@ -95,7 +95,7 @@ export default function DirectUploadComponent({
       const selectedFiles = Array.from(e.target.files)
       
       // Begränsa antalet filer för att undvika Vercel payload-problem
-      const maxFiles = 10
+      const maxFiles = 6 // Minska till 6 filer (3 batches à 2 filer) för att undvika request-problem
       if (selectedFiles.length > maxFiles) {
         alert(`För många filer! Max ${maxFiles} filer åt gången för att undvika upload-problem. Välj färre filer och prova igen.`)
         return
@@ -172,13 +172,28 @@ export default function DirectUploadComponent({
       console.log(`📁 Files to upload: ${files.length}`)
       console.log(`🔐 Using admin password: ${adminPassword.substring(0, 10)}...`)
       
-      // Steg 1: Hämta presigned URLs (begränsa batch-storlek)
-      const batchSize = 5 // Begränsa till 5 filer per batch för att undvika payload-problem
+      // Steg 1: Hämta presigned URLs (extra liten batch-storlek för att undvika payload-problem)
+      const batchSize = 1 // Endast 1 fil per batch för att helt undvika "Request Entity Too Large"
       const allPresignedUrls: PresignedUpload[] = []
       
       for (let i = 0; i < files.length; i += batchSize) {
         const batch = files.slice(i, i + batchSize)
         console.log(`📦 Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(files.length/batchSize)} with ${batch.length} files`)
+        
+        // Begränsa metadata-storlek för att minska payload
+        const payload = {
+          customerId,
+          files: batch.map(file => ({
+            name: file.name.substring(0, 200), // Begränsa filnamn till 200 tecken
+            size: file.size,
+            type: file.type.substring(0, 100), // Begränsa MIME-typ
+            folderPath: folderPath.substring(0, 100) // Begränsa mapp-sökväg
+          }))
+        }
+        
+        // Logga payload-storlek för debug
+        const payloadSize = JSON.stringify(payload).length
+        console.log(`📏 Payload size for batch: ${payloadSize} bytes`)
         
         const presignedResponse = await fetch('/api/admin/presigned-upload', {
           method: 'POST',
@@ -186,15 +201,7 @@ export default function DirectUploadComponent({
             'Content-Type': 'application/json',
             'x-admin-password': adminPassword
           },
-          body: JSON.stringify({
-            customerId,
-            files: batch.map(file => ({
-              name: file.name,
-              size: file.size,
-              type: file.type,
-              folderPath
-            }))
-          })
+          body: JSON.stringify(payload)
         })
 
         if (!presignedResponse.ok) {
@@ -202,8 +209,15 @@ export default function DirectUploadComponent({
           console.error('❌ Presigned upload request failed:', {
             status: presignedResponse.status,
             statusText: presignedResponse.statusText,
-            response: errorText
+            response: errorText,
+            payloadSize: `${payloadSize} bytes`
           })
+          
+          // Specifik hantering för Request Entity Too Large
+          if (presignedResponse.status === 413) {
+            throw new Error(`Request Entity Too Large (${payloadSize} bytes). Försök med färre filer åt gången eller kortare filnamn.`)
+          }
+          
           throw new Error(`Failed to get presigned URLs: ${presignedResponse.status} ${presignedResponse.statusText} - ${errorText}`)
         }
 

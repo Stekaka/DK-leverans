@@ -26,8 +26,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Begränsa request-storlek för att undvika Vercel payload-problem
+    const contentLength = request.headers.get('content-length')
+    const maxPayloadSize = 1024 * 1024 // 1MB max payload
+    
+    if (contentLength && parseInt(contentLength) > maxPayloadSize) {
+      console.log(`❌ Payload too large: ${contentLength} bytes (max: ${maxPayloadSize})`)
+      return NextResponse.json({ 
+        error: `Request payload too large. Max ${maxPayloadSize} bytes allowed.` 
+      }, { status: 413 })
+    }
+
     const body: PresignedUploadRequest = await request.json()
     const { customerId, files } = body
+
+    // Extra validering av payload-storlek
+    if (files.length > 1) { // Max 1 fil per batch för säkerhet
+      console.log(`❌ Too many files in batch: ${files.length} (max: 1)`)
+      return NextResponse.json({ 
+        error: 'Too many files in batch. Max 1 file per request.' 
+      }, { status: 400 })
+    }
 
     console.log(`📝 Generating presigned URLs for ${files.length} files`)
     console.log(`👤 Customer ID: ${customerId}`)
