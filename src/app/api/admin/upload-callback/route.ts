@@ -93,17 +93,27 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      dbFiles.push({
+      const dbFile: any = {
         customer_id: customerId,
         filename: file.fileKey, // Filnamn i R2 (med timestamp)
         original_name: file.originalName, // Original filnamn från upload
         file_size: file.size,
         file_type: file.type,
         cloudflare_url: `https://${process.env.CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${process.env.CLOUDFLARE_R2_BUCKET_NAME}/${file.fileKey}`,
-        folder_path: file.folderPath || '',
-        thumbnail_url: thumbnailUrl,
         uploaded_at: new Date().toISOString()
-      })
+      }
+
+      // Lägg till thumbnail_url om den finns
+      if (thumbnailUrl) {
+        dbFile.thumbnail_url = thumbnailUrl
+      }
+
+      // Lägg till folder_path om kolumnen finns (graceful degradation)
+      if (file.folderPath) {
+        dbFile.folder_path = file.folderPath
+      }
+
+      dbFiles.push(dbFile)
     }
 
     console.log(`💾 Preparing to insert ${dbFiles.length} files into database`)
