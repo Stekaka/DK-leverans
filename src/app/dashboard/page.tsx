@@ -396,15 +396,51 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-slate-950">
-      {/* Advanced Header */}
       <header className="relative bg-gradient-to-r from-slate-900 via-yellow-900 to-slate-900 shadow-tech border-b border-yellow-500/20 overflow-hidden">
         {/* Tech background */}
         <div className="absolute inset-0 bg-tech-grid opacity-10"></div>
         <div className="absolute top-0 left-1/4 w-96 h-24 bg-gradient-to-r from-yellow-500/10 to-yellow-400/10 blur-2xl"></div>
         <div className="absolute bottom-0 right-1/4 w-80 h-20 bg-gradient-to-l from-yellow-500/15 to-yellow-600/15 blur-xl"></div>
         
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
+        <div className="relative max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
+          {/* Mobile Layout */}
+          <div className="block sm:hidden">
+            <div className="flex justify-between items-center py-4">
+              <DrönarkompanietLogo variant="text" size="sm" className="text-white" />
+              <button 
+                onClick={logout}
+                className="group relative text-white/70 hover:text-white transition-all duration-300 p-2 rounded-lg hover:bg-white/10 border border-white/20 hover:border-white/30"
+                title="Logga ut"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </button>
+            </div>
+            <div className="pb-4">
+              <div className="backdrop-blur-sm bg-white/10 rounded-lg px-4 py-3 border border-white/20 mb-3">
+                <span className="text-white font-medium text-sm block">
+                  {customer?.name}
+                </span>
+                <div className="text-yellow-300 text-xs font-medium">
+                  {customer?.project}
+                </div>
+              </div>
+              <button 
+                onClick={downloadAll}
+                disabled={filteredFiles.length === 0}
+                className="w-full group relative bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 hover:to-yellow-500 text-white px-4 py-3 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-glow-sm hover:shadow-glow-md border border-yellow-400/50"
+              >
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+                <span className="text-sm">Ladda ner alla ({filteredFiles.length})</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Desktop Layout */}
+          <div className="hidden sm:flex justify-between items-center py-6">
             <div className="flex items-center space-x-6">
               <DrönarkompanietLogo variant="full" size="md" className="text-white" />
               <div className="flex items-center space-x-4">
@@ -451,51 +487,53 @@ export default function DashboardPage() {
           </div>
         </header>
 
-        {/* Main Content with Tech Styling */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Smart ZIP Info */}
+        {/* Main Content with Tech Styling - Mobile Optimized */}
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
+          {/* Smart ZIP Info - Mobile Optimized */}
           {(filteredFiles.length > 10 || formattedTotalSize.includes('GB')) && (
-            <div className="relative mb-6 backdrop-blur-sm bg-gradient-to-r from-yellow-500/20 to-yellow-500/20 rounded-2xl p-6 border border-yellow-400/30 shadow-tech overflow-hidden">
+            <div className="relative mb-4 sm:mb-6 backdrop-blur-sm bg-gradient-to-r from-yellow-500/20 to-yellow-500/20 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-yellow-400/30 shadow-tech overflow-hidden">
               {/* Tech background */}
               <div className="absolute inset-0 bg-tech-circuit opacity-5"></div>
-              <div className="relative flex items-center space-x-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-yellow-500 rounded-xl flex items-center justify-center shadow-glow-sm">
-                  <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <div className="relative flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-yellow-500 to-yellow-500 rounded-lg sm:rounded-xl flex items-center justify-center shadow-glow-sm flex-shrink-0">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold bg-gradient-to-r from-white to-yellow-100 bg-clip-text text-transparent">Smart ZIP-nedladdning aktiverad</h3>
-                  <p className="text-yellow-100">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base sm:text-lg font-semibold bg-gradient-to-r from-white to-yellow-100 bg-clip-text text-transparent">Smart ZIP-nedladdning aktiverad</h3>
+                  <p className="text-sm sm:text-base text-yellow-100 mt-1">
                     {filteredFiles.length > 10 ? 
                       `Med ${filteredFiles.length} filer kommer de automatiskt att zippas för enklare nedladdning.` :
                       `Med ${formattedTotalSize} kommer filerna automatiskt att zippas för snabbare nedladdning.`
                     }
-                    {" "}ZIP aktiveras automatiskt för {'>'}10 filer eller {'>'}5GB total storlek.
+                    <span className="hidden sm:inline">
+                      {" "}ZIP aktiveras automatiskt för {'>'}10 filer eller {'>'}5GB total storlek.
+                    </span>
                   </p>
                 </div>
-                {/* Tech accent */}
-                <div className="w-1 h-16 bg-gradient-to-b from-yellow-400 to-yellow-500 rounded-full opacity-60"></div>
+                {/* Tech accent - hidden on mobile */}
+                <div className="hidden sm:block w-1 h-16 bg-gradient-to-b from-yellow-400 to-yellow-500 rounded-full opacity-60"></div>
               </div>
             </div>
           )}
 
-          {/* Mappnavigering */}
+          {/* Mappnavigering - Mobile Optimized */}
           {folders.length > 0 && (
-            <div className="mb-6">
-              <div className="backdrop-blur-sm bg-white/10 rounded-2xl shadow-tech p-6 border border-white/20 relative overflow-hidden">
+            <div className="mb-4 sm:mb-6">
+              <div className="backdrop-blur-sm bg-white/10 rounded-xl sm:rounded-2xl shadow-tech p-4 sm:p-6 border border-white/20 relative overflow-hidden">
                 {/* Tech background */}
                 <div className="absolute inset-0 bg-tech-grid opacity-5"></div>
-                <div className="relative flex items-center space-x-3 mb-4">
-                <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                <div className="relative flex items-center space-x-3 mb-3 sm:mb-4">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
                 </svg>
-                <span className="text-sm font-medium text-gray-700">Mappar:</span>
+                <span className="text-xs sm:text-sm font-medium text-gray-700">Mappar:</span>
               </div>
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => navigateToFolder('')}
-                  className={`px-3 py-1 rounded text-sm ${
+                  className={`px-2 py-1 sm:px-3 sm:py-1 rounded text-xs sm:text-sm ${
                     currentFolder === '' ? 'bg-yellow-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                   }`}
                 >
@@ -505,9 +543,10 @@ export default function DashboardPage() {
                   <button
                     key={folder}
                     onClick={() => navigateToFolder(folder)}
-                    className={`px-3 py-1 rounded text-sm ${
+                    className={`px-2 py-1 sm:px-3 sm:py-1 rounded text-xs sm:text-sm truncate max-w-32 sm:max-w-none ${
                       currentFolder === folder ? 'bg-yellow-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                     }`}
+                    title={folder || 'Root'}
                   >
                     {folder || 'Root'}
                   </button>
@@ -516,7 +555,7 @@ export default function DashboardPage() {
               {currentFolder && (
                 <button
                   onClick={navigateUp}
-                  className="mt-2 text-yellow-600 hover:text-yellow-800 text-sm"
+                  className="mt-2 text-yellow-600 hover:text-yellow-800 text-xs sm:text-sm"
                 >
                   ← Tillbaka
                 </button>
@@ -525,103 +564,109 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Statistik */}
-        <div className="mb-8">
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* Statistik - Mobile Optimized */}
+        <div className="mb-6 sm:mb-8">
+          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-4 sm:mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
               <div className="text-center">
-                <div className="text-3xl font-bold text-yellow-600">{totalFiles}</div>
-                <div className="text-sm text-gray-600">Totala filer</div>
+                <div className="text-xl sm:text-3xl font-bold text-yellow-600">{totalFiles}</div>
+                <div className="text-xs sm:text-sm text-gray-600">Totala filer</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-green-600">{totalImages}</div>
-                <div className="text-sm text-gray-600">Bilder</div>
+                <div className="text-xl sm:text-3xl font-bold text-green-600">{totalImages}</div>
+                <div className="text-xs sm:text-sm text-gray-600">Bilder</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-purple-600">{totalVideos}</div>
-                <div className="text-sm text-gray-600">Videor</div>
+                <div className="text-xl sm:text-3xl font-bold text-purple-600">{totalVideos}</div>
+                <div className="text-xs sm:text-sm text-gray-600">Videor</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-orange-600">{formattedTotalSize}</div>
-                <div className="text-sm text-gray-600">Total storlek</div>
+                <div className="text-xl sm:text-3xl font-bold text-orange-600">{formattedTotalSize}</div>
+                <div className="text-xs sm:text-sm text-gray-600">Total storlek</div>
               </div>
             </div>
           </div>
 
-          {/* Controls */}
-          <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-600">Filter:</span>
+          {/* Controls - Mobile Optimized */}
+          <div className="space-y-4 mb-4 sm:mb-6">
+            {/* File Type Filters */}
+            <div className="space-y-2">
+              <span className="text-xs sm:text-sm text-gray-600 font-medium block">Filter:</span>
+              <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setFilter('all')}
-                  className={`px-3 py-1 rounded text-sm ${filter === 'all' ? 'bg-yellow-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+                  className={`px-2 py-1 sm:px-3 sm:py-1 rounded text-xs sm:text-sm ${filter === 'all' ? 'bg-yellow-600 text-white' : 'bg-gray-200 text-gray-700'}`}
                 >
                   Alla ({totalFiles})
                 </button>
                 <button
                   onClick={() => setFilter('images')}
-                  className={`px-3 py-1 rounded text-sm ${filter === 'images' ? 'bg-yellow-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+                  className={`px-2 py-1 sm:px-3 sm:py-1 rounded text-xs sm:text-sm ${filter === 'images' ? 'bg-yellow-600 text-white' : 'bg-gray-200 text-gray-700'}`}
                 >
                   Bilder ({totalImages})
                 </button>
                 <button
                   onClick={() => setFilter('videos')}
-                  className={`px-3 py-1 rounded text-sm ${filter === 'videos' ? 'bg-yellow-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+                  className={`px-2 py-1 sm:px-3 sm:py-1 rounded text-xs sm:text-sm ${filter === 'videos' ? 'bg-yellow-600 text-white' : 'bg-gray-200 text-gray-700'}`}
                 >
                   Videor ({totalVideos})
                 </button>
               </div>
-              
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-600">Betyg:</span>
+            </div>
+            
+            {/* Rating Filters */}
+            <div className="space-y-2">
+              <span className="text-xs sm:text-sm text-gray-600 font-medium block">Betyg:</span>
+              <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setFilter('favorite')}
-                  className={`px-3 py-1 rounded text-sm flex items-center space-x-1 ${filter === 'favorite' ? 'bg-yellow-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+                  className={`px-2 py-1 sm:px-3 sm:py-1 rounded text-xs sm:text-sm flex items-center space-x-1 ${filter === 'favorite' ? 'bg-yellow-500 text-white' : 'bg-gray-200 text-gray-700'}`}
                 >
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                   </svg>
                   <span>({totalFavorites})</span>
                 </button>
                 <button
                   onClick={() => setFilter('good')}
-                  className={`px-3 py-1 rounded text-sm flex items-center space-x-1 ${filter === 'good' ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+                  className={`px-2 py-1 sm:px-3 sm:py-1 rounded text-xs sm:text-sm flex items-center space-x-1 ${filter === 'good' ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-700'}`}
                 >
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
                   <span>({totalGood})</span>
                 </button>
                 <button
                   onClick={() => setFilter('poor')}
-                  className={`px-3 py-1 rounded text-sm flex items-center space-x-1 ${filter === 'poor' ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+                  className={`px-2 py-1 sm:px-3 sm:py-1 rounded text-xs sm:text-sm flex items-center space-x-1 ${filter === 'poor' ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-700'}`}
                 >
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                   </svg>
                   <span>({totalPoor})</span>
                 </button>
                 <button
                   onClick={() => setFilter('unrated')}
-                  className={`px-3 py-1 rounded text-sm ${filter === 'unrated' ? 'bg-gray-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+                  className={`px-2 py-1 sm:px-3 sm:py-1 rounded text-xs sm:text-sm ${filter === 'unrated' ? 'bg-gray-500 text-white' : 'bg-gray-200 text-gray-700'}`}
                 >
                   Ej betygsatt ({totalUnrated})
                 </button>
               </div>
             </div>
-
-            <div className="flex items-center space-x-4">
-              {selectedItems.length > 0 && (
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-600">{selectedItems.length} valda</span>
+            
+            {/* Selection and View Controls */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              {/* Selected Items */}
+              {selectedItems.length > 0 ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs sm:text-sm text-gray-600">{selectedItems.length} valda</span>
                   <button
                     onClick={downloadSelected}
-                    className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 flex items-center space-x-1"
+                    className="bg-green-600 text-white px-2 py-1 sm:px-3 sm:py-1 rounded text-xs sm:text-sm hover:bg-green-700 flex items-center space-x-1"
                   >
                     {selectedItems.length > 1 ? (
                       <>
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
                         </svg>
                         <span>Ladda ner ZIP</span>
@@ -631,64 +676,67 @@ export default function DashboardPage() {
                     )}
                   </button>
                   {selectedItems.length > 1 && (
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-gray-500 hidden sm:inline">
                       (Auto-ZIP för flera filer)
                     </span>
                   )}
                   <button
                     onClick={clearSelection}
-                    className="text-gray-600 hover:text-gray-800 text-sm"
+                    className="text-gray-600 hover:text-gray-800 text-xs sm:text-sm"
                   >
                     Rensa
                   </button>
                 </div>
+              ) : (
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={selectAll}
+                    disabled={filteredFiles.length === 0}
+                    className="text-yellow-600 hover:text-yellow-800 text-xs sm:text-sm disabled:opacity-50"
+                  >
+                    Välj alla
+                  </button>
+                </div>
               )}
-              
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={selectAll}
-                  disabled={filteredFiles.length === 0}
-                  className="text-yellow-600 hover:text-yellow-800 text-sm disabled:opacity-50"
-                >
-                  Välj alla
-                </button>
-              </div>
 
+              {/* View Mode */}
               <div className="flex items-center space-x-2">
+                <span className="text-xs sm:text-sm text-gray-600 hidden sm:inline">Vy:</span>
                 <button
                   onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded ${viewMode === 'grid' ? 'bg-yellow-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+                  className={`p-1.5 sm:p-2 rounded ${viewMode === 'grid' ? 'bg-yellow-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+                  title="Rutnät"
                 >
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                   </svg>
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`p-2 rounded ${viewMode === 'list' ? 'bg-yellow-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+                  className={`p-1.5 sm:p-2 rounded ${viewMode === 'list' ? 'bg-yellow-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+                  title="Lista"
                 >
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
                   </svg>
                 </button>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Filvisning */}
+        {/* Filvisning - Mobile Optimized */}
         {filteredFiles.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-            <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="bg-white rounded-lg shadow-sm p-8 sm:p-12 text-center">
+            <svg className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Inga filer hittades</h3>
-            <p className="text-gray-600">
+            <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">Inga filer hittades</h3>
+            <p className="text-sm sm:text-base text-gray-600">
               {currentFolder ? `Mappen "${currentFolder}" är tom.` : 'Du har inga filer än.'}
             </p>
           </div>
         ) : viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
             {filteredFiles.map((file, index) => (
               <div
                 key={file.id}

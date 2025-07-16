@@ -337,10 +337,31 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-drone-cloud to-yellow-50">
-      {/* Header */}
+      {/* Header - Mobile Optimized */}
       <header className="bg-white shadow-sm border-b border-yellow-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
+          {/* Mobile Layout */}
+          <div className="block sm:hidden">
+            <div className="flex justify-between items-center py-3">
+              <DrönarkompanietLogo variant="text" size="sm" />
+              <button className="text-slate-600 hover:text-yellow-700 text-sm">
+                Logga ut
+              </button>
+            </div>
+            <div className="pb-3">
+              <span className="text-xs text-slate-600 font-medium">Admin Panel</span>
+              <div className="flex items-center space-x-2 mt-1">
+                <span className="text-xs text-slate-600">Inloggad som: Admin</span>
+                <span className="text-slate-300">•</span>
+                <Link href="/" className="text-yellow-600 hover:text-yellow-700 text-xs">
+                  Till kundportal
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop Layout */}
+          <div className="hidden sm:flex justify-between items-center py-4">
             <div className="flex items-center space-x-4">
               <DrönarkompanietLogo variant="full" size="md" />
               <div className="border-l border-gray-300 pl-4">
@@ -360,24 +381,24 @@ export default function AdminDashboard() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow-lg border border-yellow-50">
-            <div className="text-3xl font-bold text-yellow-600">{loading ? '...' : customers.length}</div>
-            <div className="text-sm text-slate-600">Totala kunder</div>
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
+        {/* Stats - Mobile Optimized */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
+          <div className="bg-white p-3 sm:p-4 lg:p-6 rounded-lg shadow-lg border border-yellow-50">
+            <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-yellow-600">{loading ? '...' : customers.length}</div>
+            <div className="text-xs sm:text-sm text-slate-600">Totala kunder</div>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow-lg border border-yellow-50">
-            <div className="text-3xl font-bold text-yellow-600">
+          <div className="bg-white p-3 sm:p-4 lg:p-6 rounded-lg shadow-lg border border-yellow-50">
+            <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-yellow-600">
               {loading ? '...' : customers.filter(c => c.status === 'active').length}
             </div>
-            <div className="text-sm text-slate-600">Aktiva konton</div>
+            <div className="text-xs sm:text-sm text-slate-600">Aktiva konton</div>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow-lg border border-yellow-50">
-            <div className="text-3xl font-bold text-yellow-500">
+          <div className="bg-white p-3 sm:p-4 lg:p-6 rounded-lg shadow-lg border border-yellow-50">
+            <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-yellow-500">
               {loading ? '...' : fileStats.totalFiles}
             </div>
-            <div className="text-sm text-slate-600">Uppladdade filer</div>
+            <div className="text-xs sm:text-sm text-slate-600">Uppladdade filer</div>
           </div>
           <div className="bg-white p-6 rounded-lg shadow-lg border border-yellow-50">
             <div className="text-3xl font-bold text-yellow-700">

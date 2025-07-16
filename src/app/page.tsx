@@ -16,16 +16,16 @@ export default function HomePage() {
         </div>
         
         {/* Simple Navigation */}
-        <nav className="relative z-20 container mx-auto px-6 py-6">
-          <div className="flex items-center justify-between backdrop-blur-sm bg-white/5 rounded-xl px-8 py-4 border border-white/10">
-            <div className="text-2xl font-bold text-white">
+        <nav className="relative z-20 container mx-auto px-4 sm:px-6 py-4 sm:py-6">
+          <div className="flex items-center justify-between backdrop-blur-sm bg-white/5 rounded-xl px-4 sm:px-8 py-3 sm:py-4 border border-white/10">
+            <div className="text-xl sm:text-2xl font-bold text-white">
               <span className="text-yellow-500">Drönar</span>kompaniet
             </div>
-            <div className="flex items-center space-x-4">
-              <Link href="/login" className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 hover:to-yellow-500 text-black px-6 py-3 rounded-lg transition-all duration-300 font-semibold">
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              <Link href="/login" className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 hover:to-yellow-500 text-black px-3 sm:px-6 py-2 sm:py-3 rounded-lg transition-all duration-300 font-semibold text-sm sm:text-base">
                 Logga in
               </Link>
-              <Link href="/admin" className="text-white/70 hover:text-white transition-colors text-sm font-medium px-4 py-2 rounded-lg hover:bg-white/5">
+              <Link href="/admin" className="text-white/70 hover:text-white transition-colors text-xs sm:text-sm font-medium px-2 sm:px-4 py-2 rounded-lg hover:bg-white/5">
                 Admin
               </Link>
             </div>
@@ -33,11 +33,12 @@ export default function HomePage() {
         </nav>
         
         {/* Hero Content */}
-        <div className="relative z-10 container mx-auto px-6 py-20 text-center">
+        <div className="relative z-10 container mx-auto px-4 sm:px-6 py-12 sm:py-20 text-center">
           {/* Main Headline */}
-          <div className="mb-8">
-            <h1 className="text-6xl font-bold mb-4 bg-gradient-to-r from-white via-slate-100 to-yellow-400 bg-clip-text text-transparent">
-              Välkommen till Drönarkompaniets
+          <div className="mb-6 sm:mb-8">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 bg-gradient-to-r from-white via-slate-100 to-yellow-400 bg-clip-text text-transparent leading-tight">
+              Välkommen till
+              <span className="block">Drönarkompaniets</span>
               <span className="block bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent">
                 leveransportal
               </span>
@@ -45,8 +46,8 @@ export default function HomePage() {
           </div>
           
           {/* Description */}
-          <div className="max-w-3xl mx-auto mb-12">
-            <p className="text-xl leading-relaxed text-slate-200 bg-black/20 rounded-xl p-8 border border-yellow-500/20">
+          <div className="max-w-3xl mx-auto mb-8 sm:mb-12">
+            <p className="text-base sm:text-lg lg:text-xl leading-relaxed text-slate-200 bg-black/20 rounded-xl p-4 sm:p-6 lg:p-8 border border-yellow-500/20">
               <span className="text-yellow-400 font-semibold">
                 Logga in för att ladda ner dina beställda drönarbilder och videor.
               </span>
@@ -57,14 +58,15 @@ export default function HomePage() {
           </div>
           
           {/* Call-to-Action Button */}
-          <div className="mb-16">
+          <div className="mb-12 sm:mb-16">
             <Link href="/login" 
-                  className="inline-flex items-center bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 hover:to-yellow-500 text-black px-10 py-5 rounded-xl font-bold transition-all duration-300 text-lg">
-              <svg className="w-6 h-6 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                  className="inline-flex items-center bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 hover:to-yellow-500 text-black px-6 sm:px-10 py-4 sm:py-5 rounded-xl font-bold transition-all duration-300 text-base sm:text-lg">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-2 0V4H5v12h10v-2a1 1 0 112 0v3a1 1 0 01-1 1H4a1 1 0 01-1-1V3z" clipRule="evenodd"/>
                 <path fillRule="evenodd" d="M6 10a1 1 0 011-1h6l-2-2a1 1 0 112-2l4 4a1 1 0 010 2l-4 4a1 1 0 11-2-2l2-2H7a1 1 0 01-1-1z" clipRule="evenodd"/>
               </svg>
-              Logga in för att komma åt ditt material
+              <span className="hidden sm:inline">Logga in för att komma åt ditt material</span>
+              <span className="sm:hidden">Logga in</span>
             </Link>
           </div>
         </div>
@@ -74,34 +76,34 @@ export default function HomePage() {
       </header>
 
       {/* Instructions Section */}
-      <section className="py-24 bg-gradient-to-b from-slate-50 to-white relative overflow-hidden">
+      <section className="py-12 sm:py-16 lg:py-24 bg-gradient-to-b from-slate-50 to-white relative overflow-hidden">
         {/* Subtle tech background */}
         <div className="absolute inset-0 bg-tech-grid opacity-5"></div>
-        <div className="absolute top-1/2 left-1/4 w-96 h-96 bg-gradient-to-br from-yellow-100/30 to-yellow-200/30 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-gradient-to-bl from-yellow-100/40 to-yellow-200/40 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/4 w-48 sm:w-96 h-48 sm:h-96 bg-gradient-to-br from-yellow-100/30 to-yellow-200/30 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-40 sm:w-80 h-40 sm:h-80 bg-gradient-to-bl from-yellow-100/40 to-yellow-200/40 rounded-full blur-3xl"></div>
         
-        <div className="relative container mx-auto px-6">
-          <div className="text-center mb-20">
-            <h2 className="text-5xl font-bold mb-6 bg-gradient-to-r from-slate-800 via-yellow-800 to-slate-800 bg-clip-text text-transparent">
+        <div className="relative container mx-auto px-4 sm:px-6">
+          <div className="text-center mb-12 sm:mb-16 lg:mb-20">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6 bg-gradient-to-r from-slate-800 via-yellow-800 to-slate-800 bg-clip-text text-transparent">
               Så hämtar du ditt material
             </h2>
-            <div className="w-24 h-1 bg-gradient-to-r from-yellow-400 to-yellow-500 mx-auto rounded-full"></div>
+            <div className="w-16 sm:w-24 h-1 bg-gradient-to-r from-yellow-400 to-yellow-500 mx-auto rounded-full"></div>
           </div>
           
-          <div className="grid md:grid-cols-3 gap-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-10 lg:gap-12">
             <div className="text-center group relative">
               {/* Tech frame */}
               <div className="absolute -inset-4 bg-gradient-to-br from-yellow-100/50 to-yellow-200/50 rounded-3xl opacity-0 group-hover:opacity-100 transition-all duration-500 blur-xl"></div>
               
-              <div className="relative backdrop-blur-sm bg-white/60 p-8 rounded-2xl border border-white/40 shadow-glass hover:shadow-tech transition-all duration-300 group-hover:-translate-y-2">
-                <div className="w-20 h-20 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-glow-sm group-hover:shadow-glow-md transition-all duration-300 relative overflow-hidden">
-                  <svg className="w-10 h-10 text-white relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="relative backdrop-blur-sm bg-white/60 p-6 sm:p-8 rounded-2xl border border-white/40 shadow-glass hover:shadow-tech transition-all duration-300 group-hover:-translate-y-2">
+                <div className="w-16 sm:w-20 h-16 sm:h-20 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-2xl flex items-center justify-center mx-auto mb-6 sm:mb-8 shadow-glow-sm group-hover:shadow-glow-md transition-all duration-300 relative overflow-hidden">
+                  <svg className="w-8 sm:w-10 h-8 sm:h-10 text-white relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v-2H7v-2H4a1 1 0 01-1-1v-4c0-5.523 4.477-10 10-10s10 4.477 10 10a4 4 0 01-4 4z" />
                   </svg>
                   <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0 animate-shimmer bg-[length:200%_100%]"></div>
                 </div>
-                <h3 className="text-2xl font-bold mb-6 bg-gradient-to-r from-slate-700 to-yellow-700 bg-clip-text text-transparent">1. Logga in</h3>
-                <p className="text-slate-600 leading-relaxed">
+                <h3 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 bg-gradient-to-r from-slate-700 to-yellow-700 bg-clip-text text-transparent">1. Logga in</h3>
+                <p className="text-slate-600 leading-relaxed text-sm sm:text-base">
                   Använd de inloggningsuppgifter vi skickat till dig via e-post efter att ditt uppdrag slutförts.
                 </p>
                 
@@ -156,44 +158,44 @@ export default function HomePage() {
       </section>
 
       {/* Support section */}
-      <section className="py-24 bg-white">
-        <div className="container mx-auto px-6">
-          <h2 className="text-5xl font-bold text-center mb-20 text-slate-800">
+      <section className="py-12 sm:py-16 lg:py-24 bg-white">
+        <div className="container mx-auto px-4 sm:px-6">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-center mb-12 sm:mb-16 lg:mb-20 text-slate-800">
             Behöver du hjälp?
           </h2>
           
-          <div className="grid md:grid-cols-2 gap-12 max-w-4xl mx-auto">
-            <div className="bg-gradient-to-br from-slate-50 to-white p-10 rounded-3xl shadow-xl border border-slate-200 group hover:shadow-2xl transition-all duration-300">
-              <div className="w-16 h-16 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-300">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-10 lg:gap-12 max-w-4xl mx-auto">
+            <div className="bg-gradient-to-br from-slate-50 to-white p-6 sm:p-8 lg:p-10 rounded-3xl shadow-xl border border-slate-200 group hover:shadow-2xl transition-all duration-300">
+              <div className="w-12 sm:w-14 lg:w-16 h-12 sm:h-14 lg:h-16 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-2xl flex items-center justify-center mb-6 sm:mb-8 group-hover:scale-110 transition-transform duration-300">
+                <svg className="w-6 sm:w-7 lg:w-8 h-6 sm:h-7 lg:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold mb-6 text-slate-800">Glömt inloggningsuppgifter?</h3>
-              <p className="text-slate-600 mb-6 leading-relaxed">
+              <h3 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-slate-800">Glömt inloggningsuppgifter?</h3>
+              <p className="text-slate-600 mb-4 sm:mb-6 leading-relaxed text-sm sm:text-base">
                 Kontakta oss så skickar vi nya inloggningsuppgifter till din e-post.
               </p>
-              <a href="mailto:info@dronarkompaniet.se" className="inline-flex items-center text-yellow-600 hover:text-yellow-700 font-semibold text-lg transition-colors">
+              <a href="mailto:info@dronarkompaniet.se" className="inline-flex items-center text-yellow-600 hover:text-yellow-700 font-semibold text-base sm:text-lg transition-colors break-all sm:break-normal">
                 info@dronarkompaniet.se
-                <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 sm:w-5 h-4 sm:h-5 ml-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>
               </a>
             </div>
             
-            <div className="bg-gradient-to-br from-slate-50 to-white p-10 rounded-3xl shadow-xl border border-slate-200 group hover:shadow-2xl transition-all duration-300">
-              <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-300">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-gradient-to-br from-slate-50 to-white p-6 sm:p-8 lg:p-10 rounded-3xl shadow-xl border border-slate-200 group hover:shadow-2xl transition-all duration-300">
+              <div className="w-12 sm:w-14 lg:w-16 h-12 sm:h-14 lg:h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center mb-6 sm:mb-8 group-hover:scale-110 transition-transform duration-300">
+                <svg className="w-6 sm:w-7 lg:w-8 h-6 sm:h-7 lg:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold mb-6 text-slate-800">Teknisk support</h3>
-              <p className="text-slate-600 mb-6 leading-relaxed">
+              <h3 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-slate-800">Teknisk support</h3>
+              <p className="text-slate-600 mb-4 sm:mb-6 leading-relaxed text-sm sm:text-base">
                 Problem med nedladdning eller visning av material? Ring oss direkt.
               </p>
-              <a href="tel:+46709607208" className="inline-flex items-center text-emerald-600 hover:text-emerald-700 font-semibold text-lg transition-colors">
+              <a href="tel:+46709607208" className="inline-flex items-center text-emerald-600 hover:text-emerald-700 font-semibold text-base sm:text-lg transition-colors">
                 +46 709-607208
-                <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 sm:w-5 h-4 sm:h-5 ml-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>
               </a>
