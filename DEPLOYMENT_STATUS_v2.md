@@ -1,11 +1,30 @@
 # DK-leverans Deployment Status
 
 **Datum:** 16 juli 2025  
-**Version:** 2.1.1 - KRITISK FIX: Upload-problem LÖST  
+**Version:** 2.1.2 - EXTRA SÄKERHETSÅTGÄRDER: Upload batch-optimering  
 **Deployment URL:** https://dk-leverans.vercel.app  
 **GitHub:** https://github.com/Stekaka/DK-leverans  
 
-## � KRITISK FIX: Upload-problem helt eliminerat
+## 🔧 EXTRA SÄKERHETSÅTGÄRDER: Batch-optimering för upload (v2.1.2)
+
+### 🛡️ YTTERLIGARE OPTIMERING: Ultra-konservativ batch-strategi
+**Kontext:** Även med direktuppladdning kan presigned-URL requests bli för stora vid många filer
+
+**Nya säkerhetsåtgärder:** 
+- ✅ Minskat batch-storlek från 5 till **1 fil per request**
+- ✅ Begränsat max filer per session från 10 till **6 filer**
+- ✅ Payload-storlekskontroll: Max 1MB per presigned-request
+- ✅ Metadata-begränsning: Filnamn max 200 tecken, MIME-typ max 100 tecken
+- ✅ Förbättrad felhantering för 413-fel med specifika felmeddelanden
+- ✅ Debug-logging för payload-storlek
+
+### 🎯 RESULTAT: MAXIMAL STABILITET
+- ✅ **Garanterat inga payload-problem för presigned URLs**
+- ✅ **En fil i taget för metadata-requests**
+- ✅ **Parallell filuppladdning till R2 fungerar fortfarande**
+- ✅ **Robust felhantering och användarvänliga felmeddelanden**
+
+## 🎯 HUVUDFUNKTIONALITET: Upload-problem helt eliminerat (v2.1.1)
 
 ### ❌ PROBLEMET: "Request Entity Too Large" trots direktuppladdning
 **Orsak:** DirectUploadComponent använde fel admin-lösenord ("admin123" istället för "DrönarkompanietAdmin2025!")
@@ -189,4 +208,4 @@ CLOUDFLARE_R2_ACCOUNT_ID=✅ Konfigurerad
 **System är nu KOMPLETT för professionella drönarbilds-/videoleveranser! 🚀**
 
 ---
-*Senast uppdaterad: 16 juli 2025 - v2.1.0 Thumbnail Implementation*
+*Senast uppdaterad: 16 juli 2025 - v2.1.2 Batch Optimization*
