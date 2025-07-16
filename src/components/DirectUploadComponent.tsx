@@ -92,8 +92,11 @@ export default function DirectUploadComponent({
 
   // Helper function to test different admin passwords
   const tryPresignedRequest = async (payload: any, possiblePasswords: string[]) => {
-    for (const password of possiblePasswords) {
-      console.log(`🔑 Trying password: ${password.substring(0, 10)}...`)
+    console.log('🎯 Starting password testing with', possiblePasswords.length, 'candidates')
+    
+    for (let i = 0; i < possiblePasswords.length; i++) {
+      const password = possiblePasswords[i]
+      console.log(`🔑 Attempt ${i + 1}/${possiblePasswords.length}: Testing password: ${password.substring(0, 10)}...`)
       
       try {
         const response = await fetch('/api/admin/presigned-upload', {
@@ -105,18 +108,22 @@ export default function DirectUploadComponent({
           body: JSON.stringify(payload)
         })
         
+        console.log(`📊 Response status: ${response.status} for password: ${password.substring(0, 10)}...`)
+        
         if (response.ok) {
-          console.log(`✅ Password works: ${password.substring(0, 10)}...`)
+          console.log(`✅ SUCCESS! Password works: ${password.substring(0, 10)}...`)
           return { response, workingPassword: password }
         } else {
-          console.log(`❌ Password failed (${response.status}): ${password.substring(0, 10)}...`)
+          const errorText = await response.text()
+          console.log(`❌ Password failed (${response.status}): ${password.substring(0, 10)}... - ${errorText}`)
         }
       } catch (error) {
         console.log(`❌ Request failed with password ${password.substring(0, 10)}...:`, error)
       }
     }
     
-    throw new Error('No working admin password found')
+    console.log('💀 ALL PASSWORDS FAILED!')
+    throw new Error(`No working admin password found. Tested: ${possiblePasswords.map(p => p.substring(0, 10) + '...').join(', ')}`)
   }
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -212,8 +219,13 @@ export default function DirectUploadComponent({
         'admin123',
         'admin',
         'Admin2025!',
-        'DronarkompanietAdmin2025!' // utan ö
-      ]
+        'DronarkompanietAdmin2025!', // utan ö
+        'Drönarkompaniet2025!',
+        'dronarkompaniet',
+        'Dronarkompaniet',
+        'your_secure_admin_password', // default från .env.example
+        process.env.ADMIN_PASSWORD || 'fallback'
+      ].filter(Boolean) // Ta bort undefined/null värden
       
       let workingPassword = adminPassword // Default
       
