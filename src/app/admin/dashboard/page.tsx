@@ -13,18 +13,6 @@ import type { Customer } from '../../../../lib/supabase'
 export default function AdminDashboard() {
   const { theme } = useTheme()
   
-  // Säkerställ att theme appliceras korrekt
-  useEffect(() => {
-    const htmlElement = document.documentElement
-    if (theme === 'dark') {
-      htmlElement.classList.add('dark')
-      htmlElement.classList.remove('light')
-    } else {
-      htmlElement.classList.remove('dark')
-      htmlElement.classList.add('light')
-    }
-  }, [theme])
-  
   const [activeTab, setActiveTab] = useState('customers')
   const [showCreateCustomer, setShowCreateCustomer] = useState(false)
   const [showFileManager, setShowFileManager] = useState(false)

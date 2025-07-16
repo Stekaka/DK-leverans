@@ -32,24 +32,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!mounted) return
     
-    // Apply theme to document
+    // Apply theme to document - simplified and robust
     const htmlElement = document.documentElement
-    
-    // Force remove any existing classes first
-    htmlElement.classList.remove('dark', 'light')
     
     if (theme === 'dark') {
       htmlElement.classList.add('dark')
     } else {
-      htmlElement.classList.add('light') // Lägg till explicit light class också
+      htmlElement.classList.remove('dark')
     }
-    
-    // Force a reflow to ensure Tailwind CSS updates
-    requestAnimationFrame(() => {
-      document.body.style.display = 'none'
-      document.body.offsetHeight // trigger reflow
-      document.body.style.display = ''
-    })
     
     // Save to localStorage
     localStorage.setItem('dk-theme', theme)
