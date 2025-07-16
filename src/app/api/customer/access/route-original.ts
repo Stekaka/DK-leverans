@@ -44,56 +44,6 @@ async function verifyCustomerSession(request: NextRequest) {
   return customer
 }
 
-// Simpel access-check utan funktioner
-async function checkCustomerAccessSimple(customerId: string) {
-  const { data: customer, error } = await supabaseAdmin
-    .from('customers')
-    .select('*')
-    .eq('id', customerId)
-    .single()
-
-  if (error || !customer) {
-    return {
-      has_access: false,
-      access_type: 'not_found',
-      expires_at: null,
-      days_remaining: 0,
-      storage_used_gb: 0,
-      storage_limit_gb: 0
-    }
-  }
-
-  // Kontrollera om kunden har permanent access (simulerat)
-  // För nu antar vi att ingen har permanent access
-
-  // Kontrollera grundläggande access
-  if (!customer.access_expires_at) {
-    // Ingen timer satt = aktiv access (standard 30 dagar från registrering)
-    return {
-      has_access: true,
-      access_type: 'active',
-      expires_at: null,
-      days_remaining: 30,
-      storage_used_gb: customer.total_storage_used ? (customer.total_storage_used / 1024 / 1024 / 1024) : 0,
-      storage_limit_gb: 0
-    }
-  }
-
-  const now = new Date()
-  const expiresAt = new Date(customer.access_expires_at)
-  const hasAccess = expiresAt > now
-  const daysRemaining = hasAccess ? Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : 0
-
-  return {
-    has_access: hasAccess,
-    access_type: hasAccess ? 'active' : 'expired',
-    expires_at: customer.access_expires_at,
-    days_remaining: daysRemaining,
-    storage_used_gb: customer.total_storage_used ? (customer.total_storage_used / 1024 / 1024 / 1024) : 0,
-    storage_limit_gb: 0
-  }
-}
-
 export async function GET(request: NextRequest) {
   try {
     // Hämta customer ID från query parameter för admin-användning
@@ -124,9 +74,24 @@ export async function GET(request: NextRequest) {
       customer = await verifyCustomerSession(request)
     }
 
-    // Kontrollera access med simpel logik
+    // Kontrollera access med vår SQL-funktion
     console.log('Checking access for customer:', customer.id)
-    const accessInfo = await checkCustomerAccessSimple(customer.id)
+    const { data: accessCheck, error } = await supabaseAdmin
+      .rpc('check_customer_access', { customer_uuid: customer.id })
+
+    if (error) {
+      console.error('Error checking customer access:', error)
+      console.error('Customer ID:', customer.id)
+      console.error('Function call failed:', error.message)
+      return NextResponse.json({ error: 'Failed to check access', details: error.message }, { status: 500 })
+    }
+
+    if (!accessCheck || accessCheck.length === 0) {
+      console.error('No access data returned for customer:', customer.id)
+      return NextResponse.json({ error: 'No access data found' }, { status: 500 })
+    }
+
+    const accessInfo = accessCheck[0]
     console.log('Access check result:', accessInfo)
 
     return NextResponse.json({
