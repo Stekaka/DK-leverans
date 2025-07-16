@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '../../../../../lib/supabase'
-import { generateThumbnail } from '../../../../../lib/thumbnail-generator'
+import { generateThumbnail, uploadThumbnail, isImageFile } from '../../../../../lib/thumbnail-generator'
+import { r2Service } from '../../../../../lib/cloudflare-r2'
 
 interface UploadCallbackRequest {
   customerId: string
@@ -46,13 +47,28 @@ export async function POST(request: NextRequest) {
     const dbFiles = []
     
     for (const file of uploadedFiles) {
-      // Generera thumbnail för bilder (TODO: Implementera för direktuppladdade filer)
+      // Generera thumbnail för bilder
       let thumbnailUrl = null
-      if (file.type.startsWith('image/')) {
+      if (isImageFile(file.originalName)) {
         try {
-          // TODO: Hämta fil från R2 och generera thumbnail
-          // För nu hoppar vi över thumbnail-generering för direktuppladdade filer
-          console.log(`📷 Thumbnail generation for direct uploads not yet implemented: ${file.originalName}`)
+          console.log(`📷 Generating thumbnail for: ${file.originalName}`)
+          
+          // Hämta originalfilen från R2
+          const imageBuffer = await r2Service.getFile(file.fileKey)
+          
+          // Generera och ladda upp thumbnail
+          const thumbnailPath = await uploadThumbnail(
+            file.originalName,
+            imageBuffer,
+            `customers/${customerId}/${file.folderPath}`,
+            { width: 300, height: 200, quality: 80, format: 'jpeg' }
+          )
+          
+          if (thumbnailPath) {
+            // Skapa full URL för thumbnail
+            thumbnailUrl = `https://${process.env.CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${process.env.CLOUDFLARE_R2_BUCKET_NAME}/${thumbnailPath}`
+            console.log(`✅ Thumbnail generated successfully: ${thumbnailPath}`)
+          }
         } catch (thumbError) {
           console.warn(`⚠️ Failed to generate thumbnail for ${file.originalName}:`, thumbError)
         }

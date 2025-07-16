@@ -60,20 +60,26 @@ export async function uploadThumbnail(
     const baseName = originalFileName.replace(/\.[^/.]+$/, '')
     const thumbnailName = `${baseName}_thumb.${options.format || 'jpeg'}`
     
-    // Skapa thumbnail path (lägg thumbnails i egen mapp)
-    const thumbnailPath = customerPath.includes('/') 
-      ? `${customerPath.split('/').slice(0, -1).join('/')}/thumbnails/${thumbnailName}`
-      : `thumbnails/${thumbnailName}`
+    // Extrahera customer ID från path
+    const customerId = customerPath.split('/')[1] || customerPath.split('/')[0]
+    const folderPath = customerPath.includes('/') 
+      ? customerPath.split('/').slice(2).join('/') 
+      : ''
+    
+    // Skapa thumbnail path
+    const thumbnailKey = folderPath 
+      ? `customers/${customerId}/${folderPath}/thumbnails/${thumbnailName}`
+      : `customers/${customerId}/thumbnails/${thumbnailName}`
 
     // Ladda upp thumbnail till R2
-    const fileUrl = await r2Service.uploadFile(
+    await r2Service.uploadFile(
       thumbnailBuffer,
-      thumbnailName,
+      thumbnailKey,
       `image/${options.format || 'jpeg'}`,
-      customerPath.split('/')[0] // customer ID är första delen av path
+      customerId
     )
 
-    return thumbnailPath
+    return thumbnailKey
   } catch (error) {
     console.error('Error uploading thumbnail:', error)
     return null
@@ -83,6 +89,7 @@ export async function uploadThumbnail(
 export async function deleteThumbnail(thumbnailPath: string): Promise<boolean> {
   try {
     await r2Service.deleteFile(thumbnailPath)
+    console.log(`✅ Thumbnail deleted: ${thumbnailPath}`)
     return true
   } catch (error) {
     console.error('Error deleting thumbnail:', error)
