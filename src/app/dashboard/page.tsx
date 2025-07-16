@@ -365,14 +365,21 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-yellow-50 dark:from-slate-900 dark:to-slate-800 transition-colors">
+    <div className="min-h-screen transition-colors" style={{
+      background: typeof window !== 'undefined' && document.documentElement.classList.contains('dark') 
+        ? 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' 
+        : 'linear-gradient(135deg, #f8fafc 0%, #fefce8 100%)'
+    }}>
       {/* Debug info - remove later */}
       <div className="fixed top-0 right-0 z-50 bg-red-500 text-white p-2 text-xs">
         Theme: {typeof window !== 'undefined' ? (document.documentElement.classList.contains('dark') ? 'DARK' : 'LIGHT') : 'LOADING'}
       </div>
       
       {/* Header - Modern Design Matching Admin Panel */}
-      <header className="bg-white dark:bg-slate-800 shadow-lg border-b border-yellow-100 dark:border-slate-700 transition-colors">
+      <header className="shadow-lg border-b transition-colors" style={{
+        backgroundColor: typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? '#1e293b' : '#ffffff',
+        borderColor: typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? '#475569' : '#fef3c7'
+      }}>
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
           {/* Mobile Layout */}
           <div className="block sm:hidden">

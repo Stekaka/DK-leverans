@@ -13,10 +13,13 @@ export default function ThemeToggle() {
         console.log('ThemeToggle clicked, current theme:', theme)
         toggleTheme()
       }}
-      className="group relative p-2 sm:p-3 rounded-xl transition-all duration-300 
-                 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600
-                 border border-slate-200 hover:border-slate-300 dark:border-slate-600 dark:hover:border-slate-500
-                 text-slate-600 hover:text-slate-800 dark:text-slate-300 dark:hover:text-white shadow-sm"
+      className="group relative p-2 sm:p-3 rounded-xl transition-all duration-300 shadow-sm"
+      style={{
+        backgroundColor: theme === 'dark' ? '#374151' : '#f1f5f9',
+        borderColor: theme === 'dark' ? '#4b5563' : '#e2e8f0',
+        color: theme === 'dark' ? '#d1d5db' : '#475569',
+        border: '1px solid'
+      }}
       title={theme === 'light' ? 'Växla till mörkt läge' : 'Växla till ljust läge'}
     >
       <div className="relative w-5 h-5 sm:w-6 sm:h-6">
