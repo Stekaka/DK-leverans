@@ -60,9 +60,9 @@ export async function GET(request: NextRequest) {
       .eq('customer_id', customer.id)
       .eq('is_deleted', false)
 
-    // Filtrera på mapp om specificerad
+    // Filtrera på mapp om specificerad (använd customer_folder_path för kundvy)
     if (folderPath !== null) {
-      query = query.eq('folder_path', folderPath || '')
+      query = query.eq('customer_folder_path', folderPath || '')
     }
 
     const { data: files, error } = await query.order('uploaded_at', { ascending: false })
@@ -83,11 +83,16 @@ export async function GET(request: NextRequest) {
             ...file,
             formatted_size: r2Service.formatFileSize(file.file_size),
             download_url: downloadUrl,
-            file_extension: file.original_name.split('.').pop()?.toLowerCase() || '',
+            file_extension: (file.display_name || file.original_name).split('.').pop()?.toLowerCase() || '',
             is_image: file.file_type.startsWith('image/'),
             is_video: file.file_type.startsWith('video/'),
-            folder_display: file.folder_path || 'Rot',
-            uploaded_date: new Date(file.uploaded_at).toLocaleDateString('sv-SE')
+            folder_display: file.customer_folder_path || file.folder_path || 'Rot',
+            uploaded_date: new Date(file.uploaded_at).toLocaleDateString('sv-SE'),
+            // Använd display_name om det finns, annars original_name
+            name_for_display: file.display_name || file.original_name,
+            // Behåll båda för referens
+            original_name: file.original_name,
+            display_name: file.display_name
           }
         } catch (urlError) {
           console.error(`Error generating URL for file ${file.id}:`, urlError)
@@ -95,12 +100,17 @@ export async function GET(request: NextRequest) {
             ...file,
             formatted_size: r2Service.formatFileSize(file.file_size),
             download_url: null,
-            file_extension: file.original_name.split('.').pop()?.toLowerCase() || '',
+            file_extension: (file.display_name || file.original_name).split('.').pop()?.toLowerCase() || '',
             is_image: file.file_type.startsWith('image/'),
             is_video: file.file_type.startsWith('video/'),
-            folder_display: file.folder_path || 'Rot',
+            folder_display: file.customer_folder_path || file.folder_path || 'Rot',
             uploaded_date: new Date(file.uploaded_at).toLocaleDateString('sv-SE'),
-            error: 'Failed to generate download URL'
+            error: 'Failed to generate download URL',
+            // Använd display_name om det finns, annars original_name
+            name_for_display: file.display_name || file.original_name,
+            // Behåll båda för referens
+            original_name: file.original_name,
+            display_name: file.display_name
           }
         }
       })

@@ -5,8 +5,6 @@ import { useState, useEffect } from 'react'
 interface CustomerFile {
   id: string
   original_name: string
-  display_name?: string
-  name_for_display: string
   file_type: string
   file_size: number
   formatted_size: string
@@ -15,13 +13,11 @@ interface CustomerFile {
   is_image: boolean
   is_video: boolean
   folder_path: string
-  customer_folder_path?: string
   folder_display: string
   uploaded_date: string
   uploaded_at: string
   customer_rating: 'unrated' | 'favorite' | 'good' | 'poor'
   customer_notes?: string
-  organization_updated_at?: string
 }
 
 interface ImageGalleryProps {
@@ -41,74 +37,17 @@ export default function ImageGallery({
   const [showNotesModal, setShowNotesModal] = useState(false)
   const [notes, setNotes] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [preloadedImages, setPreloadedImages] = useState<Set<string>>(new Set())
-  const [imageLoading, setImageLoading] = useState(true)
-  const [videoLoading, setVideoLoading] = useState(true)
 
   const currentFile = files[currentIndex]
 
-  // Reset loading states when file changes
-  useEffect(() => {
-    setImageLoading(true)
-    setVideoLoading(true)
-  }, [currentIndex])
-
-  // Preload adjacent images for smoother navigation
-  useEffect(() => {
-    const preloadImage = (file: CustomerFile) => {
-      if (!file.is_image || preloadedImages.has(file.id)) return
-      
-      const img = new Image()
-      img.onload = () => {
-        setPreloadedImages(prev => new Set(Array.from(prev).concat(file.id)))
-      }
-      
-      // Try full resolution first, then thumbnail
-      if (file.download_url) {
-        img.src = file.download_url
-      } else if (file.thumbnail_url) {
-        img.src = file.thumbnail_url
-      }
-    }
-
-    // Preload current, next, and previous images
-    const indicesToPreload = [
-      currentIndex,
-      (currentIndex + 1) % files.length,
-      (currentIndex - 1 + files.length) % files.length
-    ]
-
-    indicesToPreload.forEach(index => {
-      const file = files[index]
-      if (file) {
-        preloadImage(file)
-      }
-    })
-  }, [currentIndex, files, preloadedImages])
-
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Block all shortcuts when notes modal is open
-      if (showNotesModal) {
-        // Only allow Escape to close the modal
-        if (e.key === 'Escape') {
-          e.preventDefault()
-          setShowNotesModal(false)
-          setNotes('')
-        }
-        return // Exit early to prevent any other shortcuts
-      }
-
-      // Prevent default behavior for navigation keys (only when modal is closed)
-      if (['ArrowLeft', 'ArrowRight', ' ', 'Escape'].includes(e.key)) {
-        e.preventDefault()
-      }
-
       if (e.key === 'Escape') {
         onClose()
       } else if (e.key === 'ArrowLeft') {
         goToPrevious()
       } else if (e.key === 'ArrowRight' || e.key === ' ') {
+        e.preventDefault() // Prevent page scroll on space
         goToNext()
       } else if (e.key === '1') {
         handleRating('poor')
@@ -135,33 +74,14 @@ export default function ImageGallery({
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [currentIndex, currentFile, showNotesModal])
+  }, [currentIndex])
 
   const goToNext = () => {
-    setCurrentIndex((prev) => {
-      const newIndex = (prev + 1) % files.length
-      scrollToThumbnail(newIndex)
-      return newIndex
-    })
+    setCurrentIndex((prev) => (prev + 1) % files.length)
   }
 
   const goToPrevious = () => {
-    setCurrentIndex((prev) => {
-      const newIndex = (prev - 1 + files.length) % files.length
-      scrollToThumbnail(newIndex)
-      return newIndex
-    })
-  }
-
-  const scrollToThumbnail = (index: number) => {
-    const thumbnailElement = document.querySelector(`[data-thumbnail-index="${index}"]`)
-    if (thumbnailElement) {
-      thumbnailElement.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'nearest', 
-        inline: 'center' 
-      })
-    }
+    setCurrentIndex((prev) => (prev - 1 + files.length) % files.length)
   }
 
   const handleRating = async (rating: string) => {
@@ -229,7 +149,7 @@ export default function ImageGallery({
         <div className="absolute top-0 left-0 right-0 z-10 bg-black bg-opacity-50 text-white p-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-4">
-              <h3 className="text-lg font-semibold truncate">{currentFile.name_for_display}</h3>
+              <h3 className="text-lg font-semibold truncate">{currentFile.original_name}</h3>
               <span className="text-sm opacity-75">
                 {currentIndex + 1} av {files.length}
               </span>
@@ -246,89 +166,33 @@ export default function ImageGallery({
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 flex items-center justify-center p-4 pt-20 pb-40">
+        <div className="flex-1 flex items-center justify-center p-8 pt-20 pb-32">
           {currentFile.is_image ? (
             <div className="relative max-w-full max-h-full">
-              {/* Loading spinner */}
-              {imageLoading && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-400"></div>
-                </div>
-              )}
-              
               <img
-                key={currentFile.id} // Force re-render on file change
-                src={currentFile.download_url || currentFile.thumbnail_url || '/placeholder-image.png'}
-                alt={currentFile.name_for_display}
-                className={`max-w-full max-h-full object-contain shadow-2xl rounded-lg transition-opacity duration-300 ${
-                  imageLoading ? 'opacity-0' : 'opacity-100'
-                }`}
-                style={{ maxHeight: 'calc(100vh - 240px)', maxWidth: 'calc(100vw - 32px)' }}
-                onLoad={(e) => {
-                  setImageLoading(false)
-                  // If we loaded a thumbnail, try to upgrade to full resolution
+                src={currentFile.thumbnail_url || currentFile.download_url || '/placeholder-image.png'}
+                alt={currentFile.original_name}
+                className="max-w-full max-h-full object-contain"
+                style={{ maxHeight: 'calc(100vh - 200px)' }}
+                onError={(e) => {
                   const target = e.target as HTMLImageElement
                   if (target.src === currentFile.thumbnail_url && currentFile.download_url) {
-                    // Create a new image to preload the full resolution
-                    const fullImg = new Image()
-                    fullImg.onload = () => {
-                      target.src = currentFile.download_url!
-                    }
-                    fullImg.src = currentFile.download_url
-                  }
-                }}
-                onError={(e) => {
-                  setImageLoading(false)
-                  const target = e.target as HTMLImageElement
-                  if (target.src === currentFile.download_url && currentFile.thumbnail_url) {
-                    target.src = currentFile.thumbnail_url
-                  } else if (!target.src.includes('placeholder-image.png')) {
-                    target.src = '/placeholder-image.png'
+                    target.src = currentFile.download_url
                   }
                 }}
               />
-              
-              {/* Image info overlay */}
-              <div className="absolute bottom-4 left-4 bg-black bg-opacity-60 text-white px-3 py-2 rounded-lg">
-                <div className="flex items-center space-x-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  <span className="text-sm">{currentFile.formatted_size}</span>
-                </div>
-              </div>
             </div>
           ) : currentFile.is_video ? (
             <div className="relative max-w-full max-h-full">
-              {/* Loading spinner for video */}
-              {videoLoading && (
-                <div className="absolute inset-0 flex items-center justify-center z-10">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-400"></div>
-                </div>
-              )}
-              
               <video
-                key={currentFile.id} // Force re-render on file change
                 controls
-                className={`max-w-full max-h-full shadow-2xl rounded-lg transition-opacity duration-300 ${
-                  videoLoading ? 'opacity-0' : 'opacity-100'
-                }`}
-                style={{ maxHeight: 'calc(100vh - 240px)', maxWidth: 'calc(100vw - 32px)' }}
+                className="max-w-full max-h-full"
+                style={{ maxHeight: 'calc(100vh - 200px)' }}
                 poster={currentFile.thumbnail_url || undefined}
                 preload="metadata"
-                controlsList="nodownload"
-                onLoadStart={() => {
-                  setVideoLoading(true)
-                }}
-                onCanPlay={() => {
-                  setVideoLoading(false)
-                }}
-                onLoadedData={() => {
-                  setVideoLoading(false)
-                }}
               >
                 <source src={currentFile.download_url || ''} type={currentFile.file_type} />
-                <p className="text-white text-center p-4">
+                <p className="text-white">
                   Din webbläsare stöder inte video-element. 
                   <a href={currentFile.download_url || ''} className="text-yellow-400 underline ml-2">
                     Ladda ner videon
@@ -336,8 +200,7 @@ export default function ImageGallery({
                 </p>
               </video>
               
-              {/* Video info overlay */}
-              <div className="absolute top-4 left-4 bg-black bg-opacity-60 text-white px-3 py-2 rounded-lg">
+              <div className="absolute top-4 left-4 bg-black bg-opacity-60 text-white px-3 py-1 rounded">
                 <div className="flex items-center space-x-2">
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M8 5v10l8-5-8-5z"/>
@@ -352,7 +215,7 @@ export default function ImageGallery({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               <p className="text-lg mb-2">Filförhandsvisning</p>
-              <p className="text-sm opacity-75 mb-2">{currentFile.name_for_display}</p>
+              <p className="text-sm opacity-75 mb-2">{currentFile.original_name}</p>
               <p className="text-xs opacity-60 mb-4">Filtyp: {currentFile.file_type}</p>
               <button
                 onClick={() => window.open(currentFile.download_url || '', '_blank')}
@@ -369,19 +232,17 @@ export default function ImageGallery({
           <>
             <button
               onClick={goToPrevious}
-              className="absolute left-2 sm:left-4 top-1/2 transform -translate-y-1/2 text-white bg-black bg-opacity-50 hover:bg-opacity-75 rounded-full p-2 sm:p-3 transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-yellow-400"
-              title="Föregående bild (←)"
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white bg-black bg-opacity-50 hover:bg-opacity-75 rounded-full p-3"
             >
-              <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
             <button
               onClick={goToNext}
-              className="absolute right-2 sm:right-4 top-1/2 transform -translate-y-1/2 text-white bg-black bg-opacity-50 hover:bg-opacity-75 rounded-full p-2 sm:p-3 transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-yellow-400"
-              title="Nästa bild (→ eller Space)"
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white bg-black bg-opacity-50 hover:bg-opacity-75 rounded-full p-3"
             >
-              <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </button>
@@ -392,45 +253,30 @@ export default function ImageGallery({
         <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white">
           {/* Thumbnail strip */}
           {files.length > 1 && (
-            <div className="px-4 py-3 border-b border-white border-opacity-20">
-              <div className="flex space-x-3 overflow-x-auto scrollbar-thin scrollbar-thumb-white scrollbar-thumb-opacity-30">
+            <div className="px-4 py-2 border-b border-white border-opacity-20">
+              <div className="flex space-x-2 overflow-x-auto">
                 {files.map((file, index) => (
                   <button
                     key={file.id}
-                    data-thumbnail-index={index}
-                    onClick={() => {
-                      setCurrentIndex(index)
-                      scrollToThumbnail(index)
-                    }}
-                    className={`flex-shrink-0 w-20 h-20 rounded-lg border-2 transition-all duration-200 overflow-hidden relative group ${
+                    onClick={() => setCurrentIndex(index)}
+                    className={`flex-shrink-0 w-16 h-16 rounded border-2 transition-all overflow-hidden ${
                       index === currentIndex 
-                        ? 'border-yellow-400 shadow-lg scale-105 ring-2 ring-yellow-400 ring-opacity-50' 
-                        : 'border-white border-opacity-30 hover:border-opacity-70 hover:scale-102'
+                        ? 'border-yellow-400 shadow-lg' 
+                        : 'border-white border-opacity-30 hover:border-opacity-60'
                     }`}
                   >
                     {file.is_image ? (
-                      <>
-                        <img
-                          src={file.thumbnail_url || file.download_url || '/placeholder-image.png'}
-                          alt={file.original_name}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement
-                            if (target.src === file.thumbnail_url && file.download_url) {
-                              target.src = file.download_url
-                            } else if (!target.src.includes('placeholder-image.png')) {
-                              target.src = '/placeholder-image.png'
-                            }
-                          }}
-                        />
-                        {/* Image indicator */}
-                        <div className="absolute bottom-1 right-1 bg-black bg-opacity-60 text-white text-xs px-1 py-0.5 rounded">
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                        </div>
-                      </>
+                      <img
+                        src={file.thumbnail_url || file.download_url || '/placeholder-image.png'}
+                        alt={file.original_name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement
+                          if (target.src === file.thumbnail_url && file.download_url) {
+                            target.src = file.download_url
+                          }
+                        }}
+                      />
                     ) : file.is_video ? (
                       <div className="w-full h-full bg-gray-800 flex items-center justify-center relative">
                         {file.thumbnail_url ? (
@@ -438,51 +284,23 @@ export default function ImageGallery({
                             src={file.thumbnail_url}
                             alt={file.original_name}
                             className="w-full h-full object-cover"
-                            loading="lazy"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement
-                              target.style.display = 'none'
-                            }}
                           />
                         ) : (
                           <svg className="w-8 h-8 text-white opacity-60" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M8 5v10l8-5-8-5z"/>
                           </svg>
                         )}
-                        {/* Video indicator */}
-                        <div className="absolute bottom-1 right-1 bg-black bg-opacity-80 text-white text-xs px-1 py-0.5 rounded flex items-center">
+                        <div className="absolute bottom-0 right-0 bg-black bg-opacity-60 text-white text-xs px-1">
                           <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M8 5v10l8-5-8-5z"/>
                           </svg>
                         </div>
-                        
-                        {/* Play icon overlay */}
-                        <div className="absolute inset-0 flex items-center justify-center opacity-70 group-hover:opacity-90 transition-opacity">
-                          <div className="bg-black bg-opacity-50 rounded-full p-2">
-                            <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M8 5v10l8-5-8-5z"/>
-                            </svg>
-                          </div>
-                        </div>
                       </div>
                     ) : (
-                      <div className="w-full h-full bg-gray-600 flex items-center justify-center relative">
+                      <div className="w-full h-full bg-gray-600 flex items-center justify-center">
                         <svg className="w-8 h-8 text-white opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
-                        {/* File indicator */}
-                        <div className="absolute bottom-1 right-1 bg-black bg-opacity-60 text-white text-xs px-1 py-0.5 rounded">
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Index number for current file */}
-                    {index === currentIndex && (
-                      <div className="absolute top-1 left-1 bg-yellow-400 text-black text-xs px-1.5 py-0.5 rounded font-medium">
-                        {index + 1}
                       </div>
                     )}
                   </button>
@@ -588,9 +406,6 @@ export default function ImageGallery({
               <span>3: Favorit</span>
               <span>F: Fullskärm</span>
               <span>D: Ladda ner</span>
-              {showNotesModal && (
-                <span className="text-yellow-400">Ctrl+Enter: Spara kommentar</span>
-              )}
             </div>
           </div>
         </div>
@@ -601,33 +416,13 @@ export default function ImageGallery({
         <div className="absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center z-20">
           <div className="bg-white dark:bg-slate-800 rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Anteckningar</h3>
-            <p className="text-xs text-gray-500 dark:text-slate-400 mb-3">
-              💡 Tangentbordsgenvägar är tillfälligt blockerade medan du skriver
-            </p>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Lägg till dina anteckningar..."
-              className="w-full h-32 p-3 border border-gray-300 dark:border-slate-600 rounded-lg resize-none text-gray-900 dark:text-white bg-white dark:bg-slate-700 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
-              autoFocus
-              onKeyDown={(e) => {
-                // Allow Ctrl+Enter or Cmd+Enter to save
-                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                  e.preventDefault()
-                  handleNotesUpdate()
-                }
-                // Prevent Escape from propagating to parent handler
-                if (e.key === 'Escape') {
-                  e.stopPropagation()
-                  setShowNotesModal(false)
-                  setNotes('')
-                }
-              }}
+              className="w-full h-32 p-3 border border-gray-300 dark:border-slate-600 rounded-lg resize-none text-gray-900 dark:text-white bg-white dark:bg-slate-700"
             />
             <div className="flex justify-end space-x-3 mt-4">
-              <div className="flex-1 text-xs text-gray-500 dark:text-slate-400 flex items-center">
-                <span>Ctrl+Enter för att spara snabbt</span>
-              </div>
               <button
                 onClick={() => setShowNotesModal(false)}
                 className="px-4 py-2 text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200"

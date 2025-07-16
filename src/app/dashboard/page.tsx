@@ -6,11 +6,14 @@ import { useRouter } from 'next/navigation'
 import ImageGallery from '../../components/ImageGallery'
 import DrönarkompanietLogo from '@/components/DrönarkompanietLogo'
 import ThemeToggle from '@/components/ThemeToggle'
+import OrganizeModal from '@/components/OrganizeModal'
 import { useTheme } from '@/contexts/ThemeContext'
 
 interface CustomerFile {
   id: string
   original_name: string
+  display_name?: string
+  name_for_display: string
   file_type: string
   file_size: number
   formatted_size: string
@@ -19,11 +22,13 @@ interface CustomerFile {
   is_image: boolean
   is_video: boolean
   folder_path: string
+  customer_folder_path?: string
   folder_display: string
   uploaded_date: string
   uploaded_at: string
   customer_rating: 'unrated' | 'favorite' | 'good' | 'poor'
   customer_notes?: string
+  organization_updated_at?: string
 }
 
 interface Customer {
@@ -46,6 +51,8 @@ export default function DashboardPage() {
   const [error, setError] = useState('')
   const [showGallery, setShowGallery] = useState(false)
   const [galleryStartIndex, setGalleryStartIndex] = useState(0)
+  const [showOrganizeModal, setShowOrganizeModal] = useState(false)
+  const [fileToOrganize, setFileToOrganize] = useState<CustomerFile | null>(null)
   const router = useRouter()
 
   // Verifiera session och ladda data vid start
@@ -174,7 +181,7 @@ export default function DashboardPage() {
         const url = window.URL.createObjectURL(blob)
         const link = document.createElement('a')
         link.href = url
-        link.download = file.original_name
+        link.download = file.name_for_display
         link.style.display = 'none'
         
         document.body.appendChild(link)
@@ -327,6 +334,52 @@ export default function DashboardPage() {
 
   const closeGallery = () => {
     setShowGallery(false)
+  }
+
+  // Öppna organiseringsmodal
+  const openOrganizeModal = (file: CustomerFile) => {
+    setFileToOrganize(file)
+    setShowOrganizeModal(true)
+  }
+
+  // Stäng organiseringsmodal
+  const closeOrganizeModal = () => {
+    setShowOrganizeModal(false)
+    setFileToOrganize(null)
+  }
+
+  // Spara filorganisation
+  const saveFileOrganization = async (fileId: string, displayName: string, customerFolderPath: string) => {
+    try {
+      const response = await fetch('/api/customer/organize', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fileId,
+          displayName,
+          customerFolderPath
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Kunde inte spara ändringar')
+      }
+
+      // Ladda om filerna för att visa ändringarna
+      await loadFiles()
+      
+      // Uppdatera mapplistan om en ny mapp skapades
+      if (customerFolderPath && !folders.includes(customerFolderPath)) {
+        setFolders(prev => [...prev, customerFolderPath].sort())
+      }
+
+    } catch (error) {
+      console.error('Error saving file organization:', error)
+      throw error
+    }
   }
 
   // Räkna statistik
@@ -767,7 +820,7 @@ export default function DashboardPage() {
                       file.thumbnail_url || file.download_url ? (
                         <img
                           src={file.thumbnail_url || file.download_url || '/placeholder-image.png'}
-                          alt={file.original_name}
+                          alt={file.name_for_display}
                           className="w-full h-full object-cover"
                           onError={(e) => {
                             // Fallback to download_url if thumbnail fails
@@ -790,7 +843,7 @@ export default function DashboardPage() {
                         {file.thumbnail_url ? (
                           <img
                             src={file.thumbnail_url}
-                            alt={file.original_name}
+                            alt={file.name_for_display}
                             className="w-full h-full object-cover"
                           />
                         ) : (
@@ -863,9 +916,9 @@ export default function DashboardPage() {
                 </div>
                 
                 <div className="p-4">
-                  <h3 className="font-medium text-slate-900 dark:text-slate-100 truncate mb-2" title={file.original_name}>
-                    {file.original_name}
-                  </h3>
+                    <h3 className="font-medium text-slate-900 dark:text-slate-100 truncate mb-2" title={file.name_for_display}>
+                      {file.name_for_display}
+                    </h3>
                   
                   <div className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400 mb-3">
                     <span>{file.formatted_size}</span>
@@ -903,6 +956,20 @@ export default function DashboardPage() {
                       className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white py-2 rounded-lg text-sm transition-colors"
                     >
                       Ladda ner
+                    </button>
+                    
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        openOrganizeModal(file)
+                      }}
+                      className="px-3 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 
+                                 text-slate-700 dark:text-slate-300 rounded-lg text-sm transition-colors"
+                      title="Organisera fil"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
                     </button>
                     
                     {file.is_image && (
@@ -962,7 +1029,7 @@ export default function DashboardPage() {
                               file.thumbnail_url || file.download_url ? (
                                 <img
                                   src={file.thumbnail_url || file.download_url || '/placeholder-image.png'}
-                                  alt={file.original_name}
+                                  alt={file.name_for_display}
                                   className="h-12 w-12 rounded-lg object-cover border border-gray-200 dark:border-slate-600"
                                   onError={(e) => {
                                     const target = e.target as HTMLImageElement
@@ -983,7 +1050,7 @@ export default function DashboardPage() {
                                 <div className="relative h-12 w-12 rounded-lg overflow-hidden">
                                   <img
                                     src={file.thumbnail_url}
-                                    alt={file.original_name}
+                                    alt={file.name_for_display}
                                     className="h-12 w-12 object-cover"
                                   />
                                   <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
@@ -1009,8 +1076,8 @@ export default function DashboardPage() {
                           </div>
                           <div>
                             <div className="flex items-center space-x-2">
-                              <div className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate max-w-xs" title={file.original_name}>
-                                {file.original_name}
+                              <div className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate max-w-xs" title={file.name_for_display}>
+                                {file.name_for_display}
                               </div>
                               {/* Comment indicator in list view */}
                               {file.customer_notes && file.customer_notes.trim() !== '' && (
@@ -1069,6 +1136,16 @@ export default function DashboardPage() {
                           >
                             Ladda ner
                           </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              openOrganizeModal(file)
+                            }}
+                            className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 transition-colors"
+                            title="Organisera fil"
+                          >
+                            Organisera
+                          </button>
                           {file.is_image && (
                             <button
                               onClick={(e) => {
@@ -1098,6 +1175,16 @@ export default function DashboardPage() {
           onRatingChange={updateFileRating}
           onClose={closeGallery}
           initialIndex={galleryStartIndex}
+        />
+      )}
+
+      {/* Organize Modal */}
+      {showOrganizeModal && fileToOrganize && (
+        <OrganizeModal
+          file={fileToOrganize}
+          isOpen={showOrganizeModal}
+          onClose={closeOrganizeModal}
+          onSave={saveFileOrganization}
         />
       )}
     </div>
