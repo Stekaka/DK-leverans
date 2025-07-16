@@ -23,7 +23,8 @@ export default function DrönarkompanietLogo({
   if (variant === 'text') {
     return (
       <div className={`flex flex-col items-center ${className}`}>
-        <span className="text-sm text-gray-300">Leveransportal</span>
+        <span className="font-bold text-xl text-yellow-400">Drönarkompaniet</span>
+        <span className="text-sm text-gray-300 -mt-1">Leveransportal</span>
       </div>
     )
   }
@@ -57,7 +58,8 @@ export default function DrönarkompanietLogo({
         />
       </div>
       <div className="flex flex-col items-center mt-2">
-        <span className="text-lg text-gray-300">Leveransportal</span>
+        <span className="font-bold text-lg text-yellow-400">Drönarkompaniet</span>
+        <span className="text-sm text-gray-300 -mt-1">Leveransportal</span>
       </div>
     </div>
   )
