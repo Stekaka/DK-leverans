@@ -372,7 +372,13 @@ export default function DashboardPage() {
           {/* Mobile Layout */}
           <div className="block sm:hidden">
             <div className="flex justify-between items-center py-3">
-              <DrönarkompanietLogo variant="text" size="sm" />
+              <div className="flex items-center space-x-3">
+                <DrönarkompanietLogo size="sm" />
+                <div>
+                  <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">Leveransportal</span>
+                  <div className="text-xs text-slate-500 dark:text-slate-500">{customer?.name}</div>
+                </div>
+              </div>
               <div className="flex items-center space-x-2">
                 <ThemeToggle />
                 <button 
@@ -398,9 +404,9 @@ export default function DashboardPage() {
           {/* Desktop Layout */}
           <div className="hidden sm:flex justify-between items-center py-4">
             <div className="flex items-center space-x-4">
-              <DrönarkompanietLogo variant="full" size="md" />
+              <DrönarkompanietLogo size="md" />
               <div className="border-l border-gray-300 dark:border-slate-600 pl-4">
-                <span className="text-sm text-slate-600 dark:text-slate-400 font-medium">Kundportal</span>
+                <span className="text-sm text-slate-600 dark:text-slate-400 font-medium">Leveransportal</span>
                 <div className="text-xs text-slate-500 dark:text-slate-500">{customer?.project}</div>
               </div>
             </div>
