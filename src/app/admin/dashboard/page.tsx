@@ -33,6 +33,15 @@ export default function AdminDashboard() {
   const [customerFiles, setCustomerFiles] = useState<any[]>([])
   const [loadingFiles, setLoadingFiles] = useState(false)
   const [allFolders, setAllFolders] = useState<string[]>(['']) // Include root folder
+  
+  // Access management state
+  const [customersWithAccess, setCustomersWithAccess] = useState<{ [key: string]: any }>({})
+  const [showExtendModal, setShowExtendModal] = useState(false)
+  const [showPermanentModal, setShowPermanentModal] = useState(false)
+  const [selectedCustomerForAccess, setSelectedCustomerForAccess] = useState<Customer | null>(null)
+  const [extensionDays, setExtensionDays] = useState(30)
+  const [extensionReason, setExtensionReason] = useState('')
+  const [paymentReference, setPaymentReference] = useState('')
 
   // Ladda data när komponenten mountas
   useEffect(() => {
@@ -52,6 +61,9 @@ export default function AdminDashboard() {
       const data = await customerService.getAllCustomers()
       setCustomers(data.customers)
       setFileStats(data.fileStats)
+      
+      // Load access information for all customers
+      setTimeout(() => loadAllCustomerAccess(), 500) // Small delay to avoid too many concurrent requests
     } catch (error) {
       console.error('Error loading data:', error)
       alert('Fel vid laddning av data. Kontrollera Supabase-anslutningen.')
@@ -237,6 +249,94 @@ export default function AdminDashboard() {
         console.error('Error deleting customer:', error)
         alert('Fel vid borttagning av kund: ' + error.message)
       }
+    }
+  }
+
+  // Load customer access information
+  const loadCustomerAccess = async (customerId: string) => {
+    try {
+      const response = await fetch(`/api/customer/access`, {
+        headers: {
+          'Customer-Session': customerId // Simulate customer session for access check
+        }
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setCustomersWithAccess(prev => ({
+          ...prev,
+          [customerId]: data.access
+        }))
+      }
+    } catch (error) {
+      console.error('Error loading customer access:', error)
+    }
+  }
+
+  // Load access for all customers
+  const loadAllCustomerAccess = async () => {
+    for (const customer of customers) {
+      await loadCustomerAccess(customer.id)
+    }
+  }
+
+  // Extend customer access
+  const handleExtendAccess = async () => {
+    if (!selectedCustomerForAccess) return
+
+    try {
+      const response = await fetch('/api/admin/extend-access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerId: selectedCustomerForAccess.id,
+          extensionDays,
+          reason: extensionReason
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        alert(`Access för "${selectedCustomerForAccess.name}" har förlängts med ${extensionDays} dagar`)
+        await loadCustomerAccess(selectedCustomerForAccess.id)
+        setShowExtendModal(false)
+        setExtensionReason('')
+      } else {
+        const error = await response.json()
+        alert('Fel vid förlängning: ' + error.error)
+      }
+    } catch (error) {
+      console.error('Error extending access:', error)
+      alert('Ett fel uppstod vid förlängning')
+    }
+  }
+
+  // Activate permanent access
+  const handleActivatePermanentAccess = async () => {
+    if (!selectedCustomerForAccess || !paymentReference) return
+
+    try {
+      const response = await fetch('/api/admin/permanent-access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerId: selectedCustomerForAccess.id,
+          paymentReference
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        alert(`Permanent access för "${selectedCustomerForAccess.name}" har aktiverats`)
+        await loadCustomerAccess(selectedCustomerForAccess.id)
+        setShowPermanentModal(false)
+        setPaymentReference('')
+      } else {
+        const error = await response.json()
+        alert('Fel vid aktivering: ' + error.error)
+      }
+    } catch (error) {
+      console.error('Error activating permanent access:', error)
+      alert('Ett fel uppstod vid aktivering')
     }
   }
 

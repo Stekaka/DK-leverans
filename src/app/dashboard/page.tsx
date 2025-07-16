@@ -26,6 +26,16 @@ export default function DashboardPage() {
   const [galleryStartIndex, setGalleryStartIndex] = useState(0)
   const [showOrganizeModal, setShowOrganizeModal] = useState(false)
   const [fileToOrganize, setFileToOrganize] = useState<CustomerFile | null>(null)
+  const [accessInfo, setAccessInfo] = useState<{
+    type: string
+    expiresAt?: string
+    daysRemaining: number
+    storageUsedGb: number
+    storageLimitGb: number
+    isPermanent: boolean
+    isExpired?: boolean
+    canExtend?: boolean
+  } | null>(null)
   const router = useRouter()
 
   // Verifiera session och ladda data vid start
@@ -71,16 +81,34 @@ export default function DashboardPage() {
         : '/api/customer/files'
       
       const response = await fetch(url)
+      
       if (response.ok) {
         const data = await response.json()
         setFiles(data.files || [])
+        setAccessInfo(data.access || null)
+      } else if (response.status === 403) {
+        // Access har upphört
+        const errorData = await response.json()
+        setFiles([])
+        setError(errorData.message || 'Åtkomst nekad')
+        setAccessInfo({ 
+          isExpired: true, 
+          canExtend: errorData.canExtend,
+          type: 'expired',
+          daysRemaining: 0,
+          storageUsedGb: 0,
+          storageLimitGb: 0,
+          isPermanent: false
+        })
       } else {
         const errorData = await response.json()
         setError(errorData.error || 'Kunde inte ladda filer')
+        setAccessInfo(null)
       }
     } catch (error) {
       console.error('Error loading files:', error)
       setError('Ett fel uppstod vid laddning av filer')
+      setAccessInfo(null)
     } finally {
       setLoading(false)
     }
@@ -503,6 +531,126 @@ export default function DashboardPage() {
       </header>
 
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
+        {/* Access Status Banner */}
+        {accessInfo && (
+          <div className="mb-6">
+            {accessInfo.isExpired ? (
+              <div className="bg-gradient-to-r from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 
+                              rounded-xl p-4 sm:p-6 border border-red-200 dark:border-red-700/50 shadow-sm">
+                <div className="flex items-start space-x-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl 
+                                  flex items-center justify-center shadow-md flex-shrink-0">
+                    <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-red-800 dark:text-red-200 mb-2">
+                      Din åtkomst har upphört
+                    </h3>
+                    <p className="text-red-700 dark:text-red-300 text-sm mb-4">
+                      Din 30-dagars gratisperiod är över. Kontakta oss för att förlänga åtkomsten eller köpa permanent access.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <a 
+                        href="mailto:kontakt@dronarkompaniet.se?subject=Förläng filåtkomst&body=Hej! Jag skulle vilja förlänga min åtkomst till filerna i leveransportalen."
+                        className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium text-center"
+                      >
+                        Kontakta oss för förlängning
+                      </a>
+                      <a 
+                        href="mailto:kontakt@dronarkompaniet.se?subject=Köp permanent access&body=Hej! Jag är intresserad av att köpa permanent access (1500kr/år för 500GB)."
+                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium text-center"
+                      >
+                        Köp permanent access (1500kr/år)
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : accessInfo.daysRemaining <= 7 && !accessInfo.isPermanent ? (
+              <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 
+                              rounded-xl p-4 sm:p-6 border border-yellow-200 dark:border-yellow-700/50 shadow-sm">
+                <div className="flex items-start space-x-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-xl 
+                                  flex items-center justify-center shadow-md flex-shrink-0">
+                    <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-orange-800 dark:text-orange-200 mb-2">
+                      Din åtkomst upphör snart!
+                    </h3>
+                    <p className="text-orange-700 dark:text-orange-300 text-sm mb-4">
+                      Du har {accessInfo.daysRemaining} dag{accessInfo.daysRemaining !== 1 ? 'ar' : ''} kvar av din gratisperiod. 
+                      Kontakta oss för att förlänga eller köp permanent access.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <a 
+                        href="mailto:kontakt@dronarkompaniet.se?subject=Förläng filåtkomst&body=Hej! Jag skulle vilja förlänga min åtkomst till filerna i leveransportalen."
+                        className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium text-center"
+                      >
+                        Kontakta oss för förlängning
+                      </a>
+                      <a 
+                        href="mailto:kontakt@dronarkompaniet.se?subject=Köp permanent access&body=Hej! Jag är intresserad av att köpa permanent access (1500kr/år för 500GB)."
+                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium text-center"
+                      >
+                        Köp permanent access (1500kr/år)
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : accessInfo.isPermanent ? (
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 
+                              rounded-xl p-4 sm:p-6 border border-green-200 dark:border-green-700/50 shadow-sm">
+                <div className="flex items-start space-x-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl 
+                                  flex items-center justify-center shadow-md flex-shrink-0">
+                    <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-green-800 dark:text-green-200 mb-2">
+                      Permanent Access Aktiv
+                    </h3>
+                    <div className="text-green-700 dark:text-green-300 text-sm space-y-1">
+                      <p>Du har permanent åtkomst till dina filer!</p>
+                      <p>Lagring: {accessInfo.storageUsedGb?.toFixed(1) || 0} GB av {accessInfo.storageLimitGb} GB använt</p>
+                      {accessInfo.expiresAt && (
+                        <p>Förnyelse: {new Date(accessInfo.expiresAt).toLocaleDateString('sv-SE')}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 
+                              rounded-xl p-4 sm:p-6 border border-blue-200 dark:border-blue-700/50 shadow-sm">
+                <div className="flex items-start space-x-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl 
+                                  flex items-center justify-center shadow-md flex-shrink-0">
+                    <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-2">
+                      Gratisperiod aktiv
+                    </h3>
+                    <p className="text-blue-700 dark:text-blue-300 text-sm">
+                      Du har {accessInfo.daysRemaining} dag{accessInfo.daysRemaining !== 1 ? 'ar' : ''} kvar av din 30-dagars gratisperiod.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Download All Button - Now Prominent */}
         <div className="mb-6">
           <button 

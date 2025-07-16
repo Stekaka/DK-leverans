@@ -50,6 +50,41 @@ export async function GET(request: NextRequest) {
     // Verifiera customer session
     const customer = await verifyCustomerSession(request)
 
+    // Kontrollera access med vår SQL-funktion
+    const { data: accessCheck, error: accessError } = await supabaseAdmin
+      .rpc('check_customer_access', { customer_uuid: customer.id })
+
+    if (accessError) {
+      console.error('Error checking customer access:', accessError)
+      return NextResponse.json({ error: 'Failed to check access' }, { status: 500 })
+    }
+
+    const accessInfo = accessCheck[0]
+
+    // Om access har upphört, returnera meddelande istället för filer
+    if (!accessInfo.has_access) {
+      return NextResponse.json({
+        error: 'Access expired',
+        message: 'Din åtkomst till filerna har upphört. Kontakta oss för att förlänga.',
+        accessExpired: true,
+        expiredAt: accessInfo.expires_at,
+        canExtend: true // Kunden kan kontakta för förlängning
+      }, { status: 403 })
+    }
+
+    // Kontrollera storage limit för permanent access
+    if (accessInfo.access_type === 'permanent' && accessInfo.storage_limit_gb > 0) {
+      if (accessInfo.storage_used_gb > accessInfo.storage_limit_gb) {
+        return NextResponse.json({
+          error: 'Storage limit exceeded',
+          message: `Du har överskridit din lagringsgräns på ${accessInfo.storage_limit_gb} GB. Kontakta oss för att uppgradera.`,
+          storageExceeded: true,
+          storageUsed: accessInfo.storage_used_gb,
+          storageLimit: accessInfo.storage_limit_gb
+        }, { status: 403 })
+      }
+    }
+
     const { searchParams } = new URL(request.url)
     const folderPath = searchParams.get('folderPath') // För mappfiltrering
 
@@ -133,6 +168,14 @@ export async function GET(request: NextRequest) {
       customer: {
         name: customer.name,
         project: customer.project
+      },
+      access: {
+        type: accessInfo.access_type,
+        expiresAt: accessInfo.expires_at,
+        daysRemaining: accessInfo.days_remaining,
+        storageUsedGb: accessInfo.storage_used_gb,
+        storageLimitGb: accessInfo.storage_limit_gb,
+        isPermanent: accessInfo.access_type === 'permanent'
       }
     })
 
