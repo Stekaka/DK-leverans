@@ -479,12 +479,16 @@ export default function DirectUploadComponent({
       if (successfulUploads.length > 0) {
         console.log('📊 Registering uploaded files in database...')
         
+        // I emergency mode använder vi det ursprungliga lösenordet
+        const passwordToUse = adminPassword // Använd ursprungliga lösenordet
+        console.log('🔐 Using password for callback:', passwordToUse.substring(0, 15) + '...')
+        
         try {
           const callbackResponse = await fetch('/api/admin/upload-callback', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'x-admin-password': workingPassword // Använd det fungerande lösenordet
+              'x-admin-password': passwordToUse
             },
             body: JSON.stringify({
               customerId,
