@@ -477,40 +477,48 @@ export default function DirectUploadComponent({
 
       // Steg 3: Registrera framgångsrika uploads i databasen
       if (successfulUploads.length > 0) {
-        // TEMPORARY: Skip callback registration for now
-        console.log('⚡ EMERGENCY MODE: Skipping database callback registration')
-        console.log('📊 Files uploaded successfully but not registered in database')
+        console.log('📊 Registering uploaded files in database...')
         
-        /*
-        const callbackResponse = await fetch('/api/admin/upload-callback', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-admin-password': workingPassword // Använd det fungerande lösenordet
-          },
-          body: JSON.stringify({
-            customerId,
-            uploadedFiles: successfulUploads.map(r => ({
-              fileKey: r.presignedData!.fileKey,
-              originalName: r.presignedData!.originalName,
-              size: r.presignedData!.size,
-              type: r.presignedData!.type,
-              folderPath: r.presignedData!.folderPath
-            }))
+        try {
+          const callbackResponse = await fetch('/api/admin/upload-callback', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-admin-password': workingPassword // Använd det fungerande lösenordet
+            },
+            body: JSON.stringify({
+              customerId,
+              uploadedFiles: successfulUploads.map(r => ({
+                fileKey: r.presignedData!.fileKey,
+                originalName: r.presignedData!.originalName,
+                size: r.presignedData!.size,
+                type: r.presignedData!.type,
+                folderPath: r.presignedData!.folderPath
+              }))
+            })
           })
-        })
 
-        if (!callbackResponse.ok) {
-          const errorText = await callbackResponse.text()
-          console.error('❌ Upload callback failed:', {
-            status: callbackResponse.status,
-            statusText: callbackResponse.statusText,
-            response: errorText
-          })
-        } else {
-          console.log('📊 Successfully registered uploads in database')
+          if (!callbackResponse.ok) {
+            const errorText = await callbackResponse.text()
+            console.error('❌ Upload callback failed:', {
+              status: callbackResponse.status,
+              statusText: callbackResponse.statusText,
+              response: errorText
+            })
+            
+            // Visa varning till användaren
+            console.warn('⚠️ Files uploaded to storage but failed to register in database')
+            alert(`⚠️ Upload completed to storage, but failed to register in database!\nStatus: ${callbackResponse.status}\nError: ${errorText}`)
+          } else {
+            const callbackResult = await callbackResponse.json()
+            console.log('✅ Successfully registered uploads in database:', callbackResult)
+            alert(`✅ Successfully uploaded and registered ${callbackResult.registeredFiles || successfulUploads.length} files for customer ${callbackResult.customer || ''}!`)
+          }
+        } catch (callbackError) {
+          console.error('❌ Upload callback error:', callbackError)
+          console.warn('⚠️ Files uploaded to storage but failed to register in database')
+          alert(`⚠️ Upload callback error: ${callbackError instanceof Error ? callbackError.message : 'Unknown error'}`)
         }
-        */
       }
 
       // Rensa formulär och uppdatera UI

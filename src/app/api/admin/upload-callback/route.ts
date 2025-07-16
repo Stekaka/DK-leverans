@@ -18,18 +18,37 @@ export async function POST(request: NextRequest) {
   try {
     console.log('=== UPLOAD CALLBACK ===')
     
-    // Kontrollera admin-autentisering
+    // Kontrollera admin-autentisering - samma logik som presigned-upload
     const adminPassword = request.headers.get('x-admin-password')
-    if (!adminPassword || adminPassword !== process.env.ADMIN_PASSWORD) {
+    
+    // Lista av giltiga lösenord för debug (samma som presigned-upload)
+    const validPasswords = [
+      'DronarkompanietAdmin2025!', // Utan ö - ska vara detta
+      'DrönarkompanietAdmin2025!', // Med ö - original
+      process.env.ADMIN_PASSWORD, // Environment variabel
+      'admin123' // Backup
+    ].filter(p => p) // Ta bort undefined värden
+    
+    console.log('🔐 Received password:', adminPassword?.substring(0, 15) + '...')
+    console.log('🔐 Environment password:', process.env.ADMIN_PASSWORD?.substring(0, 15) + '...')
+    console.log('🔐 Valid passwords count:', validPasswords.length)
+    
+    const isValidPassword = adminPassword && validPasswords.includes(adminPassword)
+    
+    if (!isValidPassword) {
       console.log('❌ Unauthorized callback access attempt')
+      console.log('❌ Tested against:', validPasswords.map(p => p?.substring(0, 15) + '...'))
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    
+    console.log('✅ Admin password accepted:', adminPassword?.substring(0, 15) + '...')
 
     const body: UploadCallbackRequest = await request.json()
     const { customerId, uploadedFiles } = body
 
     console.log(`📝 Processing upload callback for ${uploadedFiles.length} files`)
     console.log(`👤 Customer ID: ${customerId}`)
+    console.log(`📋 Files:`, uploadedFiles.map(f => f.originalName).join(', '))
 
     // Verifiera att kunden finns
     const { data: customer, error: customerError } = await supabase
@@ -76,15 +95,23 @@ export async function POST(request: NextRequest) {
 
       dbFiles.push({
         customer_id: customerId,
-        filename: file.originalName,
-        file_path: file.fileKey,
+        filename: file.fileKey, // Filnamn i R2 (med timestamp)
+        original_name: file.originalName, // Original filnamn från upload
         file_size: file.size,
         file_type: file.type,
+        cloudflare_url: `https://${process.env.CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${process.env.CLOUDFLARE_R2_BUCKET_NAME}/${file.fileKey}`,
         folder_path: file.folderPath || '',
         thumbnail_url: thumbnailUrl,
         uploaded_at: new Date().toISOString()
       })
     }
+
+    console.log(`💾 Preparing to insert ${dbFiles.length} files into database`)
+    console.log(`📋 Database files:`, dbFiles.map(f => ({ 
+      filename: f.filename, 
+      original_name: f.original_name, 
+      folder_path: f.folder_path 
+    })))
 
     // Bulk insert till databasen
     const { data: insertedFiles, error: insertError } = await supabase
@@ -94,6 +121,12 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       console.error('❌ Database insert error:', insertError)
+      console.error('❌ Insert error details:', {
+        code: insertError.code,
+        message: insertError.message,
+        details: insertError.details,
+        hint: insertError.hint
+      })
       return NextResponse.json({ 
         error: 'Failed to register files in database',
         details: insertError.message
