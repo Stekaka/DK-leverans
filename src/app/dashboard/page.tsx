@@ -36,9 +36,13 @@ export default function DashboardPage() {
   const { theme } = useTheme()
   
   console.log('Dashboard rendering with theme:', theme)
-  console.log('Background style:', theme === 'dark' 
-    ? 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' 
-    : 'linear-gradient(135deg, #f8fafc 0%, #fefce8 100%)')
+  console.log('Expected background:', theme === 'dark' ? '#0f172a' : '#f8fafc')
+  
+  // Test om theme ändras efter render
+  useEffect(() => {
+    console.log('Theme changed in useEffect:', theme)
+    console.log('Document body style after theme change:', document.body.style.backgroundColor)
+  }, [theme])
   
   const [files, setFiles] = useState<CustomerFile[]>([])
   const [customer, setCustomer] = useState<Customer | null>(null)
@@ -373,23 +377,40 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen transition-colors" style={{
-      background: theme === 'dark'
-        ? 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important' 
-        : 'linear-gradient(135deg, #f8fafc 0%, #fefce8 100%) !important'
-    }}>
-      {/* Debug info - remove later */}
+    <div 
+      className="min-h-screen transition-colors" 
+      style={{
+        backgroundColor: theme === 'dark' ? '#0f172a' : '#f8fafc',
+        color: theme === 'dark' ? '#ffffff' : '#000000'
+      }}
+    >
+      {/* Enhanced Debug info */}
       <div className="fixed top-0 right-0 z-50 bg-red-500 text-white p-2 text-xs">
         <div>Theme: {theme.toUpperCase()}</div>
-        <div>BG: {theme === 'dark' ? 'DARK-GRADIENT' : 'LIGHT-GRADIENT'}</div>
-        <div>Header: {theme === 'dark' ? 'DARK-HEADER' : 'LIGHT-HEADER'}</div>
+        <div>BG: {theme === 'dark' ? '#0f172a' : '#f8fafc'}</div>
+        <div>Color: {theme === 'dark' ? '#ffffff' : '#000000'}</div>
+        <div>Time: {new Date().toLocaleTimeString()}</div>
       </div>
       
-      {/* Header - Modern Design Matching Admin Panel */}
-      <header className="shadow-lg border-b transition-colors" style={{
-        backgroundColor: theme === 'dark' ? '#1e293b !important' : '#ffffff !important',
-        borderColor: theme === 'dark' ? '#475569 !important' : '#fef3c7 !important'
-      }}>
+      {/* Simple test element */}
+      <div 
+        className="fixed top-0 left-0 z-50 p-4 text-2xl font-bold"
+        style={{
+          backgroundColor: theme === 'dark' ? '#ff0000' : '#00ff00',
+          color: theme === 'dark' ? '#ffffff' : '#000000'
+        }}
+      >
+        TEST: {theme === 'dark' ? 'DARK MODE' : 'LIGHT MODE'}
+      </div>
+      
+      {/* Header - Simple test */}
+      <header 
+        className="pt-20 pb-4"
+        style={{
+          backgroundColor: theme === 'dark' ? '#1e293b' : '#ffffff',
+          borderBottom: `2px solid ${theme === 'dark' ? '#475569' : '#fef3c7'}`
+        }}
+      >
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
           {/* Mobile Layout */}
           <div className="block sm:hidden">
