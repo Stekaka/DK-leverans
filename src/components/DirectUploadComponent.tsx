@@ -228,7 +228,7 @@ export default function DirectUploadComponent({
     setUploading(true)
     
     try {
-      console.log('🚀 Starting direct upload process... [Version: 2025-07-16-v4-EMERGENCY]')
+      console.log('🚀 Starting direct upload process... [Version: 2025-07-16-v6-NO-UMLAUT]')
       console.log(`📁 Files to upload: ${files.length}`)
       console.log(`🔐 Using admin password: ${adminPassword.substring(0, 10)}...`)
       
@@ -236,15 +236,16 @@ export default function DirectUploadComponent({
       const batchSize = 1 // Endast 1 fil per batch för att helt undvika "Request Entity Too Large"
       const allPresignedUrls: PresignedUpload[] = []
       
-      // Lista av möjliga admin-lösenord för debug
+      // Lista av möjliga admin-lösenord för debug - prova utan ö först!
       const possiblePasswords = [
-        adminPassword, // Försök med det som skickades in först
-        'DrönarkompanietAdmin2025!',
+        'DronarkompanietAdmin2025!', // UTAN ö - troligen detta som fungerar
+        'DrönarkompanietAdmin2025!', // MED ö - original
+        adminPassword, // Försök med det som skickades in
         'admin123',
         'admin',
         'Admin2025!',
-        'DronarkompanietAdmin2025!', // utan ö
-        'Drönarkompaniet2025!',
+        'Dronarkompaniet2025!', // utan ö, kortare version
+        'Drönarkompaniet2025!', // med ö, kortare version
         'dronarkompaniet',
         'Dronarkompaniet',
         'your_secure_admin_password', // default från .env.example
