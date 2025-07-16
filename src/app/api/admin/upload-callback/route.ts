@@ -16,7 +16,17 @@ interface UploadCallbackRequest {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('=== UPLOAD CALLBACK ===')
+    console.log('🚀 === UPLOAD CALLBACK STARTED ===')
+    console.log('📅 Timestamp:', new Date().toISOString())
+    
+    // Debug: Environment check
+    console.log('🔍 Environment check:', {
+      hasAdminPassword: !!process.env.ADMIN_PASSWORD,
+      hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+      hasSupabaseKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      hasR2AccountId: !!process.env.CLOUDFLARE_R2_ACCOUNT_ID,
+      hasR2BucketName: !!process.env.CLOUDFLARE_R2_BUCKET_NAME
+    })
     
     // Kontrollera admin-autentisering - samma logik som presigned-upload
     const adminPassword = request.headers.get('x-admin-password')
@@ -29,26 +39,31 @@ export async function POST(request: NextRequest) {
       'admin123' // Backup
     ].filter(p => p) // Ta bort undefined värden
     
-    console.log('🔐 Received password:', adminPassword?.substring(0, 15) + '...')
-    console.log('🔐 Environment password:', process.env.ADMIN_PASSWORD?.substring(0, 15) + '...')
-    console.log('🔐 Valid passwords count:', validPasswords.length)
+    console.log('🔐 Auth debug:', {
+      receivedPassword: adminPassword?.substring(0, 15) + '...',
+      envPassword: process.env.ADMIN_PASSWORD?.substring(0, 15) + '...',
+      validPasswordsCount: validPasswords.length,
+      allHeaders: Object.fromEntries(request.headers.entries())
+    })
     
     const isValidPassword = adminPassword && validPasswords.includes(adminPassword)
     
     if (!isValidPassword) {
-      console.log('❌ Unauthorized callback access attempt')
-      console.log('❌ Tested against:', validPasswords.map(p => p?.substring(0, 15) + '...'))
+      console.log('❌ AUTHENTICATION FAILED')
+      console.log('❌ Tested passwords:', validPasswords.map(p => p?.substring(0, 15) + '...'))
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     
-    console.log('✅ Admin password accepted:', adminPassword?.substring(0, 15) + '...')
+    console.log('✅ Authentication successful')
 
     const body: UploadCallbackRequest = await request.json()
     const { customerId, uploadedFiles } = body
 
-    console.log(`📝 Processing upload callback for ${uploadedFiles.length} files`)
-    console.log(`👤 Customer ID: ${customerId}`)
-    console.log(`📋 Files:`, uploadedFiles.map(f => f.originalName).join(', '))
+    console.log('📝 Request data:', {
+      customerId,
+      fileCount: uploadedFiles.length,
+      files: uploadedFiles.map(f => ({ name: f.originalName, size: f.size, folder: f.folderPath }))
+    })
 
     // Verifiera att kunden finns
     const { data: customer, error: customerError } = await supabase
