@@ -1,8 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { r2Service } from '../../../../../lib/cloudflare-r2'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // Kontrollera admin-autentisering FÖRST
+    const adminPassword = request.headers.get('x-admin-password')
+    console.log('🔐 Received admin password:', adminPassword ? `${adminPassword.substring(0, 10)}...` : 'none')
+    console.log('🔑 Expected admin password:', process.env.ADMIN_PASSWORD ? `${process.env.ADMIN_PASSWORD.substring(0, 10)}...` : 'NOT SET')
+    console.log('🔍 Password match:', adminPassword === process.env.ADMIN_PASSWORD)
+    
+    if (!adminPassword || adminPassword !== process.env.ADMIN_PASSWORD) {
+      console.log('❌ Unauthorized admin access attempt')
+      return NextResponse.json({ 
+        error: 'Unauthorized',
+        debug: {
+          receivedPassword: adminPassword ? `${adminPassword.substring(0, 10)}...` : 'none',
+          expectedPasswordSet: !!process.env.ADMIN_PASSWORD,
+          expectedPasswordPreview: process.env.ADMIN_PASSWORD ? `${process.env.ADMIN_PASSWORD.substring(0, 10)}...` : 'NOT SET'
+        }
+      }, { status: 401 })
+    }
+
     // Kontrollera miljövariabler
     const envCheck = {
       hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -14,6 +32,7 @@ export async function GET() {
       hasR2Bucket: !!process.env.CLOUDFLARE_R2_BUCKET_NAME,
       hasAdminUsername: !!process.env.ADMIN_USERNAME,
       hasAdminPassword: !!process.env.ADMIN_PASSWORD,
+      adminPasswordPreview: process.env.ADMIN_PASSWORD ? `${process.env.ADMIN_PASSWORD.substring(0, 15)}...` : 'NOT SET'
     }
 
     const missingVars = Object.entries(envCheck)
