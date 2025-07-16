@@ -2,7 +2,7 @@ import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } fro
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
 // Cloudflare R2 konfiguration (S3-kompatibel)
-const r2Client = new S3Client({
+export const r2Client = new S3Client({
   region: 'auto', // Cloudflare R2 använder 'auto'
   endpoint: `https://${process.env.CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
   credentials: {

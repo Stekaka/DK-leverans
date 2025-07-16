@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import DrönarkompanietLogo from '@/components/DrönarkompanietLogo'
+import DirectUploadComponent from '@/components/DirectUploadComponent'
 import { customerService, fileService, utils } from '../../../../lib/database'
 import { generatePassword, generateSimplePassword, generateCustomerPassword } from '../../../../lib/password-generator'
 import type { Customer } from '../../../../lib/supabase'
@@ -206,37 +207,7 @@ export default function AdminDashboard() {
     }
   }
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('handleFileSelect called')
-    console.log('e.target.files:', e.target.files)
-    
-    if (e.target.files) {
-      const files = Array.from(e.target.files)
-      console.log('Selected files:', files.map(f => ({ name: f.name, size: f.size, type: f.type })))
-      
-      // Kontrollera filstorlekar och varna
-      const MAX_FILE_SIZE = 4 * 1024 * 1024 // 4MB
-      const oversizedFiles = files.filter(file => file.size > MAX_FILE_SIZE)
-      
-      if (oversizedFiles.length > 0) {
-        alert(`⚠️ Varning: Följande filer är större än 4MB och kan inte laddas upp:\n\n${oversizedFiles.map(f => `• ${f.name}: ${Math.round(f.size / 1024 / 1024)}MB`).join('\n')}\n\nDe kommer att ignoreras.`)
-        // Filtrera bort för stora filer
-        const validFiles = files.filter(file => file.size <= MAX_FILE_SIZE)
-        if (validFiles.length === 0) return
-        files.splice(0, files.length, ...validFiles)
-      }
-      
-      setSelectedFiles(prev => {
-        const newFiles = [...prev, ...files]
-        console.log('Updated selectedFiles:', newFiles.map(f => f.name))
-        return newFiles
-      })
-    }
-  }
-
-  const handleRemoveFile = (index: number) => {
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index))
-  }
+  // Funktioner för filhantering och mappstöd
 
   const handleUploadFiles = async () => {
     console.log('handleUploadFiles called')
@@ -338,6 +309,8 @@ export default function AdminDashboard() {
     }
   }
 
+  // Ta bort onödiga state-variabler och funktioner för gamla upload-systemet
+  
   const handleSendPassword = async (customer: Customer) => {
     try {
       const newPassword = utils.generatePassword()
@@ -842,72 +815,22 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                {/* Upload Area */}
+                {/* Direct Upload Component */}
                 <div className="mb-6">
-                  <h4 className="text-sm font-medium text-gray-700 mb-3">
+                  <h4 className="text-sm font-medium text-gray-200 mb-3">
                     Ladda upp nya filer {folderPath && `till "${folderPath}"`}
                   </h4>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-                    <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                      <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    <div className="flex text-sm text-gray-600 justify-center">
-                      <label className="relative cursor-pointer bg-white rounded-md font-medium text-yellow-600 hover:text-yellow-500">
-                        <span>Välj filer</span>
-                        <input 
-                          type="file" 
-                          className="sr-only" 
-                          multiple 
-                          accept="image/*,video/*" 
-                          onChange={handleFileSelect}
-                        />
-                      </label>
-                      <p className="pl-1">eller dra och släpp här</p>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2">PNG, JPG, MP4, MOV upp till 100MB per fil</p>
+                  <div className="bg-gray-800 border border-gray-600 rounded-lg p-6">
+                    <DirectUploadComponent
+                      customerId={selectedCustomer.id}
+                      adminPassword={process.env.ADMIN_PASSWORD || 'admin123'}
+                      onUploadComplete={() => {
+                        // Ladda om filer efter upload
+                        loadCustomerFiles(selectedCustomer.id, folderPath)
+                      }}
+                    />
                   </div>
                 </div>
-
-                {/* Selected Files */}
-                {selectedFiles.length > 0 && (
-                  <div className="mb-6">
-                    <h4 className="text-sm font-medium text-gray-700 mb-3">Valda filer ({selectedFiles.length})</h4>
-                    <div className="space-y-2">
-                      {selectedFiles.map((file, index) => (
-                        <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-md">
-                          <div className="flex items-center space-x-3">
-                            <div className="flex-shrink-0">
-                              {file.type.startsWith('image/') ? (
-                                <svg className="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                              ) : (
-                                <svg className="w-6 h-6 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                </svg>
-                              )}
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-gray-900">{file.name}</p>
-                              <p className={`text-xs ${file.size > 4 * 1024 * 1024 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>
-                                {(file.size / 1024 / 1024).toFixed(2)} MB
-                                {file.size > 4 * 1024 * 1024 && ' ⚠️ För stor för upload'}
-                              </p>
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => handleRemoveFile(index)}
-                            className="text-red-500 hover:text-red-700 p-1"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
 
                 {/* File List */}
                 <div>
@@ -1111,13 +1034,6 @@ export default function AdminDashboard() {
                       className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-white"
                     >
                       Stäng
-                    </button>
-                    <button 
-                      onClick={handleUploadFiles}
-                      disabled={selectedFiles.length === 0 || isUploading}
-                      className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                    >
-                      {isUploading ? 'Laddar upp...' : `Ladda upp ${selectedFiles.length > 0 ? `(${selectedFiles.length})` : ''}`}
                     </button>
                   </div>
                 </div>
