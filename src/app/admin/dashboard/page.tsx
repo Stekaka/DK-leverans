@@ -256,7 +256,26 @@ export default function AdminDashboard() {
         body: formData
       })
 
-      const result = await response.json()
+      console.log('Response status:', response.status)
+      console.log('Response headers:', response.headers)
+      console.log('Response content-type:', response.headers.get('content-type'))
+
+      let result
+      try {
+        const responseText = await response.text()
+        console.log('Raw response text:', responseText.substring(0, 500))
+        
+        // Försök parsa som JSON endast om content-type är JSON
+        if (response.headers.get('content-type')?.includes('application/json')) {
+          result = JSON.parse(responseText)
+        } else {
+          throw new Error(`Server returned non-JSON response: ${responseText.substring(0, 200)}`)
+        }
+      } catch (parseError) {
+        console.error('Failed to parse response:', parseError)
+        throw new Error(`Invalid server response: ${parseError}`)
+      }
+
       console.log('Upload result:', result)
 
       if (!response.ok) {

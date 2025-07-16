@@ -15,6 +15,44 @@ const r2Client = new S3Client({
 const BUCKET_NAME = process.env.CLOUDFLARE_R2_BUCKET_NAME!
 
 export const r2Service = {
+  // Test R2 connection
+  async testConnection(): Promise<{ success: boolean; message: string }> {
+    try {
+      console.log('Testing R2 connection...')
+      console.log('Account ID:', process.env.CLOUDFLARE_R2_ACCOUNT_ID)
+      console.log('Access Key ID:', process.env.CLOUDFLARE_R2_ACCESS_KEY_ID?.substring(0, 10) + '...')
+      console.log('Bucket:', BUCKET_NAME)
+      
+      // Enkel test med små data
+      const testKey = `test/connection-test-${Date.now()}.txt`
+      const testData = Buffer.from('Connection test from DK Leverans')
+      
+      const command = new PutObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: testKey,
+        Body: testData,
+        ContentType: 'text/plain',
+      })
+
+      await r2Client.send(command)
+      
+      // Ta bort test-filen
+      const deleteCommand = new DeleteObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: testKey,
+      })
+      await r2Client.send(deleteCommand)
+      
+      return { success: true, message: 'R2 connection successful' }
+    } catch (error) {
+      console.error('R2 connection test failed:', error)
+      return { 
+        success: false, 
+        message: `R2 connection failed: ${error instanceof Error ? error.message : String(error)}` 
+      }
+    }
+  },
+
   // Ladda upp fil till R2
   async uploadFile(
     file: Buffer,
