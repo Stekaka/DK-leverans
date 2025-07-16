@@ -480,7 +480,7 @@ export default function AdminDashboard() {
                   </p>
                   <DirectUploadComponent
                     customerId={selectedCustomer.id}
-                    adminPassword="admin123"
+                    adminPassword="DrönarkompanietAdmin2025!"
                     onUploadComplete={() => {
                       console.log('Upload completed in upload tab')
                     }}
@@ -711,7 +711,7 @@ export default function AdminDashboard() {
                   <div className="bg-gray-800 border border-gray-600 rounded-lg p-6">
                     <DirectUploadComponent
                       customerId={selectedCustomer.id}
-                      adminPassword="admin123" // Hårdkodad för nu, kommer från server
+                      adminPassword="DrönarkompanietAdmin2025!"
                       onUploadComplete={() => {
                         // Ladda om filer efter upload
                         loadCustomerFiles(selectedCustomer.id, folderPath)
