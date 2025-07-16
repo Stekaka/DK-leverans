@@ -255,17 +255,20 @@ export default function AdminDashboard() {
   // Load customer access information
   const loadCustomerAccess = async (customerId: string) => {
     try {
-      const response = await fetch(`/api/customer/access`, {
-        headers: {
-          'Customer-Session': customerId // Simulate customer session for access check
-        }
-      })
+      console.log('Loading access for customer:', customerId)
+      const response = await fetch(`/api/customer/access?customerId=${customerId}`)
+      
       if (response.ok) {
         const data = await response.json()
+        console.log('Access data for', customerId, ':', data)
         setCustomersWithAccess(prev => ({
           ...prev,
           [customerId]: data.access
         }))
+      } else {
+        console.error('Failed to load access for customer', customerId, ':', response.status)
+        const errorData = await response.json()
+        console.error('Error details:', errorData)
       }
     } catch (error) {
       console.error('Error loading customer access:', error)
@@ -494,6 +497,9 @@ export default function AdminDashboard() {
                       Filer
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                      Filaccess
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                       Senaste åtkomst
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
@@ -526,27 +532,103 @@ export default function AdminDashboard() {
                         {fileStats.customerFileCounts[customer.id] || 0} filer
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-slate-400">
+                        {(() => {
+                          const accessInfo = customersWithAccess[customer.id]
+                          if (!accessInfo) return 'Laddar...'
+                          
+                          if (accessInfo.accessType === 'permanent') {
+                            return (
+                              <div>
+                                <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                  Permanent
+                                </span>
+                                <div className="text-xs mt-1">
+                                  {accessInfo.storageUsedGb?.toFixed(1) || 0}GB/{accessInfo.storageLimitGb}GB
+                                </div>
+                              </div>
+                            )
+                          } else if (!accessInfo.hasAccess) {
+                            return (
+                              <div>
+                                <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                                  Utgången
+                                </span>
+                                <div className="text-xs mt-1">
+                                  {accessInfo.expiresAt ? new Date(accessInfo.expiresAt).toLocaleDateString('sv-SE') : 'Okänt'}
+                                </div>
+                              </div>
+                            )
+                          } else if (accessInfo.daysRemaining <= 7) {
+                            return (
+                              <div>
+                                <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                  {accessInfo.daysRemaining} dagar kvar
+                                </span>
+                                <div className="text-xs mt-1">
+                                  Utgår: {accessInfo.expiresAt ? new Date(accessInfo.expiresAt).toLocaleDateString('sv-SE') : 'Okänt'}
+                                </div>
+                              </div>
+                            )
+                          } else {
+                            return (
+                              <div>
+                                <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                  {accessInfo.daysRemaining} dagar kvar
+                                </span>
+                                <div className="text-xs mt-1">
+                                  Utgår: {accessInfo.expiresAt ? new Date(accessInfo.expiresAt).toLocaleDateString('sv-SE') : 'Okänt'}
+                                </div>
+                              </div>
+                            )
+                          }
+                        })()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-slate-400">
                         {customer.last_access ? utils.formatDate(customer.last_access) : 'Aldrig'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                        <button 
-                          onClick={() => handleManageFiles(customer)}
-                          className="text-yellow-600 dark:text-yellow-400 hover:text-yellow-900 dark:hover:text-yellow-300 transition-colors"
-                        >
-                          Hantera filer
-                        </button>
-                        <button 
-                          onClick={() => handleSendPassword(customer)}
-                          className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 transition-colors"
-                        >
-                          Skicka lösenord
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteCustomer(customer)}
-                          className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 transition-colors"
-                        >
-                          Ta bort
-                        </button>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex flex-col space-y-1">
+                          <div className="flex space-x-2">
+                            <button 
+                              onClick={() => handleManageFiles(customer)}
+                              className="text-yellow-600 dark:text-yellow-400 hover:text-yellow-900 dark:hover:text-yellow-300 transition-colors text-xs"
+                            >
+                              Hantera filer
+                            </button>
+                            <button 
+                              onClick={() => handleSendPassword(customer)}
+                              className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 transition-colors text-xs"
+                            >
+                              Skicka lösenord
+                            </button>
+                          </div>
+                          <div className="flex space-x-2">
+                            <button 
+                              onClick={() => {
+                                setSelectedCustomerForAccess(customer)
+                                setShowExtendModal(true)
+                              }}
+                              className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 transition-colors text-xs"
+                            >
+                              Förläng access
+                            </button>
+                            <button 
+                              onClick={() => {
+                                setSelectedCustomerForAccess(customer)
+                                setShowPermanentModal(true)
+                              }}
+                              className="text-purple-600 dark:text-purple-400 hover:text-purple-900 dark:hover:text-purple-300 transition-colors text-xs"
+                            >
+                              Permanent access
+                            </button>
+                          </div>
+                          <button 
+                            onClick={() => handleDeleteCustomer(customer)}
+                            className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 transition-colors text-xs self-start"
+                          >
+                            Ta bort
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

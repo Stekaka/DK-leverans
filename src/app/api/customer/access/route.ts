@@ -46,19 +46,53 @@ async function verifyCustomerSession(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    // Verifiera customer session
-    const customer = await verifyCustomerSession(request)
+    // Hämta customer ID från query parameter för admin-användning
+    const { searchParams } = new URL(request.url)
+    const customerIdParam = searchParams.get('customerId')
+    
+    // Alternativt: kolla Customer-Session header för admin-användning
+    const customerSessionHeader = request.headers.get('Customer-Session')
+    
+    let customer
+    
+    if (customerIdParam || customerSessionHeader) {
+      // Admin-användning: hämta specifik kund
+      const targetCustomerId = customerIdParam || customerSessionHeader
+      const { data: customerData, error } = await supabaseAdmin
+        .from('customers')
+        .select('*')
+        .eq('id', targetCustomerId)
+        .single()
+        
+      if (error || !customerData) {
+        console.error('Admin access check - customer not found:', targetCustomerId, error)
+        return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
+      }
+      customer = customerData
+    } else {
+      // Normal kundanvändning: verifiera session
+      customer = await verifyCustomerSession(request)
+    }
 
     // Kontrollera access med vår SQL-funktion
+    console.log('Checking access for customer:', customer.id)
     const { data: accessCheck, error } = await supabaseAdmin
       .rpc('check_customer_access', { customer_uuid: customer.id })
 
     if (error) {
       console.error('Error checking customer access:', error)
-      return NextResponse.json({ error: 'Failed to check access' }, { status: 500 })
+      console.error('Customer ID:', customer.id)
+      console.error('Function call failed:', error.message)
+      return NextResponse.json({ error: 'Failed to check access', details: error.message }, { status: 500 })
+    }
+
+    if (!accessCheck || accessCheck.length === 0) {
+      console.error('No access data returned for customer:', customer.id)
+      return NextResponse.json({ error: 'No access data found' }, { status: 500 })
     }
 
     const accessInfo = accessCheck[0]
+    console.log('Access check result:', accessInfo)
 
     return NextResponse.json({
       customer: {
