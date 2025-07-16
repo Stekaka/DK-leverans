@@ -23,8 +23,7 @@ export default function AdminDashboard() {
     password: ''
   })
   const [isCreating, setIsCreating] = useState(false)
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
-  const [isUploading, setIsUploading] = useState(false)
+  // Ta bort gamla upload-relaterade state som inte behövs längre
   const [folderPath, setFolderPath] = useState('')
   const [newFolderName, setNewFolderName] = useState('')
   const [customerFiles, setCustomerFiles] = useState<any[]>([])
@@ -88,7 +87,6 @@ export default function AdminDashboard() {
 
   const handleManageFiles = async (customer: Customer) => {
     setSelectedCustomer(customer)
-    setSelectedFiles([]) // Reset selected files
     setFolderPath('') // Reset to root folder
     setNewFolderName('')
     setCustomerFiles([])
@@ -209,108 +207,6 @@ export default function AdminDashboard() {
 
   // Funktioner för filhantering och mappstöd
 
-  const handleUploadFiles = async () => {
-    console.log('handleUploadFiles called')
-    console.log('selectedCustomer:', selectedCustomer)
-    console.log('selectedFiles:', selectedFiles)
-    
-    if (!selectedCustomer || selectedFiles.length === 0) {
-      alert('Välj filer att ladda upp')
-      return
-    }
-
-    // Validera filstorlekar före upload (Vercel serverless function-begränsningar)
-    const MAX_FILE_SIZE = 4 * 1024 * 1024 // 4MB
-    const MAX_BATCH_SIZE = 3.5 * 1024 * 1024 // 3.5MB total
-    
-    const oversizedFiles = selectedFiles.filter(file => file.size > MAX_FILE_SIZE)
-    if (oversizedFiles.length > 0) {
-      alert(`⚠️ Följande filer är för stora (max 4MB per fil):\n\n${oversizedFiles.map(f => `• ${f.name}: ${Math.round(f.size / 1024 / 1024)}MB`).join('\n')}\n\n💡 Förslag: Komprimera bilderna eller kontakta support för stora videor.`)
-      return
-    }
-    
-    const totalSize = selectedFiles.reduce((sum, file) => sum + file.size, 0)
-    if (totalSize > MAX_BATCH_SIZE) {
-      alert(`⚠️ Total batch-storlek för stor: ${Math.round(totalSize / 1024 / 1024)}MB (max 3.5MB)\n\n💡 Förslag: Ladda upp färre filer åt gången eller komprimera filer.`)
-      return
-    }
-
-    setIsUploading(true)
-    
-    try {
-      const formData = new FormData()
-      formData.append('customerId', selectedCustomer.id)
-      formData.append('folderPath', folderPath) // Lägg till mapp-info
-      
-      console.log('Adding files to FormData...')
-      selectedFiles.forEach((file, index) => {
-        console.log(`Adding file ${index}:`, file.name, file.size, file.type)
-        formData.append('files', file)
-      })
-
-      console.log('FormData created with customerId:', selectedCustomer.id)
-      console.log('FormData has files:', formData.has('files'))
-
-      const response = await fetch('/api/admin/upload', {
-        method: 'POST',
-        body: formData
-      })
-
-      console.log('Response status:', response.status)
-      console.log('Response headers:', response.headers)
-      console.log('Response content-type:', response.headers.get('content-type'))
-
-      let result
-      try {
-        const responseText = await response.text()
-        console.log('Raw response text:', responseText.substring(0, 500))
-        
-        // Försök parsa som JSON endast om content-type är JSON
-        if (response.headers.get('content-type')?.includes('application/json')) {
-          result = JSON.parse(responseText)
-        } else {
-          throw new Error(`Server returned non-JSON response: ${responseText.substring(0, 200)}`)
-        }
-      } catch (parseError) {
-        console.error('Failed to parse response:', parseError)
-        throw new Error(`Invalid server response: ${parseError}`)
-      }
-
-      console.log('Upload result:', result)
-
-      if (!response.ok) {
-        // Hantera specifika fel för Vercel-begränsningar
-        if (response.status === 413 || result.error?.includes('too large') || result.error?.includes('FUNCTION_PAYLOAD_TOO_LARGE')) {
-          throw new Error(`Filer för stora för upload!\n\n${result.error || 'Request Entity Too Large'}\n\n💡 Lösningar:\n• Ladda upp färre filer åt gången\n• Komprimera bilder före upload\n• Kontakta support för stora videor`)
-        }
-        throw new Error(result.error || 'Upload failed')
-      }
-      
-      // Hantera partiella framgångar
-      if (result.errorCount > 0) {
-        alert(`Upload delvis lyckad!\n✅ ${result.successCount} filer uppladdade\n❌ ${result.errorCount} filer misslyckades\n\nFel:\n${result.errors?.join('\n') || 'Okända fel'}`)
-      } else {
-        alert(`✅ Alla ${result.successCount} filer uppladdades framgångsrikt!`)
-      }
-      
-      setSelectedFiles([])
-      
-      // Reload data to update file counts and customer files
-      await loadData()
-      if (selectedCustomer) {
-        await loadCustomerFiles(selectedCustomer.id, folderPath)
-      }
-      
-    } catch (error: any) {
-      console.error('Error uploading files:', error)
-      alert('Fel vid uppladdning: ' + error.message)
-    } finally {
-      setIsUploading(false)
-    }
-  }
-
-  // Ta bort onödiga state-variabler och funktioner för gamla upload-systemet
-  
   const handleSendPassword = async (customer: Customer) => {
     try {
       const newPassword = utils.generatePassword()
@@ -557,7 +453,14 @@ export default function AdminDashboard() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Välj kund
                 </label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-yellow-500 focus:border-yellow-500">
+                <select 
+                  value={selectedCustomer?.id || ''}
+                  onChange={(e) => {
+                    const customer = customers.find(c => c.id === e.target.value)
+                    setSelectedCustomer(customer || null)
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-yellow-500 focus:border-yellow-500"
+                >
                   <option value="">Välj kund...</option>
                   {customers.map(customer => (
                     <option key={customer.id} value={customer.id}>
@@ -567,45 +470,30 @@ export default function AdminDashboard() {
                 </select>
               </div>
 
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Ladda upp filer
-                </label>
-                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
-                  <div className="space-y-1 text-center">
-                    <svg
-                      className="mx-auto h-12 w-12 text-gray-400"
-                      stroke="currentColor"
-                      fill="none"
-                      viewBox="0 0 48 48"
-                    >
-                      <path
-                        d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                        strokeWidth={2}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    <div className="flex text-sm text-gray-600">
-                      <label className="relative cursor-pointer bg-white rounded-md font-medium text-yellow-600 hover:text-yellow-500 focus-within:outline-none">
-                        <span>Ladda upp filer</span>
-                        <input type="file" className="sr-only" multiple accept="image/*,video/*" />
-                      </label>
-                      <p className="pl-1">eller dra och släpp</p>
-                    </div>
-                    <p className="text-xs text-gray-500">PNG, JPG, MP4 upp till 4MB per fil</p>
-                    <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-700">
-                      ⚠️ Vercel-begränsning: Max 4MB per fil, 3.5MB total per batch
-                    </div>
-                  </div>
+              {selectedCustomer ? (
+                <div className="bg-gray-50 rounded-lg p-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">
+                    Direktuppladdning till Cloudflare R2
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    🚀 Ingen storleksbegränsning - filer laddas direkt till molnlagring
+                  </p>
+                  <DirectUploadComponent
+                    customerId={selectedCustomer.id}
+                    adminPassword="admin123"
+                    onUploadComplete={() => {
+                      console.log('Upload completed in upload tab')
+                    }}
+                  />
                 </div>
-              </div>
-
-              <div className="flex justify-end">
-                <button className="bg-yellow-600 text-white px-6 py-2 rounded-lg hover:bg-yellow-700 transition-colors">
-                  Ladda upp material
-                </button>
-              </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  <p>Välj en kund för att ladda upp filer</p>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -823,7 +711,7 @@ export default function AdminDashboard() {
                   <div className="bg-gray-800 border border-gray-600 rounded-lg p-6">
                     <DirectUploadComponent
                       customerId={selectedCustomer.id}
-                      adminPassword={process.env.ADMIN_PASSWORD || 'admin123'}
+                      adminPassword="admin123" // Hårdkodad för nu, kommer från server
                       onUploadComplete={() => {
                         // Ladda om filer efter upload
                         loadCustomerFiles(selectedCustomer.id, folderPath)
