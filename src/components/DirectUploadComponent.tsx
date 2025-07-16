@@ -228,9 +228,41 @@ export default function DirectUploadComponent({
     setUploading(true)
     
     try {
-      console.log('🚀 Starting direct upload process... [Version: 2025-07-16-v6-NO-UMLAUT]')
+      console.log('🚀 Starting direct upload process... [Version: 2025-07-16-v7-DEBUG]')
       console.log(`📁 Files to upload: ${files.length}`)
       console.log(`🔐 Using admin password: ${adminPassword.substring(0, 10)}...`)
+      console.log(`👤 Customer ID: ${customerId}`)
+      
+      // DEBUG: Testa kund och lösenord först
+      console.log('🔍 DEBUGGING: Testing customer and password first...')
+      try {
+        const debugResponse = await fetch('/api/admin/debug-customer', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-password': adminPassword
+          },
+          body: JSON.stringify({ customerId })
+        })
+        
+        const debugData = await debugResponse.json()
+        console.log(`🔍 DEBUG Response (${debugResponse.status}):`, debugData)
+        
+        if (!debugResponse.ok) {
+          console.log('❌ DEBUG: Problem detected!')
+          if (debugResponse.status === 401) {
+            alert(`Authentication failed! Check that ADMIN_PASSWORD on Vercel is set to: ${adminPassword}`)
+          } else if (debugResponse.status === 404) {
+            alert(`Customer not found! Available customers: ${debugData.details?.availableIds?.join(', ') || 'none'}`)
+          }
+          throw new Error(`Debug check failed: ${debugData.error}`)
+        }
+        
+        console.log('✅ DEBUG: Customer and password OK!')
+      } catch (debugError) {
+        console.error('❌ DEBUG CHECK FAILED:', debugError)
+        throw debugError
+      }
       
       // Steg 1: Hämta presigned URLs (extra liten batch-storlek för att undvika payload-problem)
       const batchSize = 1 // Endast 1 fil per batch för att helt undvika "Request Entity Too Large"
