@@ -7,19 +7,18 @@ export default function HomePage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800">
       {/* Clean Hero Section */}
       <header className="relative bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white overflow-hidden">
-        {/* Simple Background Elements */}
+        {/* Subtle gradient overlays */}
         <div className="absolute inset-0">
-          {/* Subtle gradient overlays */}
           <div className="absolute top-20 left-20 w-32 h-32 bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 rounded-full blur-xl animate-pulse"></div>
           <div className="absolute top-40 right-32 w-24 h-24 bg-gradient-to-br from-yellow-600/15 to-yellow-500/15 rounded-full blur-lg animate-pulse" style={{animationDelay: '2s'}}></div>
           <div className="absolute bottom-32 left-1/3 w-40 h-40 bg-gradient-to-br from-yellow-500/8 to-yellow-600/8 rounded-full blur-2xl animate-pulse" style={{animationDelay: '4s'}}></div>
         </div>
         
-        {/* Simple Navigation */}
+        {/* Navigation with Logo */}
         <nav className="relative z-20 container mx-auto px-4 sm:px-6 py-4 sm:py-6">
           <div className="flex items-center justify-between backdrop-blur-sm bg-white/5 rounded-xl px-4 sm:px-8 py-3 sm:py-4 border border-white/10">
-            <div className="text-xl sm:text-2xl font-bold text-white">
-              <span className="text-yellow-500">Drönar</span>kompaniet
+            <div className="flex items-center">
+              <DrönarkompanietLogo size="md" className="filter brightness-110" />
             </div>
             <div className="flex items-center space-x-2 sm:space-x-4">
               <Link href="/login" className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 hover:to-yellow-500 text-black px-3 sm:px-6 py-2 sm:py-3 rounded-lg transition-all duration-300 font-semibold text-sm sm:text-base">
@@ -209,7 +208,7 @@ export default function HomePage() {
         <div className="container mx-auto px-6">
           <div className="grid md:grid-cols-3 gap-12">
             <div>
-              <DrönarkompanietLogo variant="full" size="lg" className="text-white mb-8" />
+              <DrönarkompanietLogo size="lg" className="text-white mb-8 filter brightness-110" />
               <p className="text-slate-300 leading-relaxed text-lg">
                 Professionell leveransportal för dina drönarbilder och filmmaterial från Drönarkompaniet. 
                 Säker, snabb och pålitlig service.

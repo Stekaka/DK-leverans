@@ -1,5 +1,6 @@
 import './globals.css'
 import type { Metadata } from 'next'
+import { ThemeProvider } from '../contexts/ThemeContext'
 
 export const metadata: Metadata = {
   title: 'Drönarkompaniet - Leveransportal',
@@ -17,10 +18,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="sv">
-      <body className="font-sans bg-slate-50">
-        <div className="min-h-screen">
-          {children}
-        </div>
+      <body className="font-sans bg-slate-50 dark:bg-slate-900 transition-colors">
+        <ThemeProvider>
+          <div className="min-h-screen">
+            {children}
+          </div>
+        </ThemeProvider>
       </body>
     </html>
   )

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import DrönarkompanietLogo from '@/components/DrönarkompanietLogo'
 import DirectUploadComponent from '@/components/DirectUploadComponent'
+import ThemeToggle from '@/components/ThemeToggle'
 import { customerService, fileService, utils } from '../../../../lib/database'
 import { generatePassword, generateSimplePassword, generateCustomerPassword } from '../../../../lib/password-generator'
 import type { Customer } from '../../../../lib/supabase'
@@ -244,24 +245,32 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-drone-cloud to-yellow-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-yellow-50 dark:from-slate-900 dark:to-slate-800 transition-colors">
       {/* Header - Mobile Optimized */}
-      <header className="bg-white shadow-sm border-b border-yellow-50">
+      <header className="bg-white dark:bg-slate-800 shadow-sm border-b border-yellow-50 dark:border-slate-700 transition-colors">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
           {/* Mobile Layout */}
           <div className="block sm:hidden">
             <div className="flex justify-between items-center py-3">
-              <DrönarkompanietLogo variant="text" size="sm" />
-              <button className="text-slate-600 hover:text-yellow-700 text-sm">
-                Logga ut
-              </button>
+              <div className="flex items-center space-x-3">
+                <DrönarkompanietLogo size="sm" />
+                <div>
+                  <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">Leveransportal</span>
+                  <div className="text-xs text-slate-500 dark:text-slate-500">Admin Panel</div>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <ThemeToggle />
+                <button className="text-slate-600 dark:text-slate-400 hover:text-yellow-700 dark:hover:text-yellow-400 text-sm transition-colors">
+                  Logga ut
+                </button>
+              </div>
             </div>
             <div className="pb-3">
-              <span className="text-xs text-slate-600 font-medium">Admin Panel</span>
-              <div className="flex items-center space-x-2 mt-1">
-                <span className="text-xs text-slate-600">Inloggad som: Admin</span>
-                <span className="text-slate-300">•</span>
-                <Link href="/" className="text-yellow-600 hover:text-yellow-700 text-xs">
+              <div className="flex items-center space-x-2">
+                <span className="text-xs text-slate-600 dark:text-slate-400">Inloggad som: Admin</span>
+                <span className="text-slate-300 dark:text-slate-600">•</span>
+                <Link href="/" className="text-yellow-600 dark:text-yellow-400 hover:text-yellow-700 dark:hover:text-yellow-300 text-xs transition-colors">
                   Till kundportal
                 </Link>
               </div>
@@ -271,17 +280,19 @@ export default function AdminDashboard() {
           {/* Desktop Layout */}
           <div className="hidden sm:flex justify-between items-center py-4">
             <div className="flex items-center space-x-4">
-              <DrönarkompanietLogo variant="full" size="md" />
-              <div className="border-l border-gray-300 pl-4">
-                <span className="text-sm text-slate-600 font-medium">Admin Panel</span>
+              <DrönarkompanietLogo size="md" />
+              <div className="border-l border-gray-300 dark:border-slate-600 pl-4">
+                <span className="text-sm text-slate-600 dark:text-slate-400 font-medium">Leveransportal</span>
+                <div className="text-xs text-slate-500 dark:text-slate-500">Admin Panel</div>
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-slate-600">Inloggad som: Admin</span>
-              <Link href="/" className="text-yellow-600 hover:text-yellow-700">
+              <span className="text-sm text-slate-600 dark:text-slate-400">Inloggad som: Admin</span>
+              <Link href="/" className="text-yellow-600 dark:text-yellow-400 hover:text-yellow-700 dark:hover:text-yellow-300 transition-colors">
                 Till kundportal
               </Link>
-              <button className="text-slate-600 hover:text-yellow-700">
+              <ThemeToggle />
+              <button className="text-slate-600 dark:text-slate-400 hover:text-yellow-700 dark:hover:text-yellow-400 transition-colors">
                 Logga ut
               </button>
             </div>
@@ -292,49 +303,49 @@ export default function AdminDashboard() {
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
         {/* Stats - Mobile Optimized */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
-          <div className="bg-white p-3 sm:p-4 lg:p-6 rounded-lg shadow-lg border border-yellow-50">
-            <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-yellow-600">{loading ? '...' : customers.length}</div>
-            <div className="text-xs sm:text-sm text-slate-600">Totala kunder</div>
+          <div className="bg-white dark:bg-slate-800 p-3 sm:p-4 lg:p-6 rounded-lg shadow-lg border border-yellow-50 dark:border-slate-700 transition-colors">
+            <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-yellow-600 dark:text-yellow-400">{loading ? '...' : customers.length}</div>
+            <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Totala kunder</div>
           </div>
-          <div className="bg-white p-3 sm:p-4 lg:p-6 rounded-lg shadow-lg border border-yellow-50">
-            <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-yellow-600">
+          <div className="bg-white dark:bg-slate-800 p-3 sm:p-4 lg:p-6 rounded-lg shadow-lg border border-yellow-50 dark:border-slate-700 transition-colors">
+            <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-yellow-600 dark:text-yellow-400">
               {loading ? '...' : customers.filter(c => c.status === 'active').length}
             </div>
-            <div className="text-xs sm:text-sm text-slate-600">Aktiva konton</div>
+            <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Aktiva konton</div>
           </div>
-          <div className="bg-white p-3 sm:p-4 lg:p-6 rounded-lg shadow-lg border border-yellow-50">
-            <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-yellow-500">
+          <div className="bg-white dark:bg-slate-800 p-3 sm:p-4 lg:p-6 rounded-lg shadow-lg border border-yellow-50 dark:border-slate-700 transition-colors">
+            <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-yellow-500 dark:text-yellow-400">
               {loading ? '...' : fileStats.totalFiles}
             </div>
-            <div className="text-xs sm:text-sm text-slate-600">Uppladdade filer</div>
+            <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Uppladdade filer</div>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow-lg border border-yellow-50">
-            <div className="text-3xl font-bold text-yellow-700">
+          <div className="bg-white dark:bg-slate-800 p-3 sm:p-4 lg:p-6 rounded-lg shadow-lg border border-yellow-50 dark:border-slate-700 transition-colors">
+            <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-yellow-700 dark:text-yellow-400">
               {loading ? '...' : utils.formatFileSize(fileStats.totalSize)}
             </div>
-            <div className="text-sm text-slate-600">Total lagring</div>
+            <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Total lagring</div>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-gray-200 mb-6">
+        <div className="border-b border-gray-200 dark:border-slate-600 mb-6 transition-colors">
           <nav className="-mb-px flex space-x-8">
             <button
               onClick={() => setActiveTab('customers')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
                 activeTab === 'customers'
-                  ? 'border-yellow-600 text-yellow-600'
-                  : 'border-transparent text-slate-600 hover:text-yellow-700 hover:border-yellow-50'
+                  ? 'border-yellow-600 text-yellow-600 dark:text-yellow-400'
+                  : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-yellow-700 dark:hover:text-yellow-300 hover:border-yellow-50 dark:hover:border-slate-500'
               }`}
             >
               Kundhantering
             </button>
             <button
               onClick={() => setActiveTab('upload')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
                 activeTab === 'upload'
-                  ? 'border-yellow-500 text-yellow-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-yellow-500 text-yellow-600 dark:text-yellow-400'
+                  : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 hover:border-gray-300 dark:hover:border-slate-500'
               }`}
             >
               Ladda upp material
@@ -346,57 +357,57 @@ export default function AdminDashboard() {
         {activeTab === 'customers' && (
           <div>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-gray-900">Kundkonton</h2>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100">Kundkonton</h2>
               <button
                 onClick={() => setShowCreateCustomer(true)}
                 disabled={loading}
-                className="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors disabled:opacity-50"
+                className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
               >
                 + Skapa nytt kundkonto
               </button>
             </div>
 
             {loading ? (
-              <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+              <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-8 text-center transition-colors">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-600 mx-auto mb-4"></div>
-                <p className="text-gray-600">Laddar kunddata...</p>
+                <p className="text-gray-600 dark:text-slate-400">Laddar kunddata...</p>
               </div>
             ) : (
               /* Customer List */
-              <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+              <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm overflow-hidden transition-colors">
               <table className="min-w-full">
-                <thead className="bg-gray-50">
+                <thead className="bg-gray-50 dark:bg-slate-700">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                       Kund
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                       Projekt
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                       Filer
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                       Senaste åtkomst
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                       Åtgärder
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
                   {customers.map((customer) => (
-                    <tr key={customer.id} className="hover:bg-gray-50">
+                    <tr key={customer.id} className="hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
-                          <div className="text-sm font-medium text-gray-900">{customer.name}</div>
-                          <div className="text-sm text-gray-500">{customer.email}</div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-slate-100">{customer.name}</div>
+                          <div className="text-sm text-gray-500 dark:text-slate-400">{customer.email}</div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-slate-100">
                         {customer.project}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -408,28 +419,28 @@ export default function AdminDashboard() {
                           {customer.status === 'active' ? 'Aktiv' : 'Utgången'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-slate-100">
                         {fileStats.customerFileCounts[customer.id] || 0} filer
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-slate-400">
                         {customer.last_access ? utils.formatDate(customer.last_access) : 'Aldrig'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                         <button 
                           onClick={() => handleManageFiles(customer)}
-                          className="text-yellow-600 hover:text-yellow-900"
+                          className="text-yellow-600 dark:text-yellow-400 hover:text-yellow-900 dark:hover:text-yellow-300 transition-colors"
                         >
                           Hantera filer
                         </button>
                         <button 
                           onClick={() => handleSendPassword(customer)}
-                          className="text-green-600 hover:text-green-900"
+                          className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 transition-colors"
                         >
                           Skicka lösenord
                         </button>
                         <button 
                           onClick={() => handleDeleteCustomer(customer)}
-                          className="text-red-600 hover:text-red-900"
+                          className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 transition-colors"
                         >
                           Ta bort
                         </button>
@@ -446,11 +457,11 @@ export default function AdminDashboard() {
         {/* Upload Tab */}
         {activeTab === 'upload' && (
           <div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Ladda upp material</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-6">Ladda upp material</h2>
             
-            <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6 transition-colors">
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                   Välj kund
                 </label>
                 <select 
@@ -459,7 +470,7 @@ export default function AdminDashboard() {
                     const customer = customers.find(c => c.id === e.target.value)
                     setSelectedCustomer(customer || null)
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-yellow-500 focus:border-yellow-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 transition-colors"
                 >
                   <option value="">Välj kund...</option>
                   {customers.map(customer => (
@@ -471,11 +482,11 @@ export default function AdminDashboard() {
               </div>
 
               {selectedCustomer ? (
-                <div className="bg-gray-50 rounded-lg p-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">
+                <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-6 transition-colors">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-slate-100 mb-4">
                     Direktuppladdning till Cloudflare R2
                   </h3>
-                  <p className="text-sm text-gray-600 mb-4">
+                  <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">
                     🚀 Ingen storleksbegränsning - filer laddas direkt till molnlagring
                   </p>
                   <DirectUploadComponent
@@ -487,8 +498,8 @@ export default function AdminDashboard() {
                   />
                 </div>
               ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="text-center py-8 text-gray-500 dark:text-slate-400">
+                  <svg className="mx-auto h-12 w-12 text-gray-400 dark:text-slate-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                   <p>Välj en kund för att ladda upp filer</p>
@@ -500,13 +511,13 @@ export default function AdminDashboard() {
 
         {/* Create Customer Modal */}
         {showCreateCustomer && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Skapa nytt kundkonto</h3>
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-slate-900 dark:bg-opacity-70 flex items-center justify-center p-4 z-50 transition-colors">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-md w-full p-6 transition-colors">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-slate-100 mb-4">Skapa nytt kundkonto</h3>
               
               <form id="create-customer-form" className="space-y-4" onSubmit={handleCreateCustomer}>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                     Kundnamn *
                   </label>
                   <input
@@ -515,13 +526,13 @@ export default function AdminDashboard() {
                     required
                     value={newCustomer.name}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-yellow-500 focus:border-yellow-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 transition-colors"
                     placeholder="Anna Svensson"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                     E-post *
                   </label>
                   <input
@@ -530,13 +541,13 @@ export default function AdminDashboard() {
                     required
                     value={newCustomer.email}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-yellow-500 focus:border-yellow-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 transition-colors"
                     placeholder="anna@exempel.se"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                     Projektnamn *
                   </label>
                   <input
@@ -545,13 +556,13 @@ export default function AdminDashboard() {
                     required
                     value={newCustomer.project}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-yellow-500 focus:border-yellow-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 transition-colors"
                     placeholder="Fastighetsfotografering Villa Danderyd"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                     Lösenord *
                   </label>
                   <div className="flex space-x-2">
@@ -561,13 +572,13 @@ export default function AdminDashboard() {
                       required
                       value={newCustomer.password}
                       onChange={handleInputChange}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 font-mono"
+                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 font-mono bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 transition-colors"
                       placeholder="Generera eller skriv eget lösenord"
                     />
                     <button
                       type="button"
                       onClick={() => generatePasswordForCustomer('secure')}
-                      className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+                      className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm transition-colors"
                       title="Generera säkert lösenord"
                     >
                       🔒
@@ -575,7 +586,7 @@ export default function AdminDashboard() {
                     <button
                       type="button"
                       onClick={() => generatePasswordForCustomer('simple')}
-                      className="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm"
+                      className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm transition-colors"
                       title="Generera enkelt lösenord"
                     >
                       📝
@@ -583,18 +594,18 @@ export default function AdminDashboard() {
                     <button
                       type="button"
                       onClick={() => generatePasswordForCustomer('custom')}
-                      className="px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm"
+                      className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm transition-colors"
                       title="Generera baserat på namn"
                     >
                       👤
                     </button>
                   </div>
-                  <div className="mt-1 text-xs text-gray-500">
+                  <div className="mt-1 text-xs text-gray-500 dark:text-slate-400">
                     🔒 Säkert (12 tecken) • 📝 Enkelt (uttalbart) • 👤 Baserat på namn
                   </div>
                 </div>
                 
-                <div className="bg-yellow-50 p-3 rounded text-sm text-yellow-800">
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded text-sm text-yellow-800 dark:text-yellow-200 transition-colors">
                   <strong>Info:</strong> Lösenordet kommer att skickas till kundens e-post tillsammans med inloggningsuppgifterna.
                 </div>
                 
@@ -602,14 +613,14 @@ export default function AdminDashboard() {
                   <button
                     type="button"
                     onClick={() => setShowCreateCustomer(false)}
-                    className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+                    className="px-4 py-2 text-gray-700 dark:text-slate-300 border border-gray-300 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
                   >
                     Avbryt
                   </button>
                   <button 
                     type="submit"
                     disabled={isCreating || !newCustomer.name || !newCustomer.email || !newCustomer.project || !newCustomer.password}
-                    className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                    className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center transition-colors"
                   >
                     {isCreating ? (
                       <>

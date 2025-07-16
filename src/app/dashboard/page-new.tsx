@@ -372,13 +372,7 @@ export default function DashboardPage() {
           {/* Mobile Layout */}
           <div className="block sm:hidden">
             <div className="flex justify-between items-center py-3">
-              <div className="flex items-center space-x-3">
-                <DrönarkompanietLogo size="sm" />
-                <div>
-                  <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">Leveransportal</span>
-                  <div className="text-xs text-slate-500 dark:text-slate-500">{customer?.name}</div>
-                </div>
-              </div>
+              <DrönarkompanietLogo variant="text" size="sm" />
               <div className="flex items-center space-x-2">
                 <ThemeToggle />
                 <button 
@@ -390,7 +384,10 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="pb-3">
-              <div className="flex items-center space-x-2">
+              <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">Kundportal</span>
+              <div className="flex items-center space-x-2 mt-1">
+                <span className="text-xs text-slate-600 dark:text-slate-400 truncate">{customer?.name}</span>
+                <span className="text-slate-300 dark:text-slate-600">•</span>
                 <Link href="/admin" className="text-yellow-600 dark:text-yellow-400 hover:text-yellow-700 dark:hover:text-yellow-300 text-xs transition-colors">
                   Till admin
                 </Link>
@@ -401,9 +398,9 @@ export default function DashboardPage() {
           {/* Desktop Layout */}
           <div className="hidden sm:flex justify-between items-center py-4">
             <div className="flex items-center space-x-4">
-              <DrönarkompanietLogo size="md" />
+              <DrönarkompanietLogo variant="full" size="md" />
               <div className="border-l border-gray-300 dark:border-slate-600 pl-4">
-                <span className="text-sm text-slate-600 dark:text-slate-400 font-medium">Leveransportal</span>
+                <span className="text-sm text-slate-600 dark:text-slate-400 font-medium">Kundportal</span>
                 <div className="text-xs text-slate-500 dark:text-slate-500">{customer?.project}</div>
               </div>
             </div>
