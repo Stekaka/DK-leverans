@@ -313,7 +313,7 @@ export default function DirectUploadComponent({
       
       for (let i = 0; i < files.length; i += batchSize) {
         const batch = files.slice(i, i + batchSize)
-        console.log(`📦 Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(files.length/batchSize)} with ${batch.length} files`)
+        // Process batch
         
         // Förbättrad metadata för mappstruktur
         const payload = {
@@ -347,8 +347,7 @@ export default function DirectUploadComponent({
         const payloadSize = JSON.stringify(payload).length
         console.log(`📏 Payload size for batch: ${payloadSize} bytes`)
         
-        // TEMPORARY: Skip all password testing and go directly to emergency endpoint
-        console.log('⚡ EMERGENCY MODE: Skipping password testing, using emergency endpoint directly')
+        // Emergency mode - use emergency endpoint directly
         
         try {
           const response = await fetch('/api/admin/emergency-presigned', {

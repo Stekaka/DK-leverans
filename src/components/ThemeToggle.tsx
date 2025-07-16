@@ -5,19 +5,9 @@ import { useTheme } from '../contexts/ThemeContext'
 export default function ThemeToggle() {
   const { theme, toggleTheme } = useTheme()
 
-  const handleClick = () => {
-    console.log('ThemeToggle: Button clicked, current theme:', theme)
-    console.log('ThemeToggle: HTML classes before toggle:', document.documentElement.className)
-    toggleTheme()
-    setTimeout(() => {
-      console.log('ThemeToggle: HTML classes after toggle:', document.documentElement.className)
-      console.log('ThemeToggle: Has dark class:', document.documentElement.classList.contains('dark'))
-    }, 100)
-  }
-
   return (
     <button
-      onClick={handleClick}
+      onClick={toggleTheme}
       className={`group relative p-2 sm:p-3 rounded-xl transition-all duration-300 shadow-sm border
         ${theme === 'dark' 
           ? 'bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600' 

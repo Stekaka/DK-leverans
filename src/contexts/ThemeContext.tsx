@@ -20,13 +20,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const savedTheme = localStorage.getItem('dk-theme') as Theme
     if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark')) {
       setTheme(savedTheme)
-      console.log('ThemeProvider: Loaded saved theme:', savedTheme)
     } else {
       // Check system preference
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
       const systemTheme = prefersDark ? 'dark' : 'light'
       setTheme(systemTheme)
-      console.log('ThemeProvider: Using system theme:', systemTheme)
     }
     setMounted(true)
   }, [])
@@ -39,10 +37,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     
     if (theme === 'dark') {
       htmlElement.classList.add('dark')
-      console.log('ThemeProvider: Applied dark mode, HTML classes:', htmlElement.className)
     } else {
       htmlElement.classList.remove('dark')
-      console.log('ThemeProvider: Applied light mode, HTML classes:', htmlElement.className)
     }
     
     // Save to localStorage
@@ -51,7 +47,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light'
-    console.log('ThemeProvider: Toggling from', theme, 'to', newTheme)
     setTheme(newTheme)
   }
 
