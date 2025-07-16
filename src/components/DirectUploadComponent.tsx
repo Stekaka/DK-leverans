@@ -206,13 +206,6 @@ export default function DirectUploadComponent({
         }
       })
       
-      console.log(`📁 Folder structure analysis:`)
-      console.log(`   Detected ${folderStructure.size} folders/levels`)
-      folderStructure.forEach((files, path) => {
-        const folderSize = files.reduce((sum, f) => sum + f.size, 0) / (1024 * 1024 * 1024)
-        console.log(`   ${path || '<root>'}: ${files.length} files, ${folderSize.toFixed(2)}GB`)
-      })
-      
       setFiles(selectedFiles)
       
       // Initiera status för alla filer
@@ -232,7 +225,7 @@ export default function DirectUploadComponent({
       setUploadStartTimes(prev => ({ ...prev, [file.name]: Date.now() }))
       setUploadStatus(prev => ({ ...prev, [file.name]: 'uploading' }))
       
-      console.log(`🚀 TURBO: Starting optimized upload for ${file.name}`)
+      // Start optimized upload
       
       // TURBO: Använd fetch för bättre prestanda och HTTP/2 stöd
       const response = await fetch(presignedUrl, {
@@ -251,7 +244,7 @@ export default function DirectUploadComponent({
       })
       
       if (response.ok) {
-        console.log(`✅ TURBO: ${file.name} uploaded successfully`)
+        // Upload completed successfully
         setUploadStatus(prev => ({ ...prev, [file.name]: 'success' }))
         setUploadProgress(prev => ({ ...prev, [file.name]: 100 }))
         return true
@@ -288,7 +281,7 @@ export default function DirectUploadComponent({
         batchSize = 5 // Mycket stora uploads: 5 filer per batch
       }
       
-      console.log(`📦 Optimized batch size: ${batchSize} files per batch for ${files.length} total files`)
+      // Calculate optimized batch size
       
       const allPresignedUrls: PresignedUpload[] = []
       
