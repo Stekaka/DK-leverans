@@ -5,7 +5,7 @@
 SELECT column_name, data_type, is_nullable, column_default
 FROM information_schema.columns 
 WHERE table_name = 'files' 
-AND column_name IN ('customer_rating', 'customer_notes', 'rating_updated_at', 'display_name', 'customer_folder_path')
+AND column_name IN ('customer_rating', 'customer_notes', 'rating_updated_at', 'display_name', 'customer_folder_path', 'uploaded_at', 'created_at')
 ORDER BY column_name;
 
 -- 2. Visa sample data från files-tabellen
@@ -19,7 +19,12 @@ SELECT
         ELSE 'HAS_CONTENT'
     END as notes_status,
     rating_updated_at,
-    created_at
+    uploaded_at,  -- Huvuddatum för filer
+    CASE 
+        WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'files' AND column_name = 'created_at')
+        THEN 'Has created_at column'
+        ELSE 'No created_at column'
+    END as created_at_status
 FROM files 
 LIMIT 5;
 
