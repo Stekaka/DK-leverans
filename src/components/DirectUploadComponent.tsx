@@ -78,16 +78,38 @@ export default function DirectUploadComponent({
 
   const getUploadETA = (fileName: string, fileSize: number, progress: number): string | null => {
     const startTime = uploadStartTimes[fileName]
-    if (!startTime || progress <= 5) return null
+    if (!startTime || progress <= 1) return null // Vänta lite längre för exakt uppskattning
     
     const elapsedTime = Date.now() - startTime
     const remainingPercent = 100 - progress
     const estimatedTotalTime = (elapsedTime / progress) * 100
     const remainingTime = estimatedTotalTime - elapsedTime
     
+    // Förbättrade tidsformat för stora filer
     if (remainingTime < 1000) return '< 1s'
     if (remainingTime < 60000) return `${Math.round(remainingTime / 1000)}s`
-    return `${Math.round(remainingTime / 60000)}min`
+    if (remainingTime < 3600000) return `${Math.round(remainingTime / 60000)}min`
+    if (remainingTime < 86400000) return `${Math.round(remainingTime / 3600000)}h`
+    return `${Math.round(remainingTime / 86400000)}d`
+  }
+
+  const getUploadSpeed = (fileName: string, fileSize: number, progress: number): string | null => {
+    const startTime = uploadStartTimes[fileName]
+    if (!startTime || progress <= 1) return null
+    
+    const elapsedTime = (Date.now() - startTime) / 1000 // sekunder
+    const uploadedBytes = (fileSize * progress) / 100
+    const speedBytesPerSecond = uploadedBytes / elapsedTime
+    
+    // Formatera hastighet
+    if (speedBytesPerSecond > 1024 * 1024 * 1024) {
+      return `${(speedBytesPerSecond / (1024 * 1024 * 1024)).toFixed(1)} GB/s`
+    } else if (speedBytesPerSecond > 1024 * 1024) {
+      return `${(speedBytesPerSecond / (1024 * 1024)).toFixed(1)} MB/s`
+    } else if (speedBytesPerSecond > 1024) {
+      return `${(speedBytesPerSecond / 1024).toFixed(1)} KB/s`
+    }
+    return `${Math.round(speedBytesPerSecond)} B/s`
   }
 
   // Helper function to test different admin passwords
@@ -154,19 +176,73 @@ export default function DirectUploadComponent({
     if (e.target.files) {
       const selectedFiles = Array.from(e.target.files)
       
-      // Begränsa antalet filer för att undvika Vercel payload-problem
-      const maxFiles = 6 // Minska till 6 filer (3 batches à 2 filer) för att undvika request-problem
+      // Stöd för mycket stora uploads - öka filgränsen dramatiskt
+      const maxFiles = 500 // Öka till 500 filer för mappuppladdningar
       if (selectedFiles.length > maxFiles) {
-        alert(`För många filer! Max ${maxFiles} filer åt gången för att undvika upload-problem. Välj färre filer och prova igen.`)
+        alert(`För många filer! Max ${maxFiles} filer åt gången. Välj färre filer eller ladda upp i mindre batches.`)
         return
       }
       
-      // Kontrollera filstorlekar (varning för stora filer)
+      // Logga stora filer för information (men blockera inte)
       const largeFiles = selectedFiles.filter(f => f.size > 100 * 1024 * 1024) // 100MB
-      if (largeFiles.length > 0) {
-        const fileNames = largeFiles.map(f => f.name).join(', ')
-        console.log(`⚠️ Large files detected (>100MB): ${fileNames}`)
+      const veryLargeFiles = selectedFiles.filter(f => f.size > 1024 * 1024 * 1024) // 1GB
+      const extremeFiles = selectedFiles.filter(f => f.size > 10 * 1024 * 1024 * 1024) // 10GB
+      
+      if (extremeFiles.length > 0) {
+        const fileNames = extremeFiles.map(f => `${f.name} (${(f.size / (1024 * 1024 * 1024)).toFixed(1)}GB)`).join(', ')
+        console.log(`🔥 EXTREME FILES detected (>10GB): ${fileNames}`)
+        console.log(`⚡ These will take longer to upload but are supported`)
+      } else if (veryLargeFiles.length > 0) {
+        const fileNames = veryLargeFiles.map(f => `${f.name} (${(f.size / (1024 * 1024 * 1024)).toFixed(1)}GB)`).join(', ')
+        console.log(`🚀 LARGE FILES detected (>1GB): ${fileNames}`)
+      } else if (largeFiles.length > 0) {
+        const fileNames = largeFiles.map(f => `${f.name} (${(f.size / (1024 * 1024)).toFixed(1)}MB)`).join(', ')
+        console.log(`📦 Medium files detected (>100MB): ${fileNames}`)
       }
+      
+      // Beräkna total storlek
+      const totalSize = selectedFiles.reduce((sum, file) => sum + file.size, 0)
+      const totalSizeGB = totalSize / (1024 * 1024 * 1024)
+      
+      console.log(`📊 Upload summary:`)
+      console.log(`   Files: ${selectedFiles.length}`)
+      console.log(`   Total size: ${totalSizeGB.toFixed(2)} GB`)
+      console.log(`   Largest file: ${(Math.max(...selectedFiles.map(f => f.size)) / (1024 * 1024 * 1024)).toFixed(2)} GB`)
+      
+      if (totalSizeGB > 100) {
+        const proceed = confirm(`Stor upload upptäckt! Total storlek: ${totalSizeGB.toFixed(1)}GB med ${selectedFiles.length} filer.\n\nDetta kommer att ta lång tid att ladda upp. Vill du fortsätta?`)
+        if (!proceed) return
+      }
+      
+      // Analysera mappstruktur från uppladdade filer
+      const folderStructure = new Map<string, File[]>()
+      selectedFiles.forEach(file => {
+        // Hämta mappstruktur från webkitRelativePath (om det finns)
+        const relativePath = (file as any).webkitRelativePath || file.name
+        const pathParts = relativePath.split('/')
+        
+        if (pathParts.length > 1) {
+          // Det här är en fil i en mapp
+          const folderPath = pathParts.slice(0, -1).join('/')
+          if (!folderStructure.has(folderPath)) {
+            folderStructure.set(folderPath, [])
+          }
+          folderStructure.get(folderPath)!.push(file)
+        } else {
+          // Det här är en rot-fil
+          if (!folderStructure.has('')) {
+            folderStructure.set('', [])
+          }
+          folderStructure.get('')!.push(file)
+        }
+      })
+      
+      console.log(`📁 Folder structure analysis:`)
+      console.log(`   Detected ${folderStructure.size} folders/levels`)
+      folderStructure.forEach((files, path) => {
+        const folderSize = files.reduce((sum, f) => sum + f.size, 0) / (1024 * 1024 * 1024)
+        console.log(`   ${path || '<root>'}: ${files.length} files, ${folderSize.toFixed(2)}GB`)
+      })
       
       setFiles(selectedFiles)
       
@@ -271,8 +347,21 @@ export default function DirectUploadComponent({
       }
       */
       
-      // Steg 1: Hämta presigned URLs (extra liten batch-storlek för att undvika payload-problem)
-      const batchSize = 1 // Endast 1 fil per batch för att helt undvika "Request Entity Too Large"
+      // Steg 1: Hämta presigned URLs (optimerad batch-storlek för stora uploads)
+      // Anpassa batch-storlek baserat på antal filer
+      let batchSize = 1 // Start konservativt
+      if (files.length <= 10) {
+        batchSize = 1 // Små uploads: 1 fil per batch
+      } else if (files.length <= 50) {
+        batchSize = 2 // Medelstora uploads: 2 filer per batch
+      } else if (files.length <= 200) {
+        batchSize = 3 // Stora uploads: 3 filer per batch
+      } else {
+        batchSize = 5 // Mycket stora uploads: 5 filer per batch
+      }
+      
+      console.log(`📦 Optimized batch size: ${batchSize} files per batch for ${files.length} total files`)
+      
       const allPresignedUrls: PresignedUpload[] = []
       
       // Lista av möjliga admin-lösenord för debug - prova utan ö först!
@@ -305,15 +394,32 @@ export default function DirectUploadComponent({
         const batch = files.slice(i, i + batchSize)
         console.log(`📦 Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(files.length/batchSize)} with ${batch.length} files`)
         
-        // Begränsa metadata-storlek för att minska payload
+        // Förbättrad metadata för mappstruktur
         const payload = {
           customerId,
-          files: batch.map(file => ({
-            name: file.name.substring(0, 200), // Begränsa filnamn till 200 tecken
-            size: file.size,
-            type: file.type.substring(0, 100), // Begränsa MIME-typ
-            folderPath: folderPath.substring(0, 100) // Begränsa mapp-sökväg
-          }))
+          files: batch.map(file => {
+            // Behåll mappstruktur från webkitRelativePath
+            const relativePath = (file as any).webkitRelativePath || file.name
+            const pathParts = relativePath.split('/')
+            
+            let finalFolderPath = folderPath || '' // User-specified folder
+            
+            // Om filen kommer från en mappuppladdning, lägg till mappstrukturen
+            if (pathParts.length > 1) {
+              const fileFolderPath = pathParts.slice(0, -1).join('/')
+              finalFolderPath = finalFolderPath 
+                ? `${finalFolderPath}/${fileFolderPath}`
+                : fileFolderPath
+            }
+            
+            return {
+              name: file.name.substring(0, 255), // Utöka filnamn-gräns
+              size: file.size,
+              type: file.type.substring(0, 100),
+              folderPath: finalFolderPath.substring(0, 200), // Utöka path-gräns
+              relativePath: relativePath // Behåll full sökväg för referens
+            }
+          })
         }
         
         // Logga payload-storlek för debug
@@ -442,14 +548,33 @@ export default function DirectUploadComponent({
 
       <div>
         <label className="block text-sm font-medium text-gray-200 mb-2">
-          Välj filer
+          Välj filer eller mappar
         </label>
-        <input
-          type="file"
-          multiple
-          onChange={handleFileSelect}
-          className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-yellow-500 file:text-black file:font-medium hover:file:bg-yellow-400"
-        />
+        <div className="space-y-3">
+          {/* Standard filuppladdning */}
+          <input
+            type="file"
+            multiple
+            onChange={handleFileSelect}
+            className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-yellow-500 file:text-black file:font-medium hover:file:bg-yellow-400"
+          />
+          
+          {/* Mappuppladdning */}
+          <input
+            type="file"
+            /* @ts-ignore */
+            webkitdirectory=""
+            multiple
+            onChange={handleFileSelect}
+            className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-500 file:text-black file:font-medium hover:file:bg-blue-400"
+          />
+          
+          <div className="text-xs text-gray-400 space-y-1">
+            <p>🔸 <strong>Första knappen:</strong> Välj enskilda filer (Cmd/Ctrl+klick för flera)</p>
+            <p>🔸 <strong>Andra knappen:</strong> Välj hela mappar (behåller mappstruktur)</p>
+            <p>💡 <strong>Stöder:</strong> Filer upp till 100GB, mappar med hundratals filer</p>
+          </div>
+        </div>
       </div>
 
       {files.length > 0 && (
@@ -572,10 +697,24 @@ export default function DirectUploadComponent({
                   {/* Upload Speed and ETA for active uploads */}
                   {status === 'uploading' && progress > 0 && (
                     <div className="mt-2 flex justify-between text-xs text-gray-400">
-                      <span>Laddar upp...</span>
+                      <div className="flex space-x-3">
+                        <span>Laddar upp...</span>
+                        {getUploadSpeed(file.name, file.size, progress) && (
+                          <span className="text-green-400">
+                            📊 {getUploadSpeed(file.name, file.size, progress)}
+                          </span>
+                        )}
+                      </div>
                       {getUploadETA(file.name, file.size, progress) && (
                         <span>≈ {getUploadETA(file.name, file.size, progress)} kvar</span>
                       )}
+                    </div>
+                  )}
+                  
+                  {/* Extra info för stora filer */}
+                  {file.size > 1024 * 1024 * 1024 && (
+                    <div className="mt-1 text-xs text-blue-400">
+                      🔥 Stor fil: {(file.size / (1024 * 1024 * 1024)).toFixed(2)} GB
                     </div>
                   )}
                 </div>
@@ -622,8 +761,10 @@ export default function DirectUploadComponent({
 
       <div className="text-xs text-gray-400 space-y-1">
         <p>💡 <strong>Direktuppladdning:</strong> Filer laddas upp direkt till molnlagring</p>
-        <p>📏 <strong>Storleksgräns:</strong> Obegränsad filstorlek (100GB+ OK)</p>
-        <p>⚡ <strong>Prestanda:</strong> Snabbare för stora filer</p>
+        <p>📏 <strong>Storleksgräns:</strong> Stöder filer upp till 100GB+ och mappuppladdningar</p>
+        <p>🗂️ <strong>Mappstruktur:</strong> Behåller mappstruktur från uppladdade mappar</p>
+        <p>⚡ <strong>Prestanda:</strong> Optimerad batch-hantering för stora uploads</p>
+        <p>📊 <strong>Hastighet:</strong> Real-time upload-hastighet och ETA-beräkning</p>
       </div>
     </div>
   )

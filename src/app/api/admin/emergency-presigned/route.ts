@@ -32,16 +32,25 @@ export async function POST(request: NextRequest) {
     const presignedUrls = []
     
     for (const file of files) {
-      // Skapa unik filsökväg
+      // Skapa unik filsökväg med förbättrad mappstruktur-stöd
       const timestamp = Date.now()
-      const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
-      const fileKey = file.folderPath 
-        ? `customers/${customerId}/${file.folderPath}/${timestamp}_${sanitizedName}`
-        : `customers/${customerId}/${timestamp}_${sanitizedName}`
+      const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-åäöÅÄÖ]/g, '_') // Tillåt svenska tecken
+      
+      // Bygg filsökväg med mappstruktur
+      let fileKey: string
+      if (file.folderPath) {
+        // Sanitize folder path men behåll struktur
+        const sanitizedFolderPath = file.folderPath.replace(/[^a-zA-Z0-9._\/-åäöÅÄÖ]/g, '_')
+        fileKey = `customers/${customerId}/${sanitizedFolderPath}/${timestamp}_${sanitizedName}`
+      } else {
+        fileKey = `customers/${customerId}/${timestamp}_${sanitizedName}`
+      }
 
       console.log(`🔑 Generating presigned URL for: ${fileKey}`)
+      console.log(`📁 Original folder path: ${file.folderPath || '<root>'}`)
+      console.log(`📄 File size: ${(file.size / (1024 * 1024)).toFixed(1)} MB`)
 
-      // Skapa presigned URL för R2 upload
+      // Skapa presigned URL för R2 upload - förbättrad för stora filer
       const putCommand = new PutObjectCommand({
         Bucket: process.env.CLOUDFLARE_R2_BUCKET_NAME!,
         Key: fileKey,
@@ -50,13 +59,16 @@ export async function POST(request: NextRequest) {
         Metadata: {
           'original-name': file.name,
           'customer-id': customerId,
-          'upload-timestamp': timestamp.toString()
+          'upload-timestamp': timestamp.toString(),
+          'folder-path': file.folderPath || '',
+          'relative-path': (file as any).relativePath || file.name,
+          'file-size': file.size.toString()
         }
       })
 
       try {
         const presignedUrl = await getSignedUrl(r2Client, putCommand, { 
-          expiresIn: 3600 // 1 timme
+          expiresIn: 7200 // Utöka till 2 timmar för stora filer
         })
 
         presignedUrls.push({
