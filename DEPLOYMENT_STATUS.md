@@ -1,16 +1,45 @@
-# Vercel Deployment Status
+# Deployment Status - Drönarkompaniet Leveransportal
 
-Detta är en dummy-fil för att tvinga en ny Vercel deployment.
+## Senaste uppdatering: 16 juli 2025
 
-Deployment timestamp: 2025-01-16 13:42:00
-Version: 1.0.1
+### ✅ Aktuell Status
+- **GitHub Repository**: https://github.com/Stekaka/DK-leverans  
+- **Live URL**: https://dk-leverans.vercel.app/  
+- **Senaste Deploy**: 16 juli 2025  
+- **Status**: 🟡 DELVIS FUNKTIONELL - Mobilanpassning genomförd
 
-## Senaste ändringar:
-- Fix för Cloudflare R2 upload-problem
-- Förbättrad felhantering
-- Debug-endpoints tillagda
-- Miljövariabel-validering
+---
 
-## Deployment URL:
-Din app bör vara tillgänglig på: https://dk-leverans.vercel.app
-(eller liknande URL från Vercel dashboard)
+## 📱 Senaste Ändringar (16 juli 2025)
+
+### Mobilanpassning Genomförd
+- ✅ **Dashboard**: Mobilanpassat med responsiv header, 2x2 statistik-grid, staplad filter-layout
+- ✅ **Login**: Förbättrad mobilvy med bättre padding och textstorlekar  
+- ✅ **Admin Panel**: Responsiv design med mobilanpassad navigation
+- ✅ **Använt Tailwind breakpoints**: sm:, lg: för alla responsiva komponenter
+- ✅ **Förminskat interface**: Mindre padding, text och gap för små skärmar
+
+### Kvarvarande Bekända Problem
+- 🔴 **API Debug Endpoint**: `/api/admin/test-debug` ger fortfarande 404 på Vercel
+- 🟡 **Upload Edge Cases**: Vissa R2-uploads kan ge HTML error istället för JSON
+- 🟡 **Build Process**: Intermittanta syntax-fel under utveckling
+
+---
+
+## 🚀 Funktionsstatus
+
+### ✅ Fungerar Bra
+- [x] Kundportal med inloggning (e-post + lösenord)
+- [x] Bildgalleri med förhandsvisning och rating
+- [x] Filnedladdning (enstaka filer och ZIP)
+- [x] Mappstöd och navigering  
+- [x] Admin-panel för kundhantering
+- [x] Filuppladdning via admin
+- [x] Lösenordsgenerering för nya kunder
+- [x] Thumbnails och filstatistik
+- [x] **MOBIL: Responsiv design på alla sidor**
+
+---
+
+**Kontakt**: oliver@dronarkompaniet.se  
+**GitHub**: https://github.com/Stekaka/DK-leverans
