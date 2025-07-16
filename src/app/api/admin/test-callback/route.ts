@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '../../../../../lib/supabase'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     console.log('=== TEST UPLOAD CALLBACK ===')
@@ -36,7 +39,13 @@ export async function GET(request: NextRequest) {
     console.log('🧪 Test upload data:', testUploadData)
 
     // Anropa upload-callback
-    const callbackResponse = await fetch(`${request.nextUrl.origin}/api/admin/upload-callback`, {
+    const baseUrl = process.env.VERCEL_URL 
+      ? `https://${process.env.VERCEL_URL}` 
+      : process.env.NODE_ENV === 'development' 
+        ? 'http://localhost:3000'
+        : 'https://dk-leverans.vercel.app'
+        
+    const callbackResponse = await fetch(`${baseUrl}/api/admin/upload-callback`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
