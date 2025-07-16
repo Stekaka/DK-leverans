@@ -228,7 +228,7 @@ export default function DirectUploadComponent({
     setUploading(true)
     
     try {
-      console.log('🚀 Starting direct upload process... [Version: 2025-07-16-v7-DEBUG]')
+      console.log('🚀 Starting direct upload process... [Version: 2025-07-16-v8-FORCE-DEPLOY]')
       console.log(`📁 Files to upload: ${files.length}`)
       console.log(`🔐 Using admin password: ${adminPassword.substring(0, 10)}...`)
       console.log(`👤 Customer ID: ${customerId}`)
