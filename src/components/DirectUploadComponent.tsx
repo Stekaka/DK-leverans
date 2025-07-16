@@ -204,7 +204,7 @@ export default function DirectUploadComponent({
     setUploading(true)
     
     try {
-      console.log('🚀 Starting direct upload process...')
+      console.log('🚀 Starting direct upload process... [Version: 2025-07-16-v3]')
       console.log(`📁 Files to upload: ${files.length}`)
       console.log(`🔐 Using admin password: ${adminPassword.substring(0, 10)}...`)
       
@@ -249,7 +249,9 @@ export default function DirectUploadComponent({
         console.log(`📏 Payload size for batch: ${payloadSize} bytes`)
         
         try {
+          console.log('🔍 ABOUT TO CALL tryPresignedRequest with', possiblePasswords.length, 'passwords')
           const { response: presignedResponse, workingPassword: newWorkingPassword } = await tryPresignedRequest(payload, possiblePasswords)
+          console.log('🎊 tryPresignedRequest succeeded!')
           workingPassword = newWorkingPassword // Uppdatera för nästa batch
           
           const { presignedUrls }: { presignedUrls: PresignedUpload[] } = await presignedResponse.json()
