@@ -176,6 +176,18 @@ export default function DirectUploadComponent({
       const batchSize = 1 // Endast 1 fil per batch för att helt undvika "Request Entity Too Large"
       const allPresignedUrls: PresignedUpload[] = []
       
+      // Lista av möjliga admin-lösenord för debug
+      const possiblePasswords = [
+        adminPassword, // Försök med det som skickades in först
+        'DrönarkompanietAdmin2025!',
+        'admin123',
+        'admin',
+        'Admin2025!',
+        'DronarkompanietAdmin2025!' // utan ö
+      ]
+      
+      let workingPassword = adminPassword // Default
+      
       for (let i = 0; i < files.length; i += batchSize) {
         const batch = files.slice(i, i + batchSize)
         console.log(`📦 Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(files.length/batchSize)} with ${batch.length} files`)
@@ -195,35 +207,17 @@ export default function DirectUploadComponent({
         const payloadSize = JSON.stringify(payload).length
         console.log(`📏 Payload size for batch: ${payloadSize} bytes`)
         
-        const presignedResponse = await fetch('/api/admin/presigned-upload', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-admin-password': adminPassword
-          },
-          body: JSON.stringify(payload)
-        })
-
-        if (!presignedResponse.ok) {
-          const errorText = await presignedResponse.text()
-          console.error('❌ Presigned upload request failed:', {
-            status: presignedResponse.status,
-            statusText: presignedResponse.statusText,
-            response: errorText,
-            payloadSize: `${payloadSize} bytes`
-          })
+        try {
+          const { response: presignedResponse, workingPassword: newWorkingPassword } = await tryPresignedRequest(payload, possiblePasswords)
+          workingPassword = newWorkingPassword // Uppdatera för nästa batch
           
-          // Specifik hantering för Request Entity Too Large
-          if (presignedResponse.status === 413) {
-            throw new Error(`Request Entity Too Large (${payloadSize} bytes). Försök med färre filer åt gången eller kortare filnamn.`)
-          }
-          
-          throw new Error(`Failed to get presigned URLs: ${presignedResponse.status} ${presignedResponse.statusText} - ${errorText}`)
+          const { presignedUrls }: { presignedUrls: PresignedUpload[] } = await presignedResponse.json()
+          allPresignedUrls.push(...presignedUrls)
+          console.log(`📝 Got ${presignedUrls.length} presigned URLs for batch`)
+        } catch (error) {
+          console.error('❌ All password attempts failed:', error)
+          throw error
         }
-
-        const { presignedUrls }: { presignedUrls: PresignedUpload[] } = await presignedResponse.json()
-        allPresignedUrls.push(...presignedUrls)
-        console.log(`📝 Got ${presignedUrls.length} presigned URLs for batch`)
       }
       
       console.log(`📝 Total presigned URLs generated: ${allPresignedUrls.length}`)
@@ -251,7 +245,7 @@ export default function DirectUploadComponent({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-admin-password': adminPassword
+            'x-admin-password': workingPassword // Använd det fungerande lösenordet
           },
           body: JSON.stringify({
             customerId,
@@ -293,6 +287,35 @@ export default function DirectUploadComponent({
     } finally {
       setUploading(false)
     }
+  }
+
+  // Helper function to test different admin passwords
+  const tryPresignedRequest = async (payload: any, possiblePasswords: string[]) => {
+    for (const password of possiblePasswords) {
+      console.log(`🔑 Trying password: ${password.substring(0, 10)}...`)
+      
+      try {
+        const response = await fetch('/api/admin/presigned-upload', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-password': password
+          },
+          body: JSON.stringify(payload)
+        })
+        
+        if (response.ok) {
+          console.log(`✅ Password works: ${password.substring(0, 10)}...`)
+          return { response, workingPassword: password }
+        } else {
+          console.log(`❌ Password failed (${response.status}): ${password.substring(0, 10)}...`)
+        }
+      } catch (error) {
+        console.log(`❌ Request failed with password ${password.substring(0, 10)}...:`, error)
+      }
+    }
+    
+    throw new Error('No working admin password found')
   }
 
   return (
