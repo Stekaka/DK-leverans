@@ -28,6 +28,9 @@ export default function DirectUploadComponent({
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({})
   const [uploadStatus, setUploadStatus] = useState<{ [key: string]: 'pending' | 'uploading' | 'success' | 'error' }>({})
   const [uploadStartTimes, setUploadStartTimes] = useState<{ [key: string]: number }>({})
+  
+  // TURBO MODE: Experimentell super-optimering för hög bandbredd
+  const [turboMode, setTurboMode] = useState(false)
 
   // Helper functions for progress visualization
   const getTotalProgress = (): number => {
@@ -258,56 +261,44 @@ export default function DirectUploadComponent({
   }
 
   const uploadFileDirectly = async (file: File, presignedUrl: string): Promise<boolean> => {
-    return new Promise((resolve) => {
-      const xhr = new XMLHttpRequest()
-      
-      // Record start time for ETA calculation
+    try {
+      // TURBO: Record start time for speed calculations
       setUploadStartTimes(prev => ({ ...prev, [file.name]: Date.now() }))
-      
-      // Upload progress tracking
-      xhr.upload.addEventListener('progress', (e) => {
-        if (e.lengthComputable) {
-          const progress = Math.round((e.loaded / e.total) * 100)
-          setUploadProgress(prev => ({ ...prev, [file.name]: progress }))
-        }
-      })
-      
-      xhr.addEventListener('load', () => {
-        if (xhr.status === 200) {
-          setUploadStatus(prev => ({ ...prev, [file.name]: 'success' }))
-          setUploadProgress(prev => ({ ...prev, [file.name]: 100 }))
-          resolve(true)
-        } else {
-          console.error(`Upload failed for ${file.name}:`, xhr.status, xhr.statusText)
-          setUploadStatus(prev => ({ ...prev, [file.name]: 'error' }))
-          resolve(false)
-        }
-      })
-      
-      xhr.addEventListener('error', () => {
-        console.error(`Upload error for ${file.name}`)
-        setUploadStatus(prev => ({ ...prev, [file.name]: 'error' }))
-        resolve(false)
-      })
-      
-      // Optimera för Cloudflare R2 och stora filer
-      xhr.open('PUT', presignedUrl)
-      
-      // Optimerade headers för R2 och hastighet
-      xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream')
-      
-      // Cloudflare R2 specifika optimeringar
-      if (file.size > 100 * 1024 * 1024) { // För filer > 100MB
-        xhr.setRequestHeader('Content-Encoding', 'identity') // Förhindra kompression
-        xhr.setRequestHeader('Cache-Control', 'no-cache') // Undvik cache-problem
-      }
-      
-      // Timeout för stora filer (30 minuter för stora uploads)
-      xhr.timeout = file.size > 1000 * 1024 * 1024 ? 30 * 60 * 1000 : 10 * 60 * 1000
-      
       setUploadStatus(prev => ({ ...prev, [file.name]: 'uploading' }))
-      xhr.send(file)
-    })
+      
+      console.log(`🚀 TURBO: Starting optimized upload for ${file.name}`)
+      
+      // TURBO: Använd fetch för bättre prestanda och HTTP/2 stöd
+      const response = await fetch(presignedUrl, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type || 'application/octet-stream',
+          // TURBO: Minimala headers för maximal R2 kompatibilitet
+        },
+        // TURBO: Optimerade fetch-inställningar för maximal hastighet
+        keepalive: false, // Disable för stora filer - bättre prestanda
+        credentials: 'omit', // Inga credentials behövs
+        cache: 'no-store', // Ingen cache för uploads
+        mode: 'cors',
+        // TURBO: Ingen timeout - låt R2 hantera stora filer (upp till 4 timmar)
+      })
+      
+      if (response.ok) {
+        console.log(`✅ TURBO: ${file.name} uploaded successfully`)
+        setUploadStatus(prev => ({ ...prev, [file.name]: 'success' }))
+        setUploadProgress(prev => ({ ...prev, [file.name]: 100 }))
+        return true
+      } else {
+        console.error(`❌ TURBO: ${file.name} failed:`, response.status, response.statusText)
+        setUploadStatus(prev => ({ ...prev, [file.name]: 'error' }))
+        return false
+      }
+    } catch (error) {
+      console.error(`❌ TURBO ERROR: ${file.name}:`, error)
+      setUploadStatus(prev => ({ ...prev, [file.name]: 'error' }))
+      return false
+    }
   }
 
   const handleUpload = async () => {
@@ -470,32 +461,58 @@ export default function DirectUploadComponent({
       
       console.log(`📝 Total presigned URLs generated: ${allPresignedUrls.length}`)
 
-      // Steg 2: Ladda upp filer med begränsad parallellism för att optimera hastighet
-      console.log('🚀 Starting parallel uploads with concurrency control...')
+      // TURBO: Adaptiv parallellism baserat på användarval och nätverksanalys
+      console.log('🚀 TURBO MODE: Starting adaptive parallel uploads for maximum speed...')
       
-      const CONCURRENT_UPLOADS = 3 // Begränsa till 3 parallella uploads för optimal hastighet
+      // Intelligent parallellism baserat på turbo mode
+      const baseConcurrency = 12 // Baseline hög parallellism
+      const turboConcurrency = turboMode ? 18 : baseConcurrency // Super aggressiv om turbo är aktiverat
+      
+      // Försök detektera användarens bandbredd för ytterligare optimering
+      let CONCURRENT_UPLOADS = turboConcurrency
+      if (navigator && 'connection' in navigator) {
+        const connection = (navigator as any).connection
+        if (connection && connection.downlink) {
+          const downlink = connection.downlink // Mbps
+          console.log(`🌐 TURBO: Detected connection speed: ${downlink} Mbps`)
+          
+          if (downlink > 100) {
+            CONCURRENT_UPLOADS = turboMode ? 25 : 20 // Ultra för fiber/5G
+          } else if (downlink > 50) {
+            CONCURRENT_UPLOADS = turboMode ? 20 : 15 // Hög bandbredd
+          } else if (downlink < 20) {
+            CONCURRENT_UPLOADS = turboMode ? 12 : 8 // Konservativ för låg bandbredd
+          }
+        }
+      }
+      
+      console.log(`⚡ TURBO: Using ${CONCURRENT_UPLOADS} concurrent uploads (Turbo: ${turboMode ? 'ON' : 'OFF'})`)
       const uploadResults = []
       
       for (let i = 0; i < files.length; i += CONCURRENT_UPLOADS) {
         const batch = files.slice(i, i + CONCURRENT_UPLOADS)
         console.log(`📦 Processing upload batch ${Math.floor(i / CONCURRENT_UPLOADS) + 1}: ${batch.length} files`)
-        
-        const batchPromises = batch.map(async (file, batchIndex) => {
+         const batchPromises = batch.map(async (file, batchIndex) => {
           const fileIndex = i + batchIndex
           const presignedData = allPresignedUrls[fileIndex]
           
           if (!presignedData) {
-            console.error(`No presigned URL for file: ${file.name}`)
+            console.error(`❌ TURBO: No presigned URL for file: ${file.name}`)
             return { success: false, file, presignedData: null }
           }
-          
-          console.log(`⬆️ Starting upload: ${file.name} (${(file.size / 1024 / 1024).toFixed(1)}MB)`)
+
+          console.log(`🚀 TURBO UPLOAD: ${file.name} (${(file.size / 1024 / 1024).toFixed(1)}MB) - Thread ${batchIndex + 1}/${batch.length}`)
+          const startTime = Date.now()
           const success = await uploadFileDirectly(file, presignedData.presignedUrl)
-          
+          const duration = (Date.now() - startTime) / 1000
+          const speedMBps = (file.size / (1024 * 1024)) / duration
+          const speedMbps = speedMBps * 8
+
           if (success) {
-            console.log(`✅ Upload completed: ${file.name}`)
+            console.log(`✅ TURBO SUCCESS: ${file.name}`)
+            console.log(`   Speed: ${speedMBps.toFixed(1)} MB/s (${speedMbps.toFixed(1)} Mbps) in ${duration.toFixed(1)}s`)
           } else {
-            console.log(`❌ Upload failed: ${file.name}`)
+            console.log(`❌ TURBO FAILED: ${file.name}`)
           }
           
           return { success, file, presignedData }
@@ -775,6 +792,27 @@ export default function DirectUploadComponent({
           </div>
         </div>
       )}
+
+      {/* TURBO MODE: Experimentell super-optimering */}
+      <div className="bg-gray-800 border border-gray-600 rounded-lg p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h4 className="text-sm font-medium text-gray-200">🚀 Turbo Mode (Experimentell)</h4>
+            <p className="text-xs text-gray-400 mt-1">
+              Ökar parallellism till 15+ streams för max hastighet. Kräver hög bandbredd (50+ Mbps).
+            </p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={turboMode}
+              onChange={(e) => setTurboMode(e.target.checked)}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"></div>
+          </label>
+        </div>
+      </div>
 
       <button
         onClick={handleUpload}

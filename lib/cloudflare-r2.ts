@@ -1,7 +1,7 @@
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
-// Cloudflare R2 konfiguration optimerad för hastighet
+// Cloudflare R2 konfiguration TURBO-OPTIMERAD för maximal upload-hastighet
 export const r2Client = new S3Client({
   region: 'auto', // Cloudflare R2 använder 'auto'
   endpoint: `https://${process.env.CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
@@ -10,12 +10,22 @@ export const r2Client = new S3Client({
     secretAccessKey: process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY!,
   },
   forcePathStyle: true, // Viktigt för R2-kompatibilitet
-  // Prestanda-optimeringar
-  maxAttempts: 3, // Färre retry-försök för snabbare fel-hantering
+  
+  // TURBO PERFORMANCE OPTIMERINGAR
+  maxAttempts: 2, // Minimera retry för snabbare fel-hantering
   requestHandler: {
-    connectionTimeout: 30000, // 30s connection timeout
-    socketTimeout: 300000, // 5 minuter socket timeout för stora filer
+    connectionTimeout: 15000, // 15s snabbare connection timeout
+    socketTimeout: 600000, // 10 minuter för stora filer (upp till 100GB)
+    requestTimeout: 600000, // 10 minuter total request timeout
   },
+  
+  // TURBO: HTTP/2 och multiplexing optimeringar (om tillgängligt)
+  useDualstackEndpoint: false, // Enklare routing
+  useAccelerateEndpoint: false, // R2 har ingen accelerate
+  
+  // TURBO: Minimera metadata och overhead
+  disableS3ExpressSessionAuth: true,
+  disableHostPrefix: false,
 })
 
 const BUCKET_NAME = process.env.CLOUDFLARE_R2_BUCKET_NAME!

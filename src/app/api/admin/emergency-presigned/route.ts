@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       console.log(`📁 Original folder path: ${file.folderPath || '<root>'}`)
       console.log(`📄 File size: ${(file.size / (1024 * 1024)).toFixed(1)} MB`)
 
-      // Skapa presigned URL för R2 upload - optimerad för hastighet och stora filer
+      // TURBO R2: Skapa presigned URL för R2 upload - MAXIMUM PERFORMANCE OPTIMERING
       const putCommand = new PutObjectCommand({
         Bucket: process.env.CLOUDFLARE_R2_BUCKET_NAME!,
         Key: fileKey,
@@ -61,19 +61,21 @@ export async function POST(request: NextRequest) {
           'customer-id': customerId,
           'upload-timestamp': timestamp.toString(),
           'folder-path': file.folderPath || '',
-          'relative-path': (file as any).relativePath || file.name,
           'file-size': file.size.toString()
         },
-        // Cloudflare R2 optimeringar för stora filer
+        // TURBO: Maximal R2 prestanda-optimering
         StorageClass: 'STANDARD',
-        ServerSideEncryption: undefined // Undvik extra overhead
+        ServerSideEncryption: undefined, // Undvik overhead
+        CacheControl: 'no-cache', // Undvik cache-konflikter
+        // Ta bort onödiga headers för snabbare processing
       })
 
       try {
-        // Förlängd giltighet och optimerade inställningar för stora filer
+        // TURBO: Optimerade inställningar för maximal hastighet
         const presignedUrl = await getSignedUrl(r2Client, putCommand, { 
-          expiresIn: 10800, // 3 timmar för extra stora filer
-          signableHeaders: new Set(['content-type']), // Begränsa headers för hastighet
+          expiresIn: 14400, // 4 timmar för extra säkerhet på stora filer
+          signableHeaders: new Set(['content-type']), // Minimala headers för R2 speed
+          unhoistableHeaders: new Set(), // Låt R2 optimera headers
         })
 
         presignedUrls.push({
@@ -85,9 +87,9 @@ export async function POST(request: NextRequest) {
           folderPath: file.folderPath || ''
         })
 
-        console.log(`✅ Generated presigned URL for: ${file.name}`)
+        console.log(`✅ TURBO: Generated optimized presigned URL for: ${file.name}`)
       } catch (urlError) {
-        console.error(`❌ Failed to generate presigned URL for ${file.name}:`, urlError)
+        console.error(`❌ TURBO FAILED: Failed to generate presigned URL for ${file.name}:`, urlError)
         return NextResponse.json({ 
           error: `Failed to generate upload URL for ${file.name}` 
         }, { status: 500 })

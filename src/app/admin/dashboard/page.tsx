@@ -5,11 +5,15 @@ import Link from 'next/link'
 import DrönarkompanietLogo from '@/components/DrönarkompanietLogo'
 import DirectUploadComponent from '@/components/DirectUploadComponent'
 import ThemeToggle from '@/components/ThemeToggle'
+import { useTheme } from '@/contexts/ThemeContext'
 import { customerService, fileService, utils } from '../../../../lib/database'
 import { generatePassword, generateSimplePassword, generateCustomerPassword } from '../../../../lib/password-generator'
 import type { Customer } from '../../../../lib/supabase'
 
 export default function AdminDashboard() {
+  const { theme } = useTheme()
+  
+  console.log('AdminDashboard rendering with theme:', theme)
   const [activeTab, setActiveTab] = useState('customers')
   const [showCreateCustomer, setShowCreateCustomer] = useState(false)
   const [showFileManager, setShowFileManager] = useState(false)
@@ -30,6 +34,13 @@ export default function AdminDashboard() {
   const [customerFiles, setCustomerFiles] = useState<any[]>([])
   const [loadingFiles, setLoadingFiles] = useState(false)
   const [allFolders, setAllFolders] = useState<string[]>(['']) // Include root folder
+
+  // THEME DEBUG: Övervaka theme-ändringar
+  useEffect(() => {
+    console.log('AdminDashboard: Theme changed to:', theme)
+    console.log('AdminDashboard: HTML classList:', document.documentElement.classList.toString())
+    console.log('AdminDashboard: Expected dark mode active:', theme === 'dark')
+  }, [theme])
 
   // Ladda data när komponenten mountas
   useEffect(() => {
@@ -642,17 +653,17 @@ export default function AdminDashboard() {
 
         {/* File Manager Modal */}
         {showFileManager && selectedCustomer && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[80vh] overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
+          <div className="fixed inset-0 bg-gray-600 dark:bg-gray-900 bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[80vh] overflow-hidden transition-colors">
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-slate-700">
                 <div className="flex justify-between items-center">
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900">Filhantering</h3>
-                    <p className="text-sm text-gray-600">{selectedCustomer.name} - {selectedCustomer.project}</p>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-slate-100">Filhantering</h3>
+                    <p className="text-sm text-gray-600 dark:text-slate-400">{selectedCustomer.name} - {selectedCustomer.project}</p>
                   </div>
                   <button
                     onClick={() => setShowFileManager(false)}
-                    className="text-gray-400 hover:text-gray-600"
+                    className="text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-200 transition-colors"
                   >
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -661,11 +672,11 @@ export default function AdminDashboard() {
                 </div>
               </div>
               
-              <div className="p-6 max-h-[60vh] overflow-y-auto">
+              <div className="p-6 max-h-[60vh] overflow-y-auto bg-white dark:bg-slate-800 transition-colors">
                 {/* Folder Navigation */}
                 <div className="mb-6">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-sm font-medium text-gray-700">Mapp: {folderPath || 'Rot'}</h4>
+                    <h4 className="text-sm font-medium text-gray-700 dark:text-slate-300">Mapp: {folderPath || 'Rot'}</h4>
                     <div className="flex space-x-2">
                       <input
                         type="text"
@@ -810,7 +821,7 @@ export default function AdminDashboard() {
                                   }
                                 }
                               }}
-                              className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                              className="w-full text-sm border border-gray-300 dark:border-slate-600 rounded-md px-3 py-2 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors"
                             >
                               <option value="" className="font-medium">📁 Rot</option>
                               {allFolders.filter(f => f !== '').map(folder => (
@@ -826,12 +837,12 @@ export default function AdminDashboard() {
                               <a
                                 href={file.download_url}
                                 download={file.original_name}
-                                className="flex-1 text-center px-3 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-md hover:bg-yellow-200 transition-colors"
+                                className="flex-1 text-center px-3 py-1 text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300 rounded-md hover:bg-yellow-200 dark:hover:bg-yellow-800 transition-colors"
                               >
                                 Ladda ner
                               </a>
                             ) : (
-                              <span className="flex-1 text-center px-3 py-1 text-xs bg-gray-100 text-gray-500 rounded-md">
+                              <span className="flex-1 text-center px-3 py-1 text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-md">
                                 Ej tillgänglig
                               </span>
                             )}
@@ -842,7 +853,7 @@ export default function AdminDashboard() {
                                   console.log('Delete file:', file.id)
                                 }
                               }}
-                              className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors"
+                              className="px-3 py-1 text-xs bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded-md hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
                             >
                               Ta bort
                             </button>
@@ -922,15 +933,15 @@ export default function AdminDashboard() {
                 </div>
               </div>
               
-              <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+              <div className="px-6 py-4 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 transition-colors">
                 <div className="flex justify-between items-center">
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-gray-600 dark:text-slate-400">
                     Total lagring: <span className="font-medium">12.4 MB</span>
                   </div>
                   <div className="flex space-x-3">
                     <button 
                       onClick={() => setShowFileManager(false)}
-                      className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-white"
+                      className="px-4 py-2 text-gray-700 dark:text-slate-300 border border-gray-300 dark:border-slate-600 rounded-md hover:bg-white dark:hover:bg-slate-700 bg-white dark:bg-slate-800 transition-colors"
                     >
                       Stäng
                     </button>
