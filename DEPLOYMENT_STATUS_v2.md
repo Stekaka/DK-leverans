@@ -1,16 +1,32 @@
 # DK-leverans Deployment Status
 
 **Datum:** 16 juli 2025  
-**Version:** 2.0.0 - Direktuppladdning  
+**Version:** 2.1.0 - Direktuppladdning + Förbättrad Mobilanpassning  
 **Deployment URL:** https://dk-leverans.vercel.app  
 **GitHub:** https://github.com/Stekaka/DK-leverans  
 
-## 🚀 KRITISK UPPDATERING: Direktuppladdning Implementerad!
+## 🚀 SENASTE UPPDATERING: Upload-problem LÖST + Mobiloptimering
 
-### ✅ LÖST: Vercel 4.5MB Payload-gräns
-**Problem:** Vercel serverless functions hade en 4.5MB payload-gräns som gjorde 100GB leveranser omöjliga.
+### ✅ KRITISK FIX: Upload-fel eliminerat
+**Problem:** "Request Entity Too Large" fel trots DirectUploadComponent implementation.
 
-**Lösning:** Implementerat direktuppladdning till Cloudflare R2 som kringgår serverless function-begränsningar helt.
+**Orsak:** Gamla upload-form fortfarande aktiv i admin-dashboard, gick via serverless functions.
+
+**Lösning:** 
+- ✅ Ersatte ALL gamla upload-logik med DirectUploadComponent  
+- ✅ Tog bort `handleUploadFiles()` och gamla form-baserade upload
+- ✅ Konsekvent direktuppladdning i hela admin-interface
+- ✅ Fixade admin-lösenord för presigned URL-autentisering
+
+### ✅ MOBILANPASSNING: Världsklass-användbarhet
+**Problem:** Dålig mobilanpassning på kunddashboard.
+
+**Lösning:**
+- ✅ List view: Dedikerat mobilkort-läge istället för oanvändbar tabell
+- ✅ Grid view: Förbättrade touch-targets och spacing  
+- ✅ Filter: Större knappar med bättre kontrast för touch
+- ✅ Actions: Touch-vänliga kontroller och förbättrad layout
+- ✅ Responsive design för alla skärmstorlekar
 
 ### Nya Funktioner (v2.0.0)
 
