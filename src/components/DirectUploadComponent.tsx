@@ -32,6 +32,13 @@ export default function DirectUploadComponent({
     if (e.target.files) {
       const selectedFiles = Array.from(e.target.files)
       
+      // Begränsa antalet filer för att undvika Vercel payload-problem
+      const maxFiles = 10
+      if (selectedFiles.length > maxFiles) {
+        alert(`För många filer! Max ${maxFiles} filer åt gången för att undvika upload-problem. Välj färre filer och prova igen.`)
+        return
+      }
+      
       // Kontrollera filstorlekar (varning för stora filer)
       const largeFiles = selectedFiles.filter(f => f.size > 100 * 1024 * 1024) // 100MB
       if (largeFiles.length > 0) {
@@ -95,35 +102,54 @@ export default function DirectUploadComponent({
     
     try {
       console.log('🚀 Starting direct upload process...')
+      console.log(`📁 Files to upload: ${files.length}`)
+      console.log(`🔐 Using admin password: ${adminPassword.substring(0, 10)}...`)
       
-      // Steg 1: Hämta presigned URLs
-      const presignedResponse = await fetch('/api/admin/presigned-upload', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-admin-password': adminPassword
-        },
-        body: JSON.stringify({
-          customerId,
-          files: files.map(file => ({
-            name: file.name,
-            size: file.size,
-            type: file.type,
-            folderPath
-          }))
+      // Steg 1: Hämta presigned URLs (begränsa batch-storlek)
+      const batchSize = 5 // Begränsa till 5 filer per batch för att undvika payload-problem
+      const allPresignedUrls: PresignedUpload[] = []
+      
+      for (let i = 0; i < files.length; i += batchSize) {
+        const batch = files.slice(i, i + batchSize)
+        console.log(`📦 Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(files.length/batchSize)} with ${batch.length} files`)
+        
+        const presignedResponse = await fetch('/api/admin/presigned-upload', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-password': adminPassword
+          },
+          body: JSON.stringify({
+            customerId,
+            files: batch.map(file => ({
+              name: file.name,
+              size: file.size,
+              type: file.type,
+              folderPath
+            }))
+          })
         })
-      })
 
-      if (!presignedResponse.ok) {
-        throw new Error('Failed to get presigned URLs')
+        if (!presignedResponse.ok) {
+          const errorText = await presignedResponse.text()
+          console.error('❌ Presigned upload request failed:', {
+            status: presignedResponse.status,
+            statusText: presignedResponse.statusText,
+            response: errorText
+          })
+          throw new Error(`Failed to get presigned URLs: ${presignedResponse.status} ${presignedResponse.statusText} - ${errorText}`)
+        }
+
+        const { presignedUrls }: { presignedUrls: PresignedUpload[] } = await presignedResponse.json()
+        allPresignedUrls.push(...presignedUrls)
+        console.log(`📝 Got ${presignedUrls.length} presigned URLs for batch`)
       }
-
-      const { presignedUrls }: { presignedUrls: PresignedUpload[] } = await presignedResponse.json()
-      console.log(`📝 Got ${presignedUrls.length} presigned URLs`)
+      
+      console.log(`📝 Total presigned URLs generated: ${allPresignedUrls.length}`)
 
       // Steg 2: Ladda upp alla filer direkt till R2
       const uploadPromises = files.map(async (file, index) => {
-        const presignedData = presignedUrls[index]
+        const presignedData = allPresignedUrls[index]
         if (!presignedData) {
           console.error(`No presigned URL for file: ${file.name}`)
           return { success: false, file, presignedData: null }
@@ -159,7 +185,12 @@ export default function DirectUploadComponent({
         })
 
         if (!callbackResponse.ok) {
-          console.error('Failed to register uploads in database')
+          const errorText = await callbackResponse.text()
+          console.error('❌ Upload callback failed:', {
+            status: callbackResponse.status,
+            statusText: callbackResponse.statusText,
+            response: errorText
+          })
         } else {
           console.log('📊 Successfully registered uploads in database')
         }
