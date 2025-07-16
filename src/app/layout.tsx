@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description: 'Säker leverans av högkvalitativa drönarbilder och filmmaterial från Drönarkompaniet',
   keywords: 'drönarkompaniet, drönarfotografering, luftfotografering, professionell fotografering, filmleverans',
   icons: {
-    icon: '/favicon.ico',
+    icon: '/favicon.svg',
   },
 }
 
