@@ -39,6 +39,7 @@ export async function POST(request: NextRequest) {
     const dbFiles = uploadedFiles.map(file => ({
       customer_id: customerId,
       filename: file.fileKey,
+      original_name: file.originalName, // Lägg till original_name
       file_size: file.size,
       file_type: file.type,
       cloudflare_url: `https://${process.env.CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${process.env.CLOUDFLARE_R2_BUCKET_NAME}/${file.fileKey}`,
