@@ -67,40 +67,67 @@ export const r2Service = {
         customerId,
         fileSize: file.length,
         bucketName: BUCKET_NAME,
-        endpoint: process.env.CLOUDFLARE_R2_ENDPOINT
+        endpoint: `https://${process.env.CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com`
       })
 
       // Skapa unik filsökväg: customer_id/timestamp_original_filename
       const timestamp = Date.now()
-      const fileExtension = fileName.split('.').pop()
       const cleanFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_')
       const key = `customers/${customerId}/${timestamp}_${cleanFileName}`
 
       console.log('Generated key:', key)
 
+      // Dela upp stora filer för bättre hantering
+      const isLargeFile = file.length > 10 * 1024 * 1024 // 10MB
+      
       const command = new PutObjectCommand({
         Bucket: BUCKET_NAME,
         Key: key,
         Body: file,
         ContentType: contentType,
-        // Ta bort metadata helt för att undvika header-problem
+        // Lägg till timeout för stora filer
+        ...(isLargeFile && {
+          Metadata: {
+            'upload-type': 'large-file'
+          }
+        })
       })
 
-      console.log('Sending PutObjectCommand to R2...')
-      await r2Client.send(command)
+      console.log(`Sending PutObjectCommand to R2 (${isLargeFile ? 'large file' : 'normal file'})...`)
+      
+      // Använd timeout för att undvika hängande requests
+      const uploadPromise = r2Client.send(command)
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Upload timeout after 60 seconds')), 60000)
+      )
+      
+      await Promise.race([uploadPromise, timeoutPromise])
       console.log('PutObjectCommand successful')
 
-      // Returnera den publika URL:en (använd account ID för konsistent formatering)
+      // Returnera den publika URL:en
       const url = `https://${process.env.CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${BUCKET_NAME}/${key}`
       console.log('Generated URL:', url)
       return url
     } catch (error) {
       console.error('Error uploading to R2:', error)
       console.error('R2 Client config:', {
-        endpoint: process.env.CLOUDFLARE_R2_ENDPOINT,
+        endpoint: `https://${process.env.CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
         accessKeyId: process.env.CLOUDFLARE_R2_ACCESS_KEY_ID?.substring(0, 10) + '...',
-        bucket: BUCKET_NAME
+        bucket: BUCKET_NAME,
+        accountId: process.env.CLOUDFLARE_R2_ACCOUNT_ID
       })
+      
+      // Ge mer specifik felmeddelande
+      if (error instanceof Error) {
+        if (error.message.includes('timeout') || error.message.includes('ECONNRESET')) {
+          throw new Error(`Upload timeout or connection reset for file. File might be too large or connection unstable.`)
+        } else if (error.message.includes('Access Denied') || error.message.includes('403')) {
+          throw new Error(`Access denied to R2 storage. Check credentials and bucket permissions.`)
+        } else if (error.message.includes('NoSuchBucket') || error.message.includes('404')) {
+          throw new Error(`R2 bucket not found. Check bucket name: ${BUCKET_NAME}`)
+        }
+      }
+      
       throw new Error('Failed to upload file to cloud storage: ' + (error instanceof Error ? error.message : String(error)))
     }
   },

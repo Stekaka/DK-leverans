@@ -282,7 +282,13 @@ export default function AdminDashboard() {
         throw new Error(result.error || 'Upload failed')
       }
       
-      alert(`${result.files?.length || 0} filer uppladdade!`)
+      // Hantera partiella framgångar
+      if (result.errorCount > 0) {
+        alert(`Upload delvis lyckad!\n✅ ${result.successCount} filer uppladdade\n❌ ${result.errorCount} filer misslyckades\n\nFel:\n${result.errors?.join('\n') || 'Okända fel'}`)
+      } else {
+        alert(`✅ Alla ${result.successCount} filer uppladdades framgångsrikt!`)
+      }
+      
       setSelectedFiles([])
       
       // Reload data to update file counts and customer files

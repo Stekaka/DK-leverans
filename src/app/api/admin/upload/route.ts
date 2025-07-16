@@ -66,16 +66,22 @@ export async function POST(request: NextRequest) {
 
     console.log('Customer found:', customer.name)
 
-    const uploadedFiles = []
+    const uploadResults = []
+    const uploadErrors = []
 
     // Ladda upp varje fil
-    for (const file of files) {
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]
+      
       try {
-        console.log(`Processing file: ${file.name}, size: ${file.size}, type: ${file.type}`)
+        console.log(`Processing file ${i + 1}/${files.length}: ${file.name}, size: ${file.size}, type: ${file.type}`)
+        
         // Validera filstorlek (100MB max)
         const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100MB
         if (file.size > MAX_FILE_SIZE) {
-          console.warn(`File ${file.name} is too large: ${file.size} bytes`)
+          const error = `File ${file.name} is too large: ${Math.round(file.size / 1024 / 1024)}MB (max 100MB)`
+          console.warn(error)
+          uploadErrors.push(error)
           continue
         }
 
@@ -86,25 +92,56 @@ export async function POST(request: NextRequest) {
         ]
         
         if (!allowedTypes.includes(file.type)) {
-          console.warn(`File ${file.name} has unsupported type: ${file.type}`)
+          const error = `File ${file.name} has unsupported type: ${file.type}`
+          console.warn(error)
+          uploadErrors.push(error)
           continue
         }
 
         // Konvertera fil till Buffer
         console.log('Converting file to buffer...')
-        const arrayBuffer = await file.arrayBuffer()
-        const buffer = Buffer.from(arrayBuffer)
+        let arrayBuffer
+        let buffer
+        
+        try {
+          arrayBuffer = await file.arrayBuffer()
+          buffer = Buffer.from(arrayBuffer)
+        } catch (bufferError) {
+          const error = `Failed to read file ${file.name}: ${bufferError}`
+          console.error(error)
+          uploadErrors.push(error)
+          continue
+        }
 
-        // Ladda upp till Cloudflare R2
-        console.log('About to call r2Service.uploadFile...')
-        console.log('Uploading to Cloudflare R2...')
-        const cloudflareUrl = await r2Service.uploadFile(
-          buffer,
-          file.name,
-          file.type,
-          customerId
-        )
-        console.log('Upload successful:', cloudflareUrl)
+        // Ladda upp till Cloudflare R2 med retry-logik
+        console.log(`Uploading ${file.name} to Cloudflare R2... (attempt 1/3)`)
+        let cloudflareUrl
+        
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          try {
+            cloudflareUrl = await r2Service.uploadFile(
+              buffer,
+              file.name,
+              file.type,
+              customerId
+            )
+            console.log(`Upload successful on attempt ${attempt}:`, cloudflareUrl)
+            break
+          } catch (uploadError) {
+            console.error(`Upload attempt ${attempt} failed for ${file.name}:`, uploadError)
+            
+            if (attempt === 3) {
+              throw uploadError
+            }
+            
+            // Vänta lite mellan försök
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempt))
+          }
+        }
+        
+        if (!cloudflareUrl) {
+          throw new Error('Failed to get upload URL after 3 attempts')
+        }
 
         // Generera thumbnail för bilder
         let thumbnailUrl = null
@@ -149,32 +186,46 @@ export async function POST(request: NextRequest) {
           } catch (deleteError) {
             console.error('Error cleaning up R2 file:', deleteError)
           }
-          continue
+          throw new Error(`Failed to save metadata for ${file.name}: ${fileError.message}`)
         }
 
-        uploadedFiles.push({
+        uploadResults.push({
           ...fileRecord,
           formatted_size: r2Service.formatFileSize(file.size)
         })
 
+        console.log(`Successfully processed file ${i + 1}/${files.length}: ${file.name}`)
+
       } catch (fileError) {
-        console.error(`Error uploading file ${file.name}:`, fileError)
-        console.error('Detailed error:', JSON.stringify(fileError, null, 2))
+        const errorMsg = `Error uploading file ${file.name}: ${fileError instanceof Error ? fileError.message : String(fileError)}`
+        console.error(errorMsg)
+        uploadErrors.push(errorMsg)
         continue
       }
     }
 
-    if (uploadedFiles.length === 0) {
+    // Returnera resultat även om vissa filer misslyckades
+    const response: any = {
+      message: `Processing complete: ${uploadResults.length} successful, ${uploadErrors.length} failed`,
+      files: uploadResults,
+      customer: customer.name,
+      totalFiles: files.length,
+      successCount: uploadResults.length,
+      errorCount: uploadErrors.length
+    }
+
+    if (uploadErrors.length > 0) {
+      response.errors = uploadErrors
+    }
+
+    if (uploadResults.length === 0) {
       return NextResponse.json({ 
-        error: 'No files were successfully uploaded. Check file types and sizes.' 
+        error: 'No files were successfully uploaded', 
+        details: uploadErrors
       }, { status: 400 })
     }
 
-    return NextResponse.json({
-      message: `Successfully uploaded ${uploadedFiles.length} file(s)`,
-      files: uploadedFiles,
-      customer: customer.name
-    })
+    return NextResponse.json(response)
 
   } catch (error) {
     console.error('Upload API Error:', error)
