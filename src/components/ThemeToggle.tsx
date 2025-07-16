@@ -5,14 +5,9 @@ import { useTheme } from '../contexts/ThemeContext'
 export default function ThemeToggle() {
   const { theme, toggleTheme } = useTheme()
 
-  console.log('ThemeToggle rendering with theme:', theme)
-
   return (
     <button
-      onClick={() => {
-        console.log('ThemeToggle clicked, current theme:', theme)
-        toggleTheme()
-      }}
+      onClick={toggleTheme}
       className="group relative p-2 sm:p-3 rounded-xl transition-all duration-300 shadow-sm"
       style={{
         backgroundColor: theme === 'dark' ? '#374151' : '#f1f5f9',

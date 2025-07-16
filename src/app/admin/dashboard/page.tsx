@@ -13,7 +13,18 @@ import type { Customer } from '../../../../lib/supabase'
 export default function AdminDashboard() {
   const { theme } = useTheme()
   
-  console.log('AdminDashboard rendering with theme:', theme)
+  // Säkerställ att theme appliceras korrekt
+  useEffect(() => {
+    const htmlElement = document.documentElement
+    if (theme === 'dark') {
+      htmlElement.classList.add('dark')
+      htmlElement.classList.remove('light')
+    } else {
+      htmlElement.classList.remove('dark')
+      htmlElement.classList.add('light')
+    }
+  }, [theme])
+  
   const [activeTab, setActiveTab] = useState('customers')
   const [showCreateCustomer, setShowCreateCustomer] = useState(false)
   const [showFileManager, setShowFileManager] = useState(false)
@@ -34,13 +45,6 @@ export default function AdminDashboard() {
   const [customerFiles, setCustomerFiles] = useState<any[]>([])
   const [loadingFiles, setLoadingFiles] = useState(false)
   const [allFolders, setAllFolders] = useState<string[]>(['']) // Include root folder
-
-  // THEME DEBUG: Övervaka theme-ändringar
-  useEffect(() => {
-    console.log('AdminDashboard: Theme changed to:', theme)
-    console.log('AdminDashboard: HTML classList:', document.documentElement.classList.toString())
-    console.log('AdminDashboard: Expected dark mode active:', theme === 'dark')
-  }, [theme])
 
   // Ladda data när komponenten mountas
   useEffect(() => {

@@ -35,15 +35,6 @@ interface Customer {
 export default function DashboardPage() {
   const { theme } = useTheme()
   
-  console.log('Dashboard rendering with theme:', theme)
-  console.log('Expected background:', theme === 'dark' ? '#0f172a' : '#f8fafc')
-  
-  // Test om theme ändras efter render
-  useEffect(() => {
-    console.log('Theme changed in useEffect:', theme)
-    console.log('Document body style after theme change:', document.body.style.backgroundColor)
-  }, [theme])
-  
   const [files, setFiles] = useState<CustomerFile[]>([])
   const [customer, setCustomer] = useState<Customer | null>(null)
   const [folders, setFolders] = useState<string[]>([])
