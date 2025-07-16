@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import ImageGallery from '../../components/ImageGallery'
 import DrönarkompanietLogo from '@/components/DrönarkompanietLogo'
 import ThemeToggle from '@/components/ThemeToggle'
+import { useTheme } from '@/contexts/ThemeContext'
 
 interface CustomerFile {
   id: string
@@ -32,6 +33,7 @@ interface Customer {
 }
 
 export default function DashboardPage() {
+  const { theme } = useTheme()
   const [files, setFiles] = useState<CustomerFile[]>([])
   const [customer, setCustomer] = useState<Customer | null>(null)
   const [folders, setFolders] = useState<string[]>([])
@@ -366,19 +368,19 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen transition-colors" style={{
-      background: typeof window !== 'undefined' && document.documentElement.classList.contains('dark') 
+      background: theme === 'dark'
         ? 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' 
         : 'linear-gradient(135deg, #f8fafc 0%, #fefce8 100%)'
     }}>
       {/* Debug info - remove later */}
       <div className="fixed top-0 right-0 z-50 bg-red-500 text-white p-2 text-xs">
-        Theme: {typeof window !== 'undefined' ? (document.documentElement.classList.contains('dark') ? 'DARK' : 'LIGHT') : 'LOADING'}
+        Theme: {theme.toUpperCase()}
       </div>
       
       {/* Header - Modern Design Matching Admin Panel */}
       <header className="shadow-lg border-b transition-colors" style={{
-        backgroundColor: typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? '#1e293b' : '#ffffff',
-        borderColor: typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? '#475569' : '#fef3c7'
+        backgroundColor: theme === 'dark' ? '#1e293b' : '#ffffff',
+        borderColor: theme === 'dark' ? '#475569' : '#fef3c7'
       }}>
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
           {/* Mobile Layout */}
