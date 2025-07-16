@@ -375,26 +375,7 @@ export default function DashboardPage() {
         color: theme === 'dark' ? '#ffffff' : '#000000'
       }}
     >
-      {/* Enhanced Debug info */}
-      <div className="fixed top-0 right-0 z-50 bg-red-500 text-white p-2 text-xs">
-        <div>Theme: {theme.toUpperCase()}</div>
-        <div>BG: {theme === 'dark' ? '#0f172a' : '#f8fafc'}</div>
-        <div>Color: {theme === 'dark' ? '#ffffff' : '#000000'}</div>
-        <div>Time: {new Date().toLocaleTimeString()}</div>
-      </div>
-      
-      {/* Simple test element */}
-      <div 
-        className="fixed top-0 left-0 z-50 p-4 text-2xl font-bold"
-        style={{
-          backgroundColor: theme === 'dark' ? '#ff0000' : '#00ff00',
-          color: theme === 'dark' ? '#ffffff' : '#000000'
-        }}
-      >
-        TEST: {theme === 'dark' ? 'DARK MODE' : 'LIGHT MODE'}
-      </div>
-      
-      {/* Header - Simple test */}
+      {/* Header */}
       <header 
         className="pt-20 pb-4"
         style={{

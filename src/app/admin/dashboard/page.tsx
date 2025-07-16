@@ -496,7 +496,7 @@ export default function AdminDashboard() {
                     customerId={selectedCustomer.id}
                     adminPassword="DronarkompanietAdmin2025!"
                     onUploadComplete={() => {
-                      console.log('Upload completed in upload tab')
+                      // Upload completed
                     }}
                   />
                 </div>
@@ -842,7 +842,6 @@ export default function AdminDashboard() {
                               onClick={() => {
                                 if (confirm('Är du säker på att du vill ta bort denna fil?')) {
                                   // TODO: Implement delete functionality
-                                  console.log('Delete file:', file.id)
                                 }
                               }}
                               className="px-3 py-1 text-xs bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded-md hover:bg-red-200 dark:hover:bg-red-800 transition-colors"

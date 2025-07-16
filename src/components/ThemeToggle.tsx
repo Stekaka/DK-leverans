@@ -7,15 +7,7 @@ export default function ThemeToggle() {
 
   return (
     <button
-      onClick={() => {
-        // Temporary debug to check if toggle works
-        console.log('Theme before toggle:', theme)
-        toggleTheme()
-        setTimeout(() => {
-          console.log('Theme after toggle:', theme === 'dark' ? 'light' : 'dark')
-          console.log('HTML classes:', document.documentElement.className)
-        }, 100)
-      }}
+      onClick={toggleTheme}
       className="group relative p-2 sm:p-3 rounded-xl transition-all duration-300 shadow-sm"
       style={{
         backgroundColor: theme === 'dark' ? '#374151' : '#f1f5f9',

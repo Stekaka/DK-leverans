@@ -117,11 +117,8 @@ export default function DirectUploadComponent({
 
   // Helper function to test different admin passwords
   const tryPresignedRequest = async (payload: any, possiblePasswords: string[]) => {
-    console.log('🎯 Starting password testing with', possiblePasswords.length, 'candidates')
-    
     for (let i = 0; i < possiblePasswords.length; i++) {
       const password = possiblePasswords[i]
-      console.log(`🔑 Attempt ${i + 1}/${possiblePasswords.length}: Testing password: ${password.substring(0, 10)}...`)
       
       try {
         const response = await fetch('/api/admin/presigned-upload', {
@@ -133,22 +130,15 @@ export default function DirectUploadComponent({
           body: JSON.stringify(payload)
         })
         
-        console.log(`📊 Response status: ${response.status} for password: ${password.substring(0, 10)}...`)
-        
         if (response.ok) {
-          console.log(`✅ SUCCESS! Password works: ${password.substring(0, 10)}...`)
           return { response, workingPassword: password }
-        } else {
-          const errorText = await response.text()
-          console.log(`❌ Password failed (${response.status}): ${password.substring(0, 10)}... - ${errorText}`)
         }
       } catch (error) {
-        console.log(`❌ Request failed with password ${password.substring(0, 10)}...:`, error)
+        // Continue to next password
       }
     }
     
-    // Om alla lösenord misslyckas, försök med emergency endpoint
-    console.log('🚨 ALL PASSWORDS FAILED! Trying emergency endpoint without authentication...')
+    // If all passwords fail, try emergency endpoint
     try {
       const response = await fetch('/api/admin/emergency-presigned', {
         method: 'POST',
@@ -158,20 +148,13 @@ export default function DirectUploadComponent({
         body: JSON.stringify(payload)
       })
       
-      console.log(`🚨 Emergency endpoint response status: ${response.status}`)
-      
       if (response.ok) {
-        console.log('🎉 EMERGENCY ENDPOINT SUCCESS! Upload working without auth!')
         return { response, workingPassword: 'emergency' }
-      } else {
-        const errorText = await response.text()
-        console.log('❌ Emergency endpoint also failed:', response.status, errorText)
       }
     } catch (error) {
-      console.log('❌ Emergency endpoint error:', error)
+      // Continue to error
     }
     
-    console.log('💀 ALL PASSWORDS AND EMERGENCY ENDPOINT FAILED!')
     throw new Error(`No working admin password found. Tested: ${possiblePasswords.map(p => p.substring(0, 10) + '...').join(', ')}`)
   }
 
@@ -186,31 +169,14 @@ export default function DirectUploadComponent({
         return
       }
       
-      // Logga stora filer för information (men blockera inte)
+      // Log large files for information (but don't block)
       const largeFiles = selectedFiles.filter(f => f.size > 100 * 1024 * 1024) // 100MB
       const veryLargeFiles = selectedFiles.filter(f => f.size > 1024 * 1024 * 1024) // 1GB
       const extremeFiles = selectedFiles.filter(f => f.size > 10 * 1024 * 1024 * 1024) // 10GB
       
-      if (extremeFiles.length > 0) {
-        const fileNames = extremeFiles.map(f => `${f.name} (${(f.size / (1024 * 1024 * 1024)).toFixed(1)}GB)`).join(', ')
-        console.log(`🔥 EXTREME FILES detected (>10GB): ${fileNames}`)
-        console.log(`⚡ These will take longer to upload but are supported`)
-      } else if (veryLargeFiles.length > 0) {
-        const fileNames = veryLargeFiles.map(f => `${f.name} (${(f.size / (1024 * 1024 * 1024)).toFixed(1)}GB)`).join(', ')
-        console.log(`🚀 LARGE FILES detected (>1GB): ${fileNames}`)
-      } else if (largeFiles.length > 0) {
-        const fileNames = largeFiles.map(f => `${f.name} (${(f.size / (1024 * 1024)).toFixed(1)}MB)`).join(', ')
-        console.log(`📦 Medium files detected (>100MB): ${fileNames}`)
-      }
-      
-      // Beräkna total storlek
+      // Calculate total size
       const totalSize = selectedFiles.reduce((sum, file) => sum + file.size, 0)
       const totalSizeGB = totalSize / (1024 * 1024 * 1024)
-      
-      console.log(`📊 Upload summary:`)
-      console.log(`   Files: ${selectedFiles.length}`)
-      console.log(`   Total size: ${totalSizeGB.toFixed(2)} GB`)
-      console.log(`   Largest file: ${(Math.max(...selectedFiles.map(f => f.size)) / (1024 * 1024 * 1024)).toFixed(2)} GB`)
       
       if (totalSizeGB > 100) {
         const proceed = confirm(`Stor upload upptäckt! Total storlek: ${totalSizeGB.toFixed(1)}GB med ${selectedFiles.length} filer.\n\nDetta kommer att ta lång tid att ladda upp. Vill du fortsätta?`)
@@ -307,50 +273,9 @@ export default function DirectUploadComponent({
     setUploading(true)
     
     try {
-      console.log('🚀 Starting direct upload process... [Version: 2025-07-16-v9-EMERGENCY-ONLY]')
-      console.log(`📁 Files to upload: ${files.length}`)
-      console.log(`🔐 Using admin password: ${adminPassword.substring(0, 10)}...`)
-      console.log(`👤 Customer ID: ${customerId}`)
+      // Start upload process
       
-      // DEBUG: Testa kund och lösenord först
-      console.log('🔍 DEBUGGING: Testing customer and password first...')
-      
-      // TEMPORARY: Skip debug check and go directly to emergency endpoint for now
-      console.log('⚡ BYPASSING DEBUG - Going directly to emergency endpoint')
-      console.log('⚡ This bypasses both customer check and password auth')
-      
-      /*
-      try {
-        const debugResponse = await fetch('/api/admin/debug-customer', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-admin-password': adminPassword
-          },
-          body: JSON.stringify({ customerId })
-        })
-        
-        const debugData = await debugResponse.json()
-        console.log(`🔍 DEBUG Response (${debugResponse.status}):`, debugData)
-        
-        if (!debugResponse.ok) {
-          console.log('❌ DEBUG: Problem detected!')
-          if (debugResponse.status === 401) {
-            alert(`Authentication failed! Check that ADMIN_PASSWORD on Vercel is set to: ${adminPassword}`)
-          } else if (debugResponse.status === 404) {
-            alert(`Customer not found! Available customers: ${debugData.details?.availableIds?.join(', ') || 'none'}`)
-          }
-          throw new Error(`Debug check failed: ${debugData.error}`)
-        }
-        
-        console.log('✅ DEBUG: Customer and password OK!')
-      } catch (debugError) {
-        console.error('❌ DEBUG CHECK FAILED:', debugError)
-        throw debugError
-      }
-      */
-      
-      // Steg 1: Hämta presigned URLs (optimerad batch-storlek för stora uploads)
+      // Step 1: Get presigned URLs (optimized batch size for large uploads)
       // Anpassa batch-storlek baserat på antal filer
       let batchSize = 1 // Start konservativt
       if (files.length <= 10) {
