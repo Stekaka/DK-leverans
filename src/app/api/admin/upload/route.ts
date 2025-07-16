@@ -18,12 +18,23 @@ export async function POST(request: NextRequest) {
     console.log('Upload API called')
     
     // Validera environment variables
-    if (!process.env.CLOUDFLARE_R2_ENDPOINT || !process.env.CLOUDFLARE_R2_ACCESS_KEY_ID) {
-      console.error('Missing Cloudflare R2 environment variables')
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+    if (!process.env.CLOUDFLARE_R2_ACCOUNT_ID || !process.env.CLOUDFLARE_R2_ACCESS_KEY_ID || !process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY || !process.env.CLOUDFLARE_R2_BUCKET_NAME) {
+      console.error('Missing Cloudflare R2 environment variables:', {
+        hasAccountId: !!process.env.CLOUDFLARE_R2_ACCOUNT_ID,
+        hasAccessKey: !!process.env.CLOUDFLARE_R2_ACCESS_KEY_ID,
+        hasSecretKey: !!process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY,
+        hasBucket: !!process.env.CLOUDFLARE_R2_BUCKET_NAME
+      })
+      return NextResponse.json({ error: 'Server configuration error - missing R2 credentials' }, { status: 500 })
     }
 
-    const formData = await request.formData()
+    let formData: FormData
+    try {
+      formData = await request.formData()
+    } catch (parseError) {
+      console.error('Error parsing form data:', parseError)
+      return NextResponse.json({ error: 'Invalid form data format' }, { status: 400 })
+    }
     const customerId = formData.get('customerId') as string
     const files = formData.getAll('files') as File[]
     const folderPath = formData.get('folderPath') as string || ''

@@ -4,11 +4,12 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 // Cloudflare R2 konfiguration (S3-kompatibel)
 const r2Client = new S3Client({
   region: 'auto', // Cloudflare R2 använder 'auto'
-  endpoint: process.env.CLOUDFLARE_R2_ENDPOINT,
+  endpoint: `https://${process.env.CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
   credentials: {
     accessKeyId: process.env.CLOUDFLARE_R2_ACCESS_KEY_ID!,
     secretAccessKey: process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY!,
   },
+  forcePathStyle: true, // Viktigt för R2-kompatibilitet
 })
 
 const BUCKET_NAME = process.env.CLOUDFLARE_R2_BUCKET_NAME!
@@ -51,8 +52,8 @@ export const r2Service = {
       await r2Client.send(command)
       console.log('PutObjectCommand successful')
 
-      // Returnera den publika URL:en
-      const url = `${process.env.CLOUDFLARE_R2_ENDPOINT}/${BUCKET_NAME}/${key}`
+      // Returnera den publika URL:en (använd account ID för konsistent formatering)
+      const url = `https://${process.env.CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${BUCKET_NAME}/${key}`
       console.log('Generated URL:', url)
       return url
     } catch (error) {
