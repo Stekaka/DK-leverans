@@ -6,30 +6,7 @@ import { useRouter } from 'next/navigation'
 import ImageGallery from '../../components/ImageGallery'
 import DrönarkompanietLogo from '@/components/DrönarkompanietLogo'
 import ThemeToggle from '@/components/ThemeToggle'
-
-interface CustomerFile {
-  id: string
-  original_name: string
-  file_type: string
-  file_size: number
-  formatted_size: string
-  download_url: string | null
-  thumbnail_url: string | null
-  is_image: boolean
-  is_video: boolean
-  folder_path: string
-  folder_display: string
-  uploaded_date: string
-  uploaded_at: string
-  customer_rating: 'unrated' | 'favorite' | 'good' | 'poor'
-  customer_notes?: string
-}
-
-interface Customer {
-  id: string
-  name: string
-  project: string
-}
+import { CustomerFile, Customer } from '@/types/customer'
 
 export default function DashboardPage() {
   const [files, setFiles] = useState<CustomerFile[]>([])
@@ -171,7 +148,7 @@ export default function DashboardPage() {
         const url = window.URL.createObjectURL(blob)
         const link = document.createElement('a')
         link.href = url
-        link.download = file.original_name
+        link.download = file.name_for_display
         link.style.display = 'none'
         
         document.body.appendChild(link)
@@ -755,7 +732,7 @@ export default function DashboardPage() {
                       file.thumbnail_url ? (
                         <img
                           src={file.thumbnail_url}
-                          alt={file.original_name}
+                          alt={file.name_for_display}
                           className="w-full h-full object-cover"
                         />
                       ) : (
@@ -787,8 +764,8 @@ export default function DashboardPage() {
                 </div>
                 
                 <div className="p-4">
-                  <h3 className="font-medium text-slate-900 dark:text-slate-100 truncate mb-2" title={file.original_name}>
-                    {file.original_name}
+                  <h3 className="font-medium text-slate-900 dark:text-slate-100 truncate mb-2" title={file.name_for_display}>
+                    {file.name_for_display}
                   </h3>
                   
                   <div className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400 mb-3">

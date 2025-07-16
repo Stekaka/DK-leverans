@@ -1,15 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-
-interface CustomerFile {
-  id: string
-  original_name: string
-  display_name?: string
-  name_for_display: string
-  customer_folder_path?: string
-  folder_display: string
-}
+import { CustomerFile } from '@/types/customer'
 
 interface OrganizeModalProps {
   file: CustomerFile | null
