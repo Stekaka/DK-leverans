@@ -1,0 +1,172 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+import { r2Service } from '../../../../../lib/cloudflare-r2'
+import { uploadThumbnail, isImageFile } from '../../../../../lib/thumbnail-generator'
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+})
+
+export async function POST(request: NextRequest) {
+  try {
+    console.log('Upload API called')
+    
+    // Validera environment variables
+    if (!process.env.CLOUDFLARE_R2_ENDPOINT || !process.env.CLOUDFLARE_R2_ACCESS_KEY_ID) {
+      console.error('Missing Cloudflare R2 environment variables')
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+    }
+
+    const formData = await request.formData()
+    const customerId = formData.get('customerId') as string
+    const files = formData.getAll('files') as File[]
+    const folderPath = formData.get('folderPath') as string || ''
+
+    console.log('Customer ID:', customerId)
+    console.log('Files count:', files.length)
+    console.log('Folder path:', folderPath)
+
+    if (!customerId) {
+      return NextResponse.json({ error: 'Customer ID is required' }, { status: 400 })
+    }
+
+    if (!files || files.length === 0) {
+      return NextResponse.json({ error: 'No files provided' }, { status: 400 })
+    }
+
+    // Kontrollera att kunden finns
+    console.log('Checking customer exists...')
+    const { data: customer, error: customerError } = await supabaseAdmin
+      .from('customers')
+      .select('id, name')
+      .eq('id', customerId)
+      .single()
+
+    if (customerError || !customer) {
+      console.error('Customer not found:', customerError)
+      return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
+    }
+
+    console.log('Customer found:', customer.name)
+
+    const uploadedFiles = []
+
+    // Ladda upp varje fil
+    for (const file of files) {
+      try {
+        console.log(`Processing file: ${file.name}, size: ${file.size}, type: ${file.type}`)
+        // Validera filstorlek (100MB max)
+        const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100MB
+        if (file.size > MAX_FILE_SIZE) {
+          console.warn(`File ${file.name} is too large: ${file.size} bytes`)
+          continue
+        }
+
+        // Validera filtyp
+        const allowedTypes = [
+          'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+          'video/mp4', 'video/mov', 'video/avi', 'video/quicktime'
+        ]
+        
+        if (!allowedTypes.includes(file.type)) {
+          console.warn(`File ${file.name} has unsupported type: ${file.type}`)
+          continue
+        }
+
+        // Konvertera fil till Buffer
+        console.log('Converting file to buffer...')
+        const arrayBuffer = await file.arrayBuffer()
+        const buffer = Buffer.from(arrayBuffer)
+
+        // Ladda upp till Cloudflare R2
+        console.log('About to call r2Service.uploadFile...')
+        console.log('Uploading to Cloudflare R2...')
+        const cloudflareUrl = await r2Service.uploadFile(
+          buffer,
+          file.name,
+          file.type,
+          customerId
+        )
+        console.log('Upload successful:', cloudflareUrl)
+
+        // Generera thumbnail för bilder
+        let thumbnailUrl = null
+        if (isImageFile(file.name)) {
+          try {
+            console.log('Generating thumbnail for image...')
+            const customerPath = `customers/${customerId}/${folderPath ? folderPath + '/' : ''}${file.name}`
+            thumbnailUrl = await uploadThumbnail(file.name, buffer, customerPath, {
+              width: 300,
+              height: 200,
+              quality: 80,
+              format: 'jpeg'
+            })
+            console.log('Thumbnail generated:', thumbnailUrl)
+          } catch (thumbnailError) {
+            console.error('Error generating thumbnail:', thumbnailError)
+            // Fortsätt även om thumbnail misslyckas
+          }
+        }
+
+        // Spara fil-metadata i Supabase
+        const { data: fileRecord, error: fileError } = await supabaseAdmin
+          .from('files')
+          .insert([{
+            customer_id: customerId,
+            filename: r2Service.getFileKeyFromUrl(cloudflareUrl),
+            original_name: file.name,
+            file_size: file.size,
+            file_type: file.type,
+            cloudflare_url: cloudflareUrl,
+            thumbnail_url: thumbnailUrl,
+            folder_path: folderPath || '',
+          }])
+          .select()
+          .single()
+
+        if (fileError) {
+          console.error('Error saving file metadata:', fileError)
+          // Försök ta bort filen från R2 om metadata-sparandet misslyckades
+          try {
+            await r2Service.deleteFile(r2Service.getFileKeyFromUrl(cloudflareUrl))
+          } catch (deleteError) {
+            console.error('Error cleaning up R2 file:', deleteError)
+          }
+          continue
+        }
+
+        uploadedFiles.push({
+          ...fileRecord,
+          formatted_size: r2Service.formatFileSize(file.size)
+        })
+
+      } catch (fileError) {
+        console.error(`Error uploading file ${file.name}:`, fileError)
+        console.error('Detailed error:', JSON.stringify(fileError, null, 2))
+        continue
+      }
+    }
+
+    if (uploadedFiles.length === 0) {
+      return NextResponse.json({ 
+        error: 'No files were successfully uploaded. Check file types and sizes.' 
+      }, { status: 400 })
+    }
+
+    return NextResponse.json({
+      message: `Successfully uploaded ${uploadedFiles.length} file(s)`,
+      files: uploadedFiles,
+      customer: customer.name
+    })
+
+  } catch (error) {
+    console.error('Upload API Error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
