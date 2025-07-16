@@ -19,7 +19,9 @@ export async function POST(request: NextRequest) {
             'http://localhost:3000',
             'https://dk-leverans.vercel.app',
             'https://dk-leverans-*.vercel.app',
-            'https://*.vercel.app'
+            'https://*.vercel.app',
+            'https://dk-leverans-hgawwdxbo-olivers-projects-c8f86ed6.vercel.app',
+            '*' // Allow all origins temporarily for testing
           ],
           ExposeHeaders: ['ETag'],
           MaxAgeSeconds: 3000
