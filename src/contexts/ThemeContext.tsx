@@ -36,13 +36,19 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     
     // Apply theme to document
     console.log('Applying theme to document:', theme)
+    const htmlElement = document.documentElement
     if (theme === 'dark') {
-      document.documentElement.classList.add('dark')
-      console.log('Added dark class to html')
+      htmlElement.classList.add('dark')
+      console.log('Added dark class to html. Current classes:', htmlElement.className)
     } else {
-      document.documentElement.classList.remove('dark')
-      console.log('Removed dark class from html')
+      htmlElement.classList.remove('dark')
+      console.log('Removed dark class from html. Current classes:', htmlElement.className)
     }
+    
+    // Force a reflow to ensure Tailwind CSS updates
+    document.body.style.display = 'none'
+    document.body.offsetHeight // trigger reflow
+    document.body.style.display = ''
     
     // Save to localStorage
     localStorage.setItem('dk-theme', theme)

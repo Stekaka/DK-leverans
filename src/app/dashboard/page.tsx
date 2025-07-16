@@ -366,6 +366,11 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-yellow-50 dark:from-slate-900 dark:to-slate-800 transition-colors">
+      {/* Debug info - remove later */}
+      <div className="fixed top-0 right-0 z-50 bg-red-500 text-white p-2 text-xs">
+        Theme: {typeof window !== 'undefined' ? (document.documentElement.classList.contains('dark') ? 'DARK' : 'LIGHT') : 'LOADING'}
+      </div>
+      
       {/* Header - Modern Design Matching Admin Panel */}
       <header className="bg-white dark:bg-slate-800 shadow-lg border-b border-yellow-100 dark:border-slate-700 transition-colors">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
