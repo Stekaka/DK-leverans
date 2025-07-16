@@ -20,11 +20,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const savedTheme = localStorage.getItem('dk-theme') as Theme
     if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark')) {
       setTheme(savedTheme)
+      console.log('ThemeProvider: Loaded saved theme:', savedTheme)
     } else {
       // Check system preference
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
       const systemTheme = prefersDark ? 'dark' : 'light'
       setTheme(systemTheme)
+      console.log('ThemeProvider: Using system theme:', systemTheme)
     }
     setMounted(true)
   }, [])
@@ -32,14 +34,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!mounted) return
     
-    // Apply theme to document - simplified and robust
+    // Apply theme to document - only use 'dark' class for Tailwind
     const htmlElement = document.documentElement
     
-    // Remove all existing theme classes first
-    htmlElement.classList.remove('dark', 'light')
-    
-    // Add the current theme class
-    htmlElement.classList.add(theme)
+    if (theme === 'dark') {
+      htmlElement.classList.add('dark')
+      console.log('ThemeProvider: Applied dark mode, HTML classes:', htmlElement.className)
+    } else {
+      htmlElement.classList.remove('dark')
+      console.log('ThemeProvider: Applied light mode, HTML classes:', htmlElement.className)
+    }
     
     // Save to localStorage
     localStorage.setItem('dk-theme', theme)
@@ -47,7 +51,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light'
+    console.log('ThemeProvider: Toggling from', theme, 'to', newTheme)
     setTheme(newTheme)
+  }
+
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!mounted) {
+    return <div>{children}</div>
   }
 
   return (
