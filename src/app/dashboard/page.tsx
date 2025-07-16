@@ -831,15 +831,33 @@ export default function DashboardPage() {
                     </div>
                   )}
 
-                  {/* Comment indicator - always visible for files with notes */}
+                  {/* Comment indicator with expanding banner */}
                   {file.customer_notes && file.customer_notes.trim() !== '' && (
-                    <div 
-                      className="absolute top-2 left-2 bg-blue-500 text-white rounded-full p-1.5 shadow-lg hover:bg-blue-600 transition-colors duration-200"
-                      title={`Kommentar: ${file.customer_notes}`}
-                    >
-                      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
-                      </svg>
+                    <div className="absolute top-2 left-2 group/comment z-10">
+                      {/* Comment icon */}
+                      <div className="bg-blue-500 text-white rounded-full p-1.5 shadow-lg hover:bg-blue-600 transition-colors duration-200 relative z-20">
+                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      
+                      {/* Expanding comment banner */}
+                      <div className="absolute top-0 left-0 bg-blue-500 text-white text-xs px-3 py-2 rounded-lg shadow-xl 
+                                    opacity-0 group-hover/comment:opacity-100 transform scale-95 group-hover/comment:scale-100
+                                    transition-all duration-200 ease-out whitespace-nowrap max-w-xs z-10
+                                    origin-left overflow-hidden">
+                        <div className="flex items-center space-x-2">
+                          <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
+                          </svg>
+                          <span className="truncate" style={{ maxWidth: '200px' }}>
+                            {file.customer_notes}
+                          </span>
+                        </div>
+                        {/* Arrow pointing to the icon */}
+                        <div className="absolute left-3 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 
+                                      border-l-transparent border-r-transparent border-t-blue-500"></div>
+                      </div>
                     </div>
                   )}
                 </div>
