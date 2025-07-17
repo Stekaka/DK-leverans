@@ -17,6 +17,7 @@ export default function DashboardPage() {
   const [customer, setCustomer] = useState<Customer | null>(null)
   const [folders, setFolders] = useState<string[]>([])
   const [currentFolder, setCurrentFolder] = useState('')
+  const [viewType, setViewType] = useState<'all' | 'folder' | 'root'>('all') // Ny state för view-typ
   const [selectedItems, setSelectedItems] = useState<string[]>([])
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [filter, setFilter] = useState<'all' | 'images' | 'videos' | 'favorite' | 'good' | 'poor' | 'unrated'>('all')
@@ -70,15 +71,25 @@ export default function DashboardPage() {
     }
   }
 
-  const loadFiles = async (folderPath?: string) => {
+  const loadFiles = async (folderPath?: string, newViewType?: 'all' | 'folder' | 'root') => {
     try {
       setLoading(true)
       
-      // Använd provided folderPath eller currentFolder
+      // Använd provided parametrar eller nuvarande state
       const folder = folderPath !== undefined ? folderPath : currentFolder
-      const url = folder 
-        ? `/api/customer/files?folderPath=${encodeURIComponent(folder)}`
-        : '/api/customer/files'
+      const viewTypeToUse = newViewType !== undefined ? newViewType : viewType
+      
+      let url: string
+      if (viewTypeToUse === 'all') {
+        // "Alla filer"-vy: visa alla filer oavsett mapp
+        url = '/api/customer/files?view=all'
+      } else if (viewTypeToUse === 'root') {
+        // Root-mapp: bara filer i root
+        url = '/api/customer/files?folderPath='
+      } else {
+        // Specifik mapp
+        url = `/api/customer/files?folderPath=${encodeURIComponent(folder)}`
+      }
       
       const response = await fetch(url)
       
@@ -299,10 +310,23 @@ export default function DashboardPage() {
   }
 
   // Hantera mappnavigering
-  const navigateToFolder = async (folderPath: string) => {
+  const navigateToFolder = async (folderPath: string, newViewType?: 'all' | 'folder' | 'root') => {
     setCurrentFolder(folderPath)
     setSelectedItems([])
-    await loadFiles(folderPath)
+    
+    let viewTypeToSet: 'all' | 'folder' | 'root'
+    if (newViewType) {
+      viewTypeToSet = newViewType
+    } else if (folderPath === '' && viewType === 'all') {
+      viewTypeToSet = 'all'
+    } else if (folderPath === '') {
+      viewTypeToSet = 'root'
+    } else {
+      viewTypeToSet = 'folder'
+    }
+    
+    setViewType(viewTypeToSet)
+    await loadFiles(folderPath, viewTypeToSet)
   }
 
   const navigateUp = async () => {
@@ -736,27 +760,37 @@ export default function DashboardPage() {
               </div>
               <div className="flex flex-wrap gap-2">
                 <button
-                  onClick={() => navigateToFolder('')}
+                  onClick={() => navigateToFolder('', 'all')}
                   className={`px-3 py-2 rounded-lg text-sm transition-colors ${
-                    currentFolder === '' 
+                    viewType === 'all' 
                       ? 'bg-yellow-600 text-white shadow-md' 
                       : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
                   }`}
                 >
                   Alla filer
                 </button>
+                <button
+                  onClick={() => navigateToFolder('', 'root')}
+                  className={`px-3 py-2 rounded-lg text-sm transition-colors ${
+                    viewType === 'root' 
+                      ? 'bg-yellow-600 text-white shadow-md' 
+                      : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+                  }`}
+                >
+                  Root
+                </button>
                 {folders.map(folder => (
                   <button
                     key={folder}
-                    onClick={() => navigateToFolder(folder)}
+                    onClick={() => navigateToFolder(folder, 'folder')}
                     className={`px-3 py-2 rounded-lg text-sm truncate max-w-48 transition-colors ${
-                      currentFolder === folder 
+                      currentFolder === folder && viewType === 'folder'
                         ? 'bg-yellow-600 text-white shadow-md' 
                         : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
                     }`}
-                    title={folder || 'Root'}
+                    title={folder}
                   >
-                    {folder || 'Root'}
+                    {folder}
                   </button>
                 ))}
               </div>

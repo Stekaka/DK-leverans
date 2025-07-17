@@ -52,6 +52,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const folderPath = searchParams.get('folderPath') // För mappfiltrering
+    const viewMode = searchParams.get('view') // 'all' för alla filer, annars mappfiltrering
 
     // Bygg query för filer
     let query = supabaseAdmin
@@ -60,17 +61,18 @@ export async function GET(request: NextRequest) {
       .eq('customer_id', customer.id)
       .eq('is_deleted', false)
 
-    // Filtrera på mapp om specificerad
-    if (folderPath !== null) {
+    // Filtrera på mapp om specificerad och inte "alla filer"-vy
+    if (folderPath !== null && viewMode !== 'all') {
       if (folderPath === '') {
-        // Root-mapp: visa filer som antingen inte har customer_folder_path satt, 
-        // eller har den satt till tom sträng
+        // Root-mapp: visa bara filer som faktiskt ligger i root
+        // (customer_folder_path är null eller tom sträng)
         query = query.or(`customer_folder_path.is.null,customer_folder_path.eq.`)
       } else {
         // Specifik mapp: visa bara filer med exakt denna customer_folder_path
         query = query.eq('customer_folder_path', folderPath)
       }
     }
+    // Om viewMode === 'all' eller folderPath är null, visa alla filer (ingen filtrering)
 
     const { data: files, error } = await query.order('uploaded_at', { ascending: false })
 
