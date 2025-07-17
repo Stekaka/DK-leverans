@@ -6,17 +6,19 @@
 - [x] Navigation UX (klickbara loggor, bort "Till admin"-knapp)
 - [x] Session-hantering ("Kom ihåg mig", auto-redirect)
 - [x] Logout-förbättringar (går till startsida, rensar session)
+- [x] **Startsida för inloggade användare** (ny: visar "Mina filer" istället för "Logga in")
 - [x] Access-system debug (direkta queries istället för SQL-funktioner)
 - [x] Filorganisering (mappfiltrering, betyg följer filer)
-- [x] Pushad till GitHub (commit 619298e)
+- [x] Pushad till GitHub (commit d3a183c)
 - [x] Vercel auto-deploy
 
 ### 🔧 REMAINING POLISH ITEMS:
 
-#### 1. **Startsida-polish för inloggade användare**
-- **Issue**: Startsidan (`/`) kanske behöver hantera auto-redirect
-- **Current**: Båda portaler länkar till startsida
-- **Needed**: Kontrollera om inloggad användare ska redirectas från `/` till `/dashboard`
+#### 1. **Startsida-polish för inloggade användare** ✅ LÖST
+- **Issue**: Startsidan visade "Logga in" även för inloggade användare
+- **Solution**: Konverterad till client component med session-detection
+- **Result**: Visar "Mina filer" + välkomsttext för inloggade användare
+- **Status**: ✅ Implementerat och deployat
 
 #### 2. **Admin-session säkerhet**
 - **Issue**: Admin använder samma session-system som kunder
@@ -46,7 +48,7 @@
 - B) Auto-redirect inloggade användare till `/dashboard`
 - C) Visa olika innehåll beroende på login-status
 
-**Recommendation**: Option A (current) är bra - ger användare kontroll
+**Recommendation**: ✅ **LÖST** - Startsidan visar nu smart innehåll baserat på login-status
 
 ### Polish Item #2: Session i produktion
 **Test**: Verifiera att "kom ihåg mig"-funktionen fungerar i Vercel
@@ -99,6 +101,6 @@ De viktigaste UX-problemen är lösta och systemet fungerar smidigt. Återståen
 Systemet kan lanseras och användas i sitt nuvarande tillstånd! 🚀
 
 ---
-**Status**: 🎯 **PRODUCTION READY**  
-**Datum**: 16 juli 2025  
-**Version**: 2.3.0 - Complete UX Polish
+**Status**: 🎯 **PRODUCTION READY** ⭐ **ENHANCED**  
+**Datum**: 17 juli 2025  
+**Version**: 2.4.0 - Complete UX Polish + Smart Homepage
