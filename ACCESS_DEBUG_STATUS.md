@@ -1,66 +1,56 @@
-# ACCESS-SYSTEM DEBUGGING STATUS
+# ACCESS-SYSTEM OCH FILORGANISERING STATUS
 
-## Problem som identifierats:
+## ✅ Access-problem lösta:
+- [x] **Supabase-anslutning**: Fungerar perfekt, 5 aktiva kunder
+- [x] **Admin query-anrop**: Fungerar (timer och access-info visas)
+- [x] **Access-schema**: Installerat med kolumner och triggers
+- [x] **Timer-funktionalitet**: 30-dagars access implementerat
 
-### 1. "Failed to check access" vid kundportal-login
-- **Orsak**: Access-API returnerar fel pga Supabase-anslutning eller saknade SQL-funktioner
-- **Status**: Identifierat, delvis löst med simpel version
+## ❌ Kvarvarande problem - Filorganisering:
 
-### 2. Timer visas inte i adminpanelen
-- **Orsak**: AdminPanel anropar access-API fel + attributnamn mismatch
-- **Status**: Fixat i kod, väntar på Supabase-anslutning
+### Problem identifierat:
+1. **Betyg och kommentarer försvinner** när fil är i root
+2. **Filer "kopieras"** istället för att flyttas mellan mappar
+3. **Original fil kvarstår** i root utan betyg/kommentarer
 
-## Tekniska fixes gjorda:
+### Root cause:
+**Mappfiltrering i `/api/customer/files` var felaktig** - använde komplex OR-query som visade samma fil i flera mappar samtidigt.
 
-### ✅ Code fixes:
-- [x] Fixat access-API att hantera admin-anrop via query parameter
-- [x] Lagt till bättre error-logging i access-API  
-- [x] Uppdaterat adminpanel för korrekt API-anrop
-- [x] Fixat attributnamn i adminpanel UI (accessType, hasAccess, daysRemaining)
-- [x] Skapat simpel access-version utan SQL-funktioner
+### ✅ Fix implementerad:
+```typescript
+// FÖRE (felaktig):
+query = query.or(`customer_folder_path.eq.${folderPath || ''},and(customer_folder_path.is.null,folder_path.eq.${folderPath || ''})`)
 
-### ❌ Infrastructure issues:
-- [ ] **Supabase miljövariabler i Vercel** - Behöver verifieras/återsättas
-- [ ] **Access-system SQL-schema** - Behöver installeras i Supabase
-- [ ] **check_customer_access() funktion** - Finns inte i databasen
-
-## Felsökning steg-för-steg:
-
-### Steg 1: Testa Supabase-anslutning
-```bash
-curl "https://dk-leverans.vercel.app/api/test-supabase"
-```
-**Förväntat**: Customer data returneras
-**Aktuellt**: Ingen respons/fel
-
-### Steg 2: Verifiera miljövariabler i Vercel
-1. Gå till Vercel Dashboard -> dk-leverans -> Settings -> Environment Variables
-2. Kontrollera att dessa finns och är korrekta:
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `SUPABASE_SERVICE_ROLE_KEY`
-
-### Steg 3: Installera Access-system i Supabase
-1. Logga in på Supabase Dashboard
-2. Gå till SQL Editor
-3. Kör `/supabase-file-access-clean.sql` (eller alternativt simple version)
-
-### Steg 4: Testa access-API
-```bash
-curl "https://dk-leverans.vercel.app/api/customer/access?customerId=CUSTOMER_ID"
+// EFTER (korrekt):
+if (folderPath === '') {
+  // Root: visa filer utan customer_folder_path eller tom sträng
+  query = query.or(`customer_folder_path.is.null,customer_folder_path.eq.`)
+} else {
+  // Specifik mapp: visa bara filer med exakt denna customer_folder_path
+  query = query.eq('customer_folder_path', folderPath)
+}
 ```
 
-## Akuta åtgärder behövs:
+## 🧪 Nästa steg - Test och verifiering:
 
-1. **VERCEL ENV VARS**: Sätt/verifiera Supabase-nycklar i Vercel
-2. **SUPABASE SQL**: Installera access-schema i Supabase 
-3. **TEST ACCESS**: Verifiera att både timer och inloggning fungerar
+### Test-scenario som behöver verifieras:
+1. **Betygsätt fil i root** → Byt namn → **Betyg kvarstår?**
+2. **Kommentera fil i root** → Flytta till mapp → **Kommentar kvarstår?**
+3. **Flytta fil från mapp A till mapp B** → **Syns bara i mapp B?**
+4. **Flytta fil från mapp till root** → **Syns bara i root?**
 
-## Alternativ lösning:
-Om SQL-funktioner är problematiska, använd den simpla versionen som bara kollar `customers.access_expires_at` kolumn utan avancerade funktioner.
+### Deployment status:
+- ✅ **Fix deployad**: commit b077c01 pushad till GitHub
+- ⏳ **Väntar på Vercel auto-deploy** (brukar ta 1-2 minuter)
 
-## Filer att kolla:
-- `/src/app/api/test-supabase/route.ts` - Supabase connection test
-- `/src/app/api/customer/access/route.ts` - Current access API (simple version)
-- `/src/app/api/customer/access/route-original.ts` - Backup with SQL functions
-- `/supabase-file-access-clean.sql` - SQL schema to install
-- `/simple-access-check.sql` - Manual database debugging
+### Test-kommando efter deployment:
+```bash
+# Testa att mappfiltrering fungerar korrekt
+curl "https://dk-leverans.vercel.app/api/customer/files?folderPath=" 
+curl "https://dk-leverans.vercel.app/api/customer/files?folderPath=MinMapp"
+```
+
+## Teori om problemet:
+Den felaktiga OR-queryn gjorde att samma fil kunde visas i både root OCH i mappar, vilket skapade förvirring i UI:et. När rating/comments sparades på "root-versionen" av filen men användaren tittade på "mapp-versionen", så försvann ändringarna.
+
+Med den nya logiken ska varje fil bara synas i EN plats åt gången, vilket borde lösa problemet.
