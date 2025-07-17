@@ -119,6 +119,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Uppdatera filen
+    console.log('Attempting to update file:', { fileId, updateData, customerId: customer.id })
+    
     const { error: updateError } = await supabaseAdmin
       .from('files')
       .update(updateData)
@@ -128,10 +130,12 @@ export async function POST(request: NextRequest) {
     if (updateError) {
       console.error('Error updating file trash status:', updateError)
       return NextResponse.json(
-        { error: 'Kunde inte uppdatera fil' },
+        { error: 'Kunde inte uppdatera fil: ' + updateError.message },
         { status: 500 }
       )
     }
+
+    console.log('File updated successfully:', { fileId, action, updateData })
 
     return NextResponse.json({
       success: true,

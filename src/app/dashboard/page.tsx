@@ -456,6 +456,8 @@ export default function DashboardPage() {
     const originalFiles = files
     
     try {
+      console.log('Starting trash action:', { fileId, action })
+      
       // Optimistisk uppdatering först - ta bort filen från nuvarande vy
       setFiles(prevFiles => prevFiles.filter(file => file.id !== fileId))
       
@@ -470,16 +472,17 @@ export default function DashboardPage() {
         })
       })
 
+      const result = await response.json()
+      console.log('Trash API response:', { status: response.status, result })
+
       if (response.ok) {
-        const result = await response.json()
         console.log('Trash action success:', result.message)
         
         // Framgångsrik operation - optimistisk uppdatering redan gjord
         // Ingen reload behövs
       } else {
-        const error = await response.json()
-        console.error('Trash action failed:', error)
-        alert('Fel: ' + error.error)
+        console.error('Trash action failed:', result)
+        alert('Fel: ' + result.error)
         
         // Återställ original files state vid fel
         setFiles(originalFiles)
