@@ -518,66 +518,94 @@ export default function DirectUploadComponent({
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <label className="block text-sm font-medium text-gray-200 mb-2">
-          Mapp (valfritt)
-        </label>
-        <input
-          type="text"
-          value={folderPath}
-          onChange={(e) => setFolderPath(e.target.value)}
-          placeholder="t.ex. fotografering-2024-01-15"
-          className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-200 mb-2">
-          Välj filer eller mappar
-        </label>
-        <div className="space-y-3">
-          {/* Standard filuppladdning */}
-          <input
-            type="file"
-            multiple
-            onChange={handleFileSelect}
-            className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-yellow-500 file:text-black file:font-medium hover:file:bg-yellow-400"
-          />
+    <div className="space-y-4 sm:space-y-6">
+      {/* File Selection Area - Mobile Optimized */}
+      <div className="bg-gray-800 border-2 border-dashed border-gray-600 rounded-xl p-4 sm:p-8 text-center hover:border-gray-500 transition-colors">
+        <div className="space-y-3 sm:space-y-4">
+          <div className="text-3xl sm:text-4xl">📁</div>
+          <div>
+            <h3 className="text-base sm:text-lg font-semibold text-gray-200 mb-2">
+              Välj filer att ladda upp
+            </h3>
+            <p className="text-xs sm:text-sm text-gray-400 mb-4">
+              Stöder alla filtyper. Dra och släpp eller klicka för att välja.
+            </p>
+          </div>
           
-          {/* Mappuppladdning */}
-          <input
-            type="file"
-            /* @ts-ignore */
-            webkitdirectory=""
-            multiple
-            onChange={handleFileSelect}
-            className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-500 file:text-black file:font-medium hover:file:bg-blue-400"
-          />
-          
-          <div className="text-xs text-gray-400 space-y-1">
-            <p>🔸 <strong>Första knappen:</strong> Välj enskilda filer (Cmd/Ctrl+klick för flera)</p>
-            <p>🔸 <strong>Andra knappen:</strong> Välj hela mappar (behåller mappstruktur)</p>
-            <p>💡 <strong>Stöder:</strong> Filer upp till 100GB, mappar med hundratals filer</p>
+          {/* Mobile-friendly input controls */}
+          <div className="space-y-3">
+            <input
+              type="file"
+              multiple
+              onChange={handleFileSelect}
+              className="hidden"
+              id="fileInput"
+            />
+            
+            {/* Individual Files Button - Larger touch target */}
+            <label
+              htmlFor="fileInput"
+              className="inline-block w-full sm:w-auto bg-yellow-500 hover:bg-yellow-400 text-black font-semibold py-3 sm:py-2 px-6 rounded-lg cursor-pointer transition-colors touch-manipulation"
+            >
+              📄 Välj filer
+            </label>
+            
+            {/* Folder Upload Button - Mobile optimized */}
+            <input
+              type="file"
+              multiple
+              // @ts-ignore
+              webkitdirectory="true"
+              onChange={handleFileSelect}
+              className="hidden"
+              id="folderInput"
+            />
+            <label
+              htmlFor="folderInput"
+              className="inline-block w-full sm:w-auto bg-blue-500 hover:bg-blue-400 text-white font-semibold py-3 sm:py-2 px-6 rounded-lg cursor-pointer transition-colors touch-manipulation"
+            >
+              📁 Välj mapp
+            </label>
           </div>
         </div>
       </div>
 
+      {/* Folder Path Input - Mobile Optimized */}
       {files.length > 0 && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h4 className="text-sm font-medium text-gray-200">
-              Valda filer ({files.length}):
-            </h4>
+        <div className="bg-gray-800 border border-gray-600 rounded-lg p-3 sm:p-4">
+          <label className="block text-sm font-medium text-gray-200 mb-2">
+            Målmapp (valfritt):
+          </label>
+          <input
+            type="text"
+            value={folderPath}
+            onChange={(e) => setFolderPath(e.target.value)}
+            placeholder="t.ex. projekt/bilder eller lämna tomt för rotkatalog"
+            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-gray-200 placeholder-gray-400 focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 text-sm sm:text-base"
+          />
+          <p className="text-xs text-gray-400 mt-1">
+            Filerna kommer att placeras i denna mapp. Använd / för undermappar.
+          </p>
+        </div>
+      )}
+
+      {/* Upload Progress - Mobile Optimized */}
+      {files.length > 0 && (
+        <div className="bg-gray-800 border border-gray-600 rounded-lg p-3 sm:p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 space-y-2 sm:space-y-0">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-200">
+              Valda filer ({files.length})
+            </h3>
+            
             {uploading && (
               <div className="flex items-center space-x-3">
-                {/* Total Progress Circle */}
-                <div className="relative w-12 h-12">
-                  <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
+                {/* Mobile-optimized circular progress */}
+                <div className="relative w-8 h-8 sm:w-10 sm:h-10">
+                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                     <path
-                      className="text-gray-700"
+                      className="text-gray-600"
                       stroke="currentColor"
-                      strokeWidth="3"
+                      strokeWidth="4"
                       fill="transparent"
                       strokeDasharray="100,100"
                       d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
@@ -585,7 +613,7 @@ export default function DirectUploadComponent({
                     <path
                       className="text-yellow-500"
                       stroke="currentColor"
-                      strokeWidth="3"
+                      strokeWidth="4"
                       fill="transparent"
                       strokeDasharray={`${getTotalProgress()},100`}
                       strokeLinecap="round"
@@ -593,8 +621,8 @@ export default function DirectUploadComponent({
                     />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-xs font-bold text-yellow-400">
-                      {Math.round(getTotalProgress())}%
+                    <span className="text-xs sm:text-sm font-bold text-yellow-400">
+                      {Math.round(getTotalProgress())}
                     </span>
                   </div>
                 </div>
@@ -608,22 +636,26 @@ export default function DirectUploadComponent({
             )}
           </div>
           
-          <div className="max-h-60 overflow-y-auto space-y-2">
+          {/* File List - Mobile Scrollable */}
+          <div className="max-h-60 sm:max-h-80 overflow-y-auto space-y-2 sm:space-y-3">
             {files.map((file, index) => {
               const status = uploadStatus[file.name] || 'pending'
               const progress = uploadProgress[file.name] || 0
               
               return (
-                <div key={index} className="relative bg-gray-800 rounded-lg p-3 border border-gray-700">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-gray-200 font-medium truncate flex-1 pr-2">{file.name}</span>
-                    <span className="text-gray-400 text-xs">
+                <div key={index} className="relative bg-gray-700 sm:bg-gray-800 rounded-lg p-3 border border-gray-600 sm:border-gray-700">
+                  {/* Mobile-first file info layout */}
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 space-y-1 sm:space-y-0">
+                    <span className="text-sm sm:text-base text-gray-200 font-medium truncate pr-2">
+                      {file.name}
+                    </span>
+                    <span className="text-xs sm:text-sm text-gray-400 self-start sm:self-auto">
                       {(file.size / (1024 * 1024)).toFixed(1)} MB
                     </span>
                   </div>
                   
                   <div className="flex items-center space-x-3">
-                    {/* Circular Progress for each file */}
+                    {/* Mobile-optimized progress indicator */}
                     <div className="relative w-8 h-8 flex-shrink-0">
                       <svg className="w-8 h-8 transform -rotate-90" viewBox="0 0 36 36">
                         <path
@@ -661,7 +693,7 @@ export default function DirectUploadComponent({
                       </div>
                     </div>
                     
-                    {/* Progress Bar */}
+                    {/* Progress Bar - Better mobile layout */}
                     <div className="flex-1">
                       <div className="flex justify-between items-center mb-1">
                         <span className={`text-xs font-medium ${getStatusTextColor(status)}`}>
@@ -671,7 +703,7 @@ export default function DirectUploadComponent({
                           <span className="text-xs text-gray-400">{progress}%</span>
                         )}
                       </div>
-                      <div className="w-full bg-gray-700 rounded-full h-2">
+                      <div className="w-full bg-gray-600 sm:bg-gray-700 rounded-full h-2">
                         <div 
                           className={`h-2 rounded-full transition-all duration-300 ${getProgressBarColor(status)}`}
                           style={{ width: `${status === 'success' ? 100 : progress}%` }}
@@ -680,10 +712,10 @@ export default function DirectUploadComponent({
                     </div>
                   </div>
                   
-                  {/* Upload Speed and ETA for active uploads */}
+                  {/* Upload Stats - Stack on mobile */}
                   {status === 'uploading' && progress > 0 && (
-                    <div className="mt-2 flex justify-between text-xs text-gray-400">
-                      <div className="flex space-x-3">
+                    <div className="mt-2 flex flex-col sm:flex-row sm:justify-between text-xs text-gray-400 space-y-1 sm:space-y-0">
+                      <div className="flex flex-wrap gap-x-3 gap-y-1">
                         <span>Laddar upp...</span>
                         {getUploadSpeed(file.name, file.size, progress) && (
                           <span className="text-green-400">
@@ -692,14 +724,14 @@ export default function DirectUploadComponent({
                         )}
                       </div>
                       {getUploadETA(file.name, file.size, progress) && (
-                        <span>≈ {getUploadETA(file.name, file.size, progress)} kvar</span>
+                        <span className="sm:text-right">≈ {getUploadETA(file.name, file.size, progress)} kvar</span>
                       )}
                     </div>
                   )}
                   
-                  {/* Extra info för stora filer */}
+                  {/* Large file indicator - More prominent on mobile */}
                   {file.size > 1024 * 1024 * 1024 && (
-                    <div className="mt-1 text-xs text-blue-400">
+                    <div className="mt-2 text-xs text-blue-400 font-medium">
                       🔥 Stor fil: {(file.size / (1024 * 1024 * 1024)).toFixed(2)} GB
                     </div>
                   )}
@@ -710,15 +742,21 @@ export default function DirectUploadComponent({
         </div>
       )}
 
-      {/* TURBO MODE: Experimentell super-optimering */}
-      <div className="bg-gray-800 border border-gray-600 rounded-lg p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h4 className="text-sm font-medium text-gray-200">🚀 Turbo Mode (Experimentell)</h4>
+      {/* TURBO MODE - Mobile Optimized */}
+      <div className="bg-gray-800 border border-gray-600 rounded-lg p-3 sm:p-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+          <div className="flex-1">
+            <h4 className="text-sm font-medium text-gray-200 flex items-center">
+              🚀 Turbo Mode 
+              <span className="ml-2 text-xs bg-yellow-500 text-black px-2 py-1 rounded-full">
+                BETA
+              </span>
+            </h4>
             <p className="text-xs text-gray-400 mt-1">
               Ökar parallellism till 15+ streams för max hastighet. Kräver hög bandbredd (50+ Mbps).
             </p>
           </div>
+          {/* Larger toggle for mobile */}
           <label className="relative inline-flex items-center cursor-pointer">
             <input
               type="checkbox"
@@ -726,32 +764,37 @@ export default function DirectUploadComponent({
               onChange={(e) => setTurboMode(e.target.checked)}
               className="sr-only peer"
             />
-            <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"></div>
+            <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500 touch-manipulation"></div>
           </label>
         </div>
       </div>
 
+      {/* Upload Button - Mobile Optimized */}
       <button
         onClick={handleUpload}
         disabled={files.length === 0 || uploading}
-        className="relative w-full bg-gradient-to-r from-yellow-500 to-yellow-600 text-black py-4 px-6 rounded-lg font-semibold hover:from-yellow-400 hover:to-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg"
+        className="relative w-full bg-gradient-to-r from-yellow-500 to-yellow-600 text-black py-4 px-6 rounded-lg font-semibold hover:from-yellow-400 hover:to-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg touch-manipulation"
       >
         {uploading ? (
-          <div className="flex items-center justify-center space-x-3">
-            <div className="relative w-6 h-6">
-              <svg className="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24">
+          <div className="flex items-center justify-center space-x-2 sm:space-x-3">
+            <div className="relative w-5 h-5 sm:w-6 sm:h-6">
+              <svg className="w-full h-full animate-spin" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
               </svg>
             </div>
-            <span>Laddar upp {getCompletedFiles()}/{files.length} filer ({Math.round(getTotalProgress())}%)</span>
+            <span className="text-sm sm:text-base">
+              Laddar upp {getCompletedFiles()}/{files.length} filer ({Math.round(getTotalProgress())}%)
+            </span>
           </div>
         ) : (
           <div className="flex items-center justify-center space-x-2">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>
-            <span>Ladda upp {files.length} fil{files.length !== 1 ? 'er' : ''}</span>
+            <span className="text-sm sm:text-base">
+              Ladda upp {files.length} fil{files.length !== 1 ? 'er' : ''}
+            </span>
           </div>
         )}
         
@@ -766,12 +809,17 @@ export default function DirectUploadComponent({
         )}
       </button>
 
-      <div className="text-xs text-gray-400 space-y-1">
-        <p>💡 <strong>Direktuppladdning:</strong> Filer laddas upp direkt till molnlagring</p>
-        <p>📏 <strong>Storleksgräns:</strong> Stöder filer upp till 100GB+ och mappuppladdningar</p>
-        <p>🗂️ <strong>Mappstruktur:</strong> Behåller mappstruktur från uppladdade mappar</p>
-        <p>⚡ <strong>Prestanda:</strong> Optimerad batch-hantering för stora uploads</p>
-        <p>📊 <strong>Hastighet:</strong> Real-time upload-hastighet och ETA-beräkning</p>
+      {/* Info Section - Better mobile layout */}
+      <div className="text-xs text-gray-400 space-y-2 bg-gray-800/50 rounded-lg p-3 sm:p-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
+          <p>💡 <strong>Direktuppladdning:</strong> Filer laddas upp direkt till molnlagring</p>
+          <p>📏 <strong>Storleksgräns:</strong> Stöder filer upp till 100GB+ och mappuppladdningar</p>
+          <p>🗂️ <strong>Mappstruktur:</strong> Behåller mappstruktur från uppladdade mappar</p>
+          <p>⚡ <strong>Prestanda:</strong> Optimerad batch-hantering för stora uploads</p>
+        </div>
+        <div className="border-t border-gray-700 pt-2 mt-3">
+          <p>📊 <strong>Hastighet:</strong> Real-time upload-hastighet och ETA-beräkning</p>
+        </div>
       </div>
     </div>
   )
