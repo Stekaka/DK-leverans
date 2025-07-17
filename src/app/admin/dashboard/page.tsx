@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import DrönarkompanietLogo from '@/components/DrönarkompanietLogo'
 import DirectUploadComponent from '@/components/DirectUploadComponent'
@@ -12,6 +13,21 @@ import type { Customer } from '../../../../lib/supabase'
 
 export default function AdminDashboard() {
   const { theme } = useTheme()
+  const router = useRouter()
+  
+  // Logout-funktion för admin
+  const logout = async () => {
+    try {
+      // Rensa admin session (om någon)
+      await fetch('/api/auth/admin/logout', { method: 'POST' })
+      // Gå till startsidan
+      router.push('/')
+    } catch (error) {
+      console.error('Admin logout failed:', error)
+      // Gå till startsidan även vid fel
+      router.push('/')
+    }
+  }
   
   const [activeTab, setActiveTab] = useState('customers')
   const [showCreateCustomer, setShowCreateCustomer] = useState(false)
@@ -367,7 +383,10 @@ export default function AdminDashboard() {
               </div>
               <div className="flex items-center space-x-2">
                 <ThemeToggle />
-                <button className="text-slate-600 dark:text-slate-400 hover:text-yellow-700 dark:hover:text-yellow-400 text-sm transition-colors">
+                <button 
+                  onClick={logout}
+                  className="text-slate-600 dark:text-slate-400 hover:text-yellow-700 dark:hover:text-yellow-400 text-sm transition-colors"
+                >
                   Logga ut
                 </button>
               </div>
@@ -386,7 +405,9 @@ export default function AdminDashboard() {
           {/* Desktop Layout */}
           <div className="hidden sm:flex justify-between items-center py-4">
             <div className="flex items-center space-x-4">
-              <DrönarkompanietLogo size="md" />
+              <Link href="/" className="hover:opacity-80 transition-opacity">
+                <DrönarkompanietLogo size="md" />
+              </Link>
               <div className="border-l border-gray-300 dark:border-slate-600 pl-4">
                 <span className="text-sm text-slate-600 dark:text-slate-400 font-medium">Leveransportal</span>
                 <div className="text-xs text-slate-500 dark:text-slate-500">Admin Panel</div>
@@ -398,7 +419,10 @@ export default function AdminDashboard() {
                 Till kundportal
               </Link>
               <ThemeToggle />
-              <button className="text-slate-600 dark:text-slate-400 hover:text-yellow-700 dark:hover:text-yellow-400 transition-colors">
+              <button 
+                onClick={logout}
+                className="text-slate-600 dark:text-slate-400 hover:text-yellow-700 dark:hover:text-yellow-400 transition-colors"
+              >
                 Logga ut
               </button>
             </div>

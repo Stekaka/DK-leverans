@@ -128,11 +128,14 @@ export default function DashboardPage() {
 
   const logout = async () => {
     try {
+      // Rensa customer session
       await fetch('/api/auth/session', { method: 'DELETE' })
-      router.push('/login')
+      // Gå till startsidan
+      router.push('/')
     } catch (error) {
       console.error('Logout failed:', error)
-      router.push('/login')
+      // Gå till startsidan även vid fel
+      router.push('/')
     }
   }
 
@@ -496,18 +499,16 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="pb-3">
-              <div className="flex items-center space-x-2">
-                <Link href="/admin" className="text-yellow-600 dark:text-yellow-400 hover:text-yellow-700 dark:hover:text-yellow-300 text-xs transition-colors">
-                  Till admin
-                </Link>
-              </div>
+              {/* Admin-länk borttagen från kundportal */}
             </div>
           </div>
 
           {/* Desktop Layout */}
           <div className="hidden sm:flex justify-between items-center py-4">
             <div className="flex items-center space-x-4">
-              <DrönarkompanietLogo size="md" />
+              <Link href="/" className="hover:opacity-80 transition-opacity">
+                <DrönarkompanietLogo size="md" />
+              </Link>
               <div className="border-l border-gray-300 dark:border-slate-600 pl-4">
                 <span className="text-sm text-slate-600 dark:text-slate-400 font-medium">Leveransportal</span>
                 <div className="text-xs text-slate-500 dark:text-slate-500">{customer?.project}</div>
@@ -515,9 +516,6 @@ export default function DashboardPage() {
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-slate-600 dark:text-slate-400">{customer?.name}</span>
-              <Link href="/admin" className="text-yellow-600 dark:text-yellow-400 hover:text-yellow-700 dark:hover:text-yellow-300 transition-colors">
-                Till admin
-              </Link>
               <ThemeToggle />
               <button 
                 onClick={logout}

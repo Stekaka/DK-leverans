@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import DrönarkompanietLogo from '@/components/DrönarkompanietLogo'
@@ -8,9 +8,27 @@ import DrönarkompanietLogo from '@/components/DrönarkompanietLogo'
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [rememberMe, setRememberMe] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+
+  // Kontrollera om användaren redan är inloggad
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const response = await fetch('/api/auth/session')
+        if (response.ok) {
+          // Användaren är redan inloggad, omdirigera till dashboard
+          router.push('/dashboard')
+        }
+      } catch (error) {
+        // Ignorera fel, användaren är inte inloggad
+      }
+    }
+    
+    checkSession()
+  }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -21,7 +39,7 @@ export default function LoginPage() {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password, rememberMe })
       })
 
       const result = await response.json()
@@ -121,6 +139,20 @@ export default function LoginPage() {
                   {/* Input glow effect */}
                   <div className="absolute inset-0 rounded-lg sm:rounded-xl opacity-0 bg-gradient-to-r from-yellow-400/20 to-yellow-500/20 blur-xl transition-opacity duration-300 pointer-events-none"></div>
                 </div>
+              </div>
+
+              <div className="flex items-center">
+                <input
+                  id="remember-me"
+                  name="remember-me"
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 text-yellow-500 bg-white/10 border border-white/30 rounded focus:ring-yellow-400 focus:ring-2"
+                />
+                <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-300">
+                  Kom ihåg mig (håll mig inloggad)
+                </label>
               </div>
             </div>
 

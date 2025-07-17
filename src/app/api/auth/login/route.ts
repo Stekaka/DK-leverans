@@ -14,7 +14,7 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json()
+    const { email, password, rememberMe } = await request.json()
 
     if (!email || !password) {
       return NextResponse.json({ error: 'E-post och lösenord krävs' }, { status: 400 })
@@ -69,11 +69,13 @@ export async function POST(request: NextRequest) {
     })
 
     // HttpOnly cookie för säkerhet
+    const sessionDuration = rememberMe ? 60 * 60 * 24 * 30 : 60 * 60 * 24 * 1 // 30 dagar eller 1 dag
+    
     response.cookies.set('customer_session', sessionToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7, // 7 dagar
+      maxAge: sessionDuration,
       path: '/'
     })
 
