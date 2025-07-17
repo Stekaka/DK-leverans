@@ -74,25 +74,53 @@ export async function GET(request: NextRequest) {
       customer = await verifyCustomerSession(request)
     }
 
-    // Kontrollera access med vår SQL-funktion
+    // Kontrollera access med enkel SQL-query istället för funktion
     console.log('Checking access for customer:', customer.id)
-    const { data: accessCheck, error } = await supabaseAdmin
-      .rpc('check_customer_access', { customer_uuid: customer.id })
+    
+    // Först kolla permanent access
+    const { data: permanentAccess, error: permanentError } = await supabaseAdmin
+      .from('permanent_access_purchases')
+      .select('*')
+      .eq('customer_id', customer.id)
+      .eq('status', 'active')
+      .or('expires_at.is.null,expires_at.gt.now()')
+      .order('expires_at', { ascending: false, nullsFirst: true })
+      .limit(1)
+      .single()
 
-    if (error) {
-      console.error('Error checking customer access:', error)
-      console.error('Customer ID:', customer.id)
-      console.error('Function call failed:', error.message)
-      return NextResponse.json({ error: 'Failed to check access', details: error.message }, { status: 500 })
+    if (!permanentError && permanentAccess) {
+      console.log('Customer has permanent access')
+      const daysRemaining = permanentAccess.expires_at 
+        ? Math.ceil((new Date(permanentAccess.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+        : 999999
+
+      return NextResponse.json({
+        customer: {
+          id: customer.id,
+          name: customer.name,
+          project: customer.project,
+          email: customer.email
+        },
+        access: {
+          hasAccess: true,
+          accessType: 'permanent',
+          expiresAt: permanentAccess.expires_at,
+          daysRemaining: daysRemaining,
+          storageUsedGb: customer.total_storage_used ? (customer.total_storage_used / 1024 / 1024 / 1024) : 0,
+          storageLimitGb: permanentAccess.storage_limit_gb || 500,
+          isExpired: false,
+          isPermanent: true
+        }
+      })
     }
 
-    if (!accessCheck || accessCheck.length === 0) {
-      console.error('No access data returned for customer:', customer.id)
-      return NextResponse.json({ error: 'No access data found' }, { status: 500 })
-    }
+    // Kolla vanlig access baserat på customer.access_expires_at
+    const hasAccess = customer.access_expires_at ? new Date(customer.access_expires_at) > new Date() : true
+    const daysRemaining = customer.access_expires_at 
+      ? Math.ceil((new Date(customer.access_expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+      : 30
 
-    const accessInfo = accessCheck[0]
-    console.log('Access check result:', accessInfo)
+    console.log('Access check result:', { hasAccess, daysRemaining, expiresAt: customer.access_expires_at })
 
     return NextResponse.json({
       customer: {
@@ -102,14 +130,14 @@ export async function GET(request: NextRequest) {
         email: customer.email
       },
       access: {
-        hasAccess: accessInfo.has_access,
-        accessType: accessInfo.access_type,
-        expiresAt: accessInfo.expires_at,
-        daysRemaining: accessInfo.days_remaining,
-        storageUsedGb: accessInfo.storage_used_gb,
-        storageLimitGb: accessInfo.storage_limit_gb,
-        isExpired: !accessInfo.has_access && accessInfo.access_type === 'expired',
-        isPermanent: accessInfo.access_type === 'permanent'
+        hasAccess: hasAccess,
+        accessType: hasAccess ? 'active' : 'expired',
+        expiresAt: customer.access_expires_at,
+        daysRemaining: Math.max(0, daysRemaining),
+        storageUsedGb: customer.total_storage_used ? (customer.total_storage_used / 1024 / 1024 / 1024) : 0,
+        storageLimitGb: 0,
+        isExpired: !hasAccess,
+        isPermanent: false
       }
     })
 
