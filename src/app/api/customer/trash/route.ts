@@ -66,6 +66,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Kontrollera att filen tillhör kunden
+    console.log('Looking for file:', { fileId, customerId: customer.id })
+    
     const { data: file, error: fileError } = await supabaseAdmin
       .from('files')
       .select('id, original_name, is_trashed, is_deleted')
@@ -73,9 +75,12 @@ export async function POST(request: NextRequest) {
       .eq('customer_id', customer.id)
       .single()
 
+    console.log('File lookup result:', { file, fileError })
+
     if (fileError || !file) {
+      console.error('File not found or error:', { fileError, fileId, customerId: customer.id })
       return NextResponse.json(
-        { error: 'Filen hittades inte' },
+        { error: 'Filen hittades inte: ' + (fileError?.message || 'Unknown error') },
         { status: 404 }
       )
     }
