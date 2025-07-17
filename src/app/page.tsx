@@ -1,8 +1,36 @@
+'use client'
+
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import DrönarkompanietLogo from '@/components/DrönarkompanietLogo'
 
 export default function HomePage() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [customerName, setCustomerName] = useState('')
+  const [loading, setLoading] = useState(true)
+
+  // Kontrollera session vid sidladdning
+  useEffect(() => {
+    checkSession()
+  }, [])
+
+  const checkSession = async () => {
+    try {
+      const response = await fetch('/api/auth/session')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.customer) {
+          setIsLoggedIn(true)
+          setCustomerName(data.customer.name)
+        }
+      }
+    } catch (error) {
+      // Ignorera fel, användaren är inte inloggad
+    } finally {
+      setLoading(false)
+    }
+  }
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800">
       {/* Clean Hero Section */}
@@ -21,12 +49,32 @@ export default function HomePage() {
               <DrönarkompanietLogo size="md" className="filter brightness-110" />
             </div>
             <div className="flex items-center space-x-2 sm:space-x-4">
-              <Link href="/login" className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 hover:to-yellow-500 text-black px-3 sm:px-6 py-2 sm:py-3 rounded-lg transition-all duration-300 font-semibold text-sm sm:text-base">
-                Logga in
-              </Link>
-              <Link href="/admin" className="text-white/70 hover:text-white transition-colors text-xs sm:text-sm font-medium px-2 sm:px-4 py-2 rounded-lg hover:bg-white/5">
-                Admin
-              </Link>
+              {loading ? (
+                // Loading state
+                <div className="bg-slate-700/50 px-3 sm:px-6 py-2 sm:py-3 rounded-lg animate-pulse">
+                  <div className="w-16 h-4 bg-slate-600 rounded"></div>
+                </div>
+              ) : isLoggedIn ? (
+                // Logged in state
+                <>
+                  <Link href="/dashboard" className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 hover:to-yellow-500 text-black px-3 sm:px-6 py-2 sm:py-3 rounded-lg transition-all duration-300 font-semibold text-sm sm:text-base">
+                    Mina filer
+                  </Link>
+                  <div className="text-white/70 text-xs sm:text-sm font-medium px-2 sm:px-4 py-2">
+                    Inloggad som: {customerName}
+                  </div>
+                </>
+              ) : (
+                // Not logged in state
+                <>
+                  <Link href="/login" className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 hover:to-yellow-500 text-black px-3 sm:px-6 py-2 sm:py-3 rounded-lg transition-all duration-300 font-semibold text-sm sm:text-base">
+                    Logga in
+                  </Link>
+                  <Link href="/admin" className="text-white/70 hover:text-white transition-colors text-xs sm:text-sm font-medium px-2 sm:px-4 py-2 rounded-lg hover:bg-white/5">
+                    Admin
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </nav>
@@ -47,27 +95,72 @@ export default function HomePage() {
           {/* Description */}
           <div className="max-w-3xl mx-auto mb-8 sm:mb-12">
             <p className="text-base sm:text-lg lg:text-xl leading-relaxed text-slate-200 bg-black/20 rounded-xl p-4 sm:p-6 lg:p-8 border border-yellow-500/20">
-              <span className="text-yellow-400 font-semibold">
-                Logga in för att ladda ner dina beställda drönarbilder och videor.
-              </span>
-              <br />
-              Allt material från ditt uppdrag finns tillgängligt här i högsta kvalitet med professionell förhandsvisning, 
-              betygsättning och organisering.
+              {isLoggedIn ? (
+                <>
+                  <span className="text-yellow-400 font-semibold">
+                    Välkommen tillbaka, {customerName}!
+                  </span>
+                  <br />
+                  Dina drönarbilder och videor väntar på dig. Gå till "Mina filer" för att se, betygsätta och ladda ner 
+                  allt material från ditt uppdrag i högsta kvalitet.
+                </>
+              ) : (
+                <>
+                  <span className="text-yellow-400 font-semibold">
+                    Logga in för att ladda ner dina beställda drönarbilder och videor.
+                  </span>
+                  <br />
+                  Allt material från ditt uppdrag finns tillgängligt här i högsta kvalitet med professionell förhandsvisning, 
+                  betygsättning och organisering.
+                </>
+              )}
             </p>
           </div>
           
           {/* Call-to-Action Button */}
           <div className="mb-12 sm:mb-16">
-            <Link href="/login" 
-                  className="inline-flex items-center bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 hover:to-yellow-500 text-black px-6 sm:px-10 py-4 sm:py-5 rounded-xl font-bold transition-all duration-300 text-base sm:text-lg">
-              <svg className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-2 0V4H5v12h10v-2a1 1 0 112 0v3a1 1 0 01-1 1H4a1 1 0 01-1-1V3z" clipRule="evenodd"/>
-                <path fillRule="evenodd" d="M6 10a1 1 0 011-1h6l-2-2a1 1 0 112-2l4 4a1 1 0 010 2l-4 4a1 1 0 11-2-2l2-2H7a1 1 0 01-1-1z" clipRule="evenodd"/>
-              </svg>
-              <span className="hidden sm:inline">Logga in för att komma åt ditt material</span>
-              <span className="sm:hidden">Logga in</span>
-            </Link>
+            {isLoggedIn ? (
+              <Link href="/dashboard" 
+                    className="inline-flex items-center bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 hover:to-yellow-500 text-black px-6 sm:px-10 py-4 sm:py-5 rounded-xl font-bold transition-all duration-300 text-base sm:text-lg">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-2 0V5H5v10h10v-1a1 1 0 112 0v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4z" clipRule="evenodd"/>
+                  <path fillRule="evenodd" d="M6 8a1 1 0 011-1h6l-2-2a1 1 0 112-2l4 4a1 1 0 010 2l-4 4a1 1 0 11-2-2l2-2H7a1 1 0 01-1-1z" clipRule="evenodd"/>
+                </svg>
+                <span className="hidden sm:inline">Gå till mina filer</span>
+                <span className="sm:hidden">Mina filer</span>
+              </Link>
+            ) : (
+              <Link href="/login" 
+                    className="inline-flex items-center bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 hover:to-yellow-500 text-black px-6 sm:px-10 py-4 sm:py-5 rounded-xl font-bold transition-all duration-300 text-base sm:text-lg">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-2 0V4H5v12h10v-2a1 1 0 112 0v3a1 1 0 01-1 1H4a1 1 0 01-1-1V3z" clipRule="evenodd"/>
+                  <path fillRule="evenodd" d="M6 10a1 1 0 011-1h6l-2-2a1 1 0 112-2l4 4a1 1 0 010 2l-4 4a1 1 0 11-2-2l2-2H7a1 1 0 01-1-1z" clipRule="evenodd"/>
+                </svg>
+                <span className="hidden sm:inline">Logga in för att komma åt ditt material</span>
+                <span className="sm:hidden">Logga in</span>
+              </Link>
+            )}
           </div>
+
+          {/* Logout option for logged-in users */}
+          {isLoggedIn && (
+            <div className="text-center">
+              <button
+                onClick={async () => {
+                  try {
+                    await fetch('/api/auth/session', { method: 'DELETE' })
+                    setIsLoggedIn(false)
+                    setCustomerName('')
+                  } catch (error) {
+                    console.error('Logout failed:', error)
+                  }
+                }}
+                className="text-slate-300 hover:text-white transition-colors text-sm underline"
+              >
+                Logga ut
+              </button>
+            </div>
+          )}
         </div>
         
         {/* Bottom tech accent */}
