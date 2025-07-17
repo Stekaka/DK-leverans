@@ -452,7 +452,13 @@ export default function DashboardPage() {
 
   // Hantera papperskorg-åtgärder
   const handleTrashAction = async (fileId: string, action: 'trash' | 'restore' | 'delete_forever') => {
+    // Spara original files state för återställning vid fel
+    const originalFiles = files
+    
     try {
+      // Optimistisk uppdatering först - ta bort filen från nuvarande vy
+      setFiles(prevFiles => prevFiles.filter(file => file.id !== fileId))
+      
       const response = await fetch('/api/customer/trash', {
         method: 'POST',
         headers: {
@@ -466,22 +472,24 @@ export default function DashboardPage() {
 
       if (response.ok) {
         const result = await response.json()
+        console.log('Trash action success:', result.message)
         
-        // Optimistisk uppdatering - ta bort filen från nuvarande vy
-        setFiles(prevFiles => prevFiles.filter(file => file.id !== fileId))
-        
-        // Visa bekräftelse
-        console.log(result.message)
-        
-        // Ladda om filerna för att säkerställa korrekt state
-        await loadFiles()
+        // Framgångsrik operation - optimistisk uppdatering redan gjord
+        // Ingen reload behövs
       } else {
         const error = await response.json()
+        console.error('Trash action failed:', error)
         alert('Fel: ' + error.error)
+        
+        // Återställ original files state vid fel
+        setFiles(originalFiles)
       }
     } catch (error) {
       console.error('Error with trash action:', error)
       alert('Ett fel uppstod vid hantering av filen')
+      
+      // Återställ original files state vid fel  
+      setFiles(originalFiles)
     }
   }
 
