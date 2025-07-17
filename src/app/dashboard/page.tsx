@@ -17,7 +17,7 @@ export default function DashboardPage() {
   const [customer, setCustomer] = useState<Customer | null>(null)
   const [folders, setFolders] = useState<string[]>([])
   const [currentFolder, setCurrentFolder] = useState('')
-  const [viewType, setViewType] = useState<'all' | 'folder' | 'root' | 'trash'>('all') // Uppdaterad med trash
+  const [viewType, setViewType] = useState<'all' | 'folder' | 'root'>('all') // Ny state för view-typ
   const [selectedItems, setSelectedItems] = useState<string[]>([])
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [filter, setFilter] = useState<'all' | 'images' | 'videos' | 'favorite' | 'good' | 'poor' | 'unrated'>('all')
@@ -71,7 +71,7 @@ export default function DashboardPage() {
     }
   }
 
-  const loadFiles = async (folderPath?: string, newViewType?: 'all' | 'folder' | 'root' | 'trash') => {
+  const loadFiles = async (folderPath?: string, newViewType?: 'all' | 'folder' | 'root') => {
     try {
       setLoading(true)
       
@@ -86,9 +86,6 @@ export default function DashboardPage() {
       } else if (viewTypeToUse === 'root') {
         // Root-mapp: bara filer i root
         url = '/api/customer/files?folderPath='
-      } else if (viewTypeToUse === 'trash') {
-        // Papperskorg: bara filer i papperskorgen
-        url = '/api/customer/files?view=trash'
       } else {
         // Specifik mapp
         url = `/api/customer/files?folderPath=${encodeURIComponent(folder)}`
@@ -116,7 +113,7 @@ export default function DashboardPage() {
         })
       } else {
         const errorData = await response.json()
-        setError(errorData.error || 'Kunde inte ladda ner filer')
+        setError(errorData.error || 'Kunde inte ladda filer')
         setAccessInfo(null)
       }
     } catch (error) {
@@ -313,11 +310,11 @@ export default function DashboardPage() {
   }
 
   // Hantera mappnavigering
-  const navigateToFolder = async (folderPath: string, newViewType?: 'all' | 'folder' | 'root' | 'trash') => {
+  const navigateToFolder = async (folderPath: string, newViewType?: 'all' | 'folder' | 'root') => {
     setCurrentFolder(folderPath)
     setSelectedItems([])
     
-    let viewTypeToSet: 'all' | 'folder' | 'root' | 'trash'
+    let viewTypeToSet: 'all' | 'folder' | 'root'
     if (newViewType) {
       viewTypeToSet = newViewType
     } else if (folderPath === '' && viewType === 'all') {
@@ -1090,7 +1087,7 @@ export default function DashboardPage() {
                       {/* Expanding comment banner */}
                       <div className="absolute top-0 left-0 bg-blue-500 text-white text-xs px-3 py-2 rounded-lg shadow-xl 
                                     opacity-0 group-hover/comment:opacity-100 transform scale-95 group-hover/comment:scale-100
-                                    transition-all duration-200 ease-out whitespace-nowrap
+                                    transition-all duration-200 ease-out whitespace-nowrap max-w-xs z-10
                                     origin-left overflow-hidden">
                         <div className="flex items-center space-x-2">
                           <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
