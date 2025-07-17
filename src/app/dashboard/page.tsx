@@ -1121,7 +1121,7 @@ export default function DashboardPage() {
                         e.stopPropagation()
                         updateFileRating(file.id, 'poor')
                       }}
-                      className={`p-1 rounded transition-colors ${
+                      className={`p-2 rounded transition-colors touch-manipulation ${
                         file.customer_rating === 'poor' 
                           ? 'bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-400' 
                           : 'text-gray-400 hover:text-red-500'
@@ -1137,7 +1137,7 @@ export default function DashboardPage() {
                         e.stopPropagation()
                         updateFileRating(file.id, 'good')
                       }}
-                      className={`p-1 rounded transition-colors ${
+                      className={`p-2 rounded transition-colors touch-manipulation ${
                         file.customer_rating === 'good' 
                           ? 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-400' 
                           : 'text-gray-400 hover:text-green-500'
@@ -1153,7 +1153,7 @@ export default function DashboardPage() {
                         e.stopPropagation()
                         updateFileRating(file.id, 'favorite')
                       }}
-                      className={`p-1 rounded transition-colors ${
+                      className={`p-2 rounded transition-colors touch-manipulation ${
                         file.customer_rating === 'favorite' 
                           ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900 dark:text-yellow-400' 
                           : 'text-gray-400 hover:text-yellow-500'
@@ -1373,7 +1373,7 @@ export default function DashboardPage() {
                                 e.stopPropagation()
                                 updateFileRating(file.id, 'poor')
                               }}
-                              className={`p-1 rounded transition-colors ${
+                              className={`p-1.5 rounded transition-colors touch-manipulation ${
                                 file.customer_rating === 'poor' 
                                   ? 'bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-400' 
                                   : 'text-gray-400 hover:text-red-500'
@@ -1389,7 +1389,7 @@ export default function DashboardPage() {
                                 e.stopPropagation()
                                 updateFileRating(file.id, 'good')
                               }}
-                              className={`p-1 rounded transition-colors ${
+                              className={`p-1.5 rounded transition-colors touch-manipulation ${
                                 file.customer_rating === 'good' 
                                   ? 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-400' 
                                   : 'text-gray-400 hover:text-green-500'
@@ -1405,7 +1405,7 @@ export default function DashboardPage() {
                                 e.stopPropagation()
                                 updateFileRating(file.id, 'favorite')
                               }}
-                              className={`p-1 rounded transition-colors ${
+                              className={`p-1.5 rounded transition-colors touch-manipulation ${
                                 file.customer_rating === 'favorite' 
                                   ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900 dark:text-yellow-400' 
                                   : 'text-gray-400 hover:text-yellow-500'

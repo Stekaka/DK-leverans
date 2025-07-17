@@ -23,6 +23,10 @@ export default function ImageGallery({
   const [preloadedImages, setPreloadedImages] = useState<Set<string>>(new Set())
   const [imageLoading, setImageLoading] = useState(true)
   const [videoLoading, setVideoLoading] = useState(true)
+  
+  // Mobile touch support
+  const [touchStart, setTouchStart] = useState<number | null>(null)
+  const [touchEnd, setTouchEnd] = useState<number | null>(null)
 
   const currentFile = files[currentIndex]
 
@@ -116,6 +120,34 @@ export default function ImageGallery({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [currentIndex, currentFile, showNotesModal])
 
+  // Mobile touch handlers for swipe navigation
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null) // Reset touch end
+    setTouchStart(e.targetTouches[0].clientX)
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX)
+  }
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return
+    
+    const distance = touchStart - touchEnd
+    const isLeftSwipe = distance > 50
+    const isRightSwipe = distance < -50
+
+    if (isLeftSwipe) {
+      goToNext()
+    } else if (isRightSwipe) {
+      goToPrevious() 
+    }
+    
+    // Reset touch states
+    setTouchStart(null)
+    setTouchEnd(null)
+  }
+
   const goToNext = () => {
     setCurrentIndex((prev) => {
       const newIndex = (prev + 1) % files.length
@@ -203,7 +235,12 @@ export default function ImageGallery({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center">
-      <div className="relative w-full h-full flex flex-col">
+      <div 
+        className="relative w-full h-full flex flex-col"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
         {/* Header */}
         <div className="absolute top-0 left-0 right-0 z-10 bg-black bg-opacity-50 text-white p-4">
           <div className="flex justify-between items-center">
@@ -476,16 +513,16 @@ export default function ImageGallery({
               <div className="flex items-center space-x-4">
                 <span className="text-sm">Betygsätt:</span>
                 
-                <div className="flex space-x-2">
+                <div className="flex space-x-1 sm:space-x-2">
                   <button
                     onClick={() => handleRating('favorite')}
                     disabled={isLoading}
-                    className={`p-2 rounded hover:bg-white hover:bg-opacity-20 transition-colors ${
+                    className={`p-2 sm:p-3 rounded hover:bg-white hover:bg-opacity-20 transition-colors touch-manipulation ${
                       currentFile.customer_rating === 'favorite' ? 'bg-yellow-500 bg-opacity-30' : ''
                     }`}
                     title="Favorit (Tangent: 3)"
                   >
-                    <div className={getRatingColor('favorite')}>
+                    <div className={`${getRatingColor('favorite')} text-xl sm:text-2xl`}>
                       {getRatingIcon('favorite')}
                     </div>
                   </button>
@@ -493,12 +530,12 @@ export default function ImageGallery({
                   <button
                     onClick={() => handleRating('good')}
                     disabled={isLoading}
-                    className={`p-2 rounded hover:bg-white hover:bg-opacity-20 transition-colors ${
+                    className={`p-2 sm:p-3 rounded hover:bg-white hover:bg-opacity-20 transition-colors touch-manipulation ${
                       currentFile.customer_rating === 'good' ? 'bg-green-500 bg-opacity-30' : ''
                     }`}
                     title="Bra (Tangent: 2)"
                   >
-                    <div className={getRatingColor('good')}>
+                    <div className={`${getRatingColor('good')} text-xl sm:text-2xl`}>
                       {getRatingIcon('good')}
                     </div>
                   </button>
@@ -506,12 +543,12 @@ export default function ImageGallery({
                   <button
                     onClick={() => handleRating('poor')}
                     disabled={isLoading}
-                    className={`p-2 rounded hover:bg-white hover:bg-opacity-20 transition-colors ${
+                    className={`p-2 sm:p-3 rounded hover:bg-white hover:bg-opacity-20 transition-colors touch-manipulation ${
                       currentFile.customer_rating === 'poor' ? 'bg-red-500 bg-opacity-30' : ''
                     }`}
                     title="Mindre bra (Tangent: 1)"
                   >
-                    <div className={getRatingColor('poor')}>
+                    <div className={`${getRatingColor('poor')} text-xl sm:text-2xl`}>
                       {getRatingIcon('poor')}
                     </div>
                   </button>
@@ -519,12 +556,12 @@ export default function ImageGallery({
                   <button
                     onClick={() => handleRating('unrated')}
                     disabled={isLoading}
-                    className={`p-2 rounded hover:bg-white hover:bg-opacity-20 transition-colors ${
+                    className={`p-2 sm:p-3 rounded hover:bg-white hover:bg-opacity-20 transition-colors touch-manipulation ${
                       currentFile.customer_rating === 'unrated' ? 'bg-gray-500 bg-opacity-30' : ''
                     }`}
                     title="Ta bort betyg (Tangent: 0)"
                   >
-                    <div className={getRatingColor('unrated')}>
+                    <div className={`${getRatingColor('unrated')} text-xl sm:text-2xl`}>
                       {getRatingIcon('unrated')}
                     </div>
                   </button>
@@ -535,10 +572,10 @@ export default function ImageGallery({
                     setNotes(currentFile.customer_notes || '')
                     setShowNotesModal(true)
                   }}
-                  className="p-2 rounded hover:bg-white hover:bg-opacity-20 transition-colors"
+                  className="p-2 sm:p-3 rounded hover:bg-white hover:bg-opacity-20 transition-colors touch-manipulation"
                   title="Lägg till anteckningar"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
                 </button>
