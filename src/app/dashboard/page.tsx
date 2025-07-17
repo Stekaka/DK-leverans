@@ -1293,19 +1293,19 @@ export default function DashboardPage() {
           /* List View */
           <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden border border-gray-100 dark:border-slate-700 transition-colors">
             <div className="overflow-x-auto">
-              <table className="min-w-full">
+              <table className="w-full table-auto">
                 <thead className="bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                       Fil
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                       Storlek
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                       Datum
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                       Betyg
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
@@ -1322,15 +1322,15 @@ export default function DashboardPage() {
                       }`}
                       onClick={() => toggleSelection(file.id)}
                     >
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <div className="flex-shrink-0 h-12 w-12 mr-3">
+                          <div className="flex-shrink-0 h-10 w-10 sm:h-12 sm:w-12 mr-2 sm:mr-3">
                             {file.is_image ? (
                               file.thumbnail_url || file.download_url ? (
                                 <img
                                   src={file.thumbnail_url || file.download_url || '/placeholder-image.png'}
                                   alt={file.name_for_display}
-                                  className="h-12 w-12 rounded-lg object-cover border border-gray-200 dark:border-slate-600"
+                                  className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg object-cover border border-gray-200 dark:border-slate-600"
                                   onError={(e) => {
                                     const target = e.target as HTMLImageElement
                                     if (target.src === file.thumbnail_url && file.download_url) {
@@ -1376,7 +1376,7 @@ export default function DashboardPage() {
                           </div>
                           <div>
                             <div className="flex items-center space-x-2">
-                              <div className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate max-w-xs" title={file.name_for_display}>
+                              <div className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate max-w-32 sm:max-w-xs" title={file.name_for_display}>
                                 {file.name_for_display}
                               </div>
                               {/* Comment indicator in list view */}
@@ -1397,13 +1397,13 @@ export default function DashboardPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-slate-100">
+                      <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-slate-100">
                         {file.formatted_size}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
+                      <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
                         {new Date(file.uploaded_at).toLocaleDateString('sv-SE')}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center space-x-2">
                           {file.customer_rating === 'favorite' ? (
                             <div className="flex items-center space-x-1 text-yellow-500">
@@ -1502,26 +1502,28 @@ export default function DashboardPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex space-x-2">
+                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex space-x-1 sm:space-x-2">
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
                               downloadFile(file)
                             }}
-                            className="text-yellow-600 dark:text-yellow-400 hover:text-yellow-900 dark:hover:text-yellow-300 transition-colors"
+                            className="text-yellow-600 dark:text-yellow-400 hover:text-yellow-900 dark:hover:text-yellow-300 transition-colors text-xs sm:text-sm"
                           >
-                            Ladda ner
+                            <span className="hidden sm:inline">Ladda ner</span>
+                            <span className="sm:hidden">⬇️</span>
                           </button>
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
                               openOrganizeModal(file)
                             }}
-                            className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 transition-colors"
+                            className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 transition-colors text-xs sm:text-sm"
                             title="Organisera fil"
                           >
-                            Organisera
+                            <span className="hidden sm:inline">Organisera</span>
+                            <span className="sm:hidden">📁</span>
                           </button>
                           {file.is_image && (
                             <button
@@ -1529,9 +1531,10 @@ export default function DashboardPage() {
                                 e.stopPropagation()
                                 openGallery(index)
                               }}
-                              className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 transition-colors"
+                              className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 transition-colors text-xs sm:text-sm"
                             >
-                              Visa
+                              <span className="hidden sm:inline">Visa</span>
+                              <span className="sm:hidden">👁️</span>
                             </button>
                           )}
                         </div>
