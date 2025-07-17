@@ -17,7 +17,7 @@ export default function DashboardPage() {
   const [customer, setCustomer] = useState<Customer | null>(null)
   const [folders, setFolders] = useState<string[]>([])
   const [currentFolder, setCurrentFolder] = useState('')
-  const [viewType, setViewType] = useState<'all' | 'folder' | 'root'>('all') // Ny state för view-typ
+  const [viewType, setViewType] = useState<'all' | 'folder' | 'root' | 'trash'>('all') // Uppdaterad med trash
   const [selectedItems, setSelectedItems] = useState<string[]>([])
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [filter, setFilter] = useState<'all' | 'images' | 'videos' | 'favorite' | 'good' | 'poor' | 'unrated'>('all')
@@ -71,7 +71,7 @@ export default function DashboardPage() {
     }
   }
 
-  const loadFiles = async (folderPath?: string, newViewType?: 'all' | 'folder' | 'root') => {
+  const loadFiles = async (folderPath?: string, newViewType?: 'all' | 'folder' | 'root' | 'trash') => {
     try {
       setLoading(true)
       
@@ -86,6 +86,9 @@ export default function DashboardPage() {
       } else if (viewTypeToUse === 'root') {
         // Root-mapp: bara filer i root
         url = '/api/customer/files?folderPath='
+      } else if (viewTypeToUse === 'trash') {
+        // Papperskorg: bara filer i papperskorgen
+        url = '/api/customer/files?view=trash'
       } else {
         // Specifik mapp
         url = `/api/customer/files?folderPath=${encodeURIComponent(folder)}`
@@ -310,11 +313,11 @@ export default function DashboardPage() {
   }
 
   // Hantera mappnavigering
-  const navigateToFolder = async (folderPath: string, newViewType?: 'all' | 'folder' | 'root') => {
+  const navigateToFolder = async (folderPath: string, newViewType?: 'all' | 'folder' | 'root' | 'trash') => {
     setCurrentFolder(folderPath)
     setSelectedItems([])
     
-    let viewTypeToSet: 'all' | 'folder' | 'root'
+    let viewTypeToSet: 'all' | 'folder' | 'root' | 'trash'
     if (newViewType) {
       viewTypeToSet = newViewType
     } else if (folderPath === '' && viewType === 'all') {
@@ -828,6 +831,19 @@ export default function DashboardPage() {
                     {folder}
                   </button>
                 ))}
+                <button
+                  onClick={() => navigateToFolder('', 'trash')}
+                  className={`px-3 py-2 rounded-lg text-sm transition-colors flex items-center space-x-2 ${
+                    viewType === 'trash' 
+                      ? 'bg-red-600 text-white shadow-md' 
+                      : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  <span>Papperskorg</span>
+                </button>
               </div>
               {currentFolder && (
                 <button
@@ -1272,6 +1288,53 @@ export default function DashboardPage() {
                       </svg>
                     </button>
                     
+                    {viewType === 'trash' ? (
+                      <div className="flex space-x-1">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleTrashAction(file.id, 'restore')
+                          }}
+                          className="px-3 py-2 bg-green-100 dark:bg-green-900 hover:bg-green-200 dark:hover:bg-green-800 
+                                     text-green-700 dark:text-green-300 rounded-lg text-sm transition-colors"
+                          title="Återställ fil"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            if (confirm('Är du säker på att du vill radera denna fil permanent? Denna åtgärd kan inte ångras.')) {
+                              handleTrashAction(file.id, 'delete_forever')
+                            }
+                          }}
+                          className="px-3 py-2 bg-red-100 dark:bg-red-900 hover:bg-red-200 dark:hover:bg-red-800 
+                                     text-red-700 dark:text-red-300 rounded-lg text-sm transition-colors"
+                          title="Radera permanent"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleTrashAction(file.id, 'trash')
+                        }}
+                        className="px-3 py-2 bg-red-100 dark:bg-red-900 hover:bg-red-200 dark:hover:bg-red-800 
+                                   text-red-700 dark:text-red-300 rounded-lg text-sm transition-colors"
+                        title="Flytta till papperskorg"
+                      >
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    )}
+                    
                     {file.is_image && (
                       <button
                         onClick={(e) => {
@@ -1525,6 +1588,46 @@ export default function DashboardPage() {
                             <span className="hidden sm:inline">Organisera</span>
                             <span className="sm:hidden">📁</span>
                           </button>
+                          {viewType === 'trash' ? (
+                            <>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleTrashAction(file.id, 'restore')
+                                }}
+                                className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 transition-colors text-xs sm:text-sm"
+                                title="Återställ fil"
+                              >
+                                <span className="hidden sm:inline">Återställ</span>
+                                <span className="sm:hidden">↩️</span>
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  if (confirm('Är du säker på att du vill radera denna fil permanent? Denna åtgärd kan inte ångras.')) {
+                                    handleTrashAction(file.id, 'delete_forever')
+                                  }
+                                }}
+                                className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 transition-colors text-xs sm:text-sm"
+                                title="Radera permanent"
+                              >
+                                <span className="hidden sm:inline">Radera</span>
+                                <span className="sm:hidden">🗑️</span>
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleTrashAction(file.id, 'trash')
+                              }}
+                              className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 transition-colors text-xs sm:text-sm"
+                              title="Flytta till papperskorg"
+                            >
+                              <span className="hidden sm:inline">Papperskorg</span>
+                              <span className="sm:hidden">🗑️</span>
+                            </button>
+                          )}
                           {file.is_image && (
                             <button
                               onClick={(e) => {
