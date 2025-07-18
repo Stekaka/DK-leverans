@@ -94,10 +94,46 @@ export default function DashboardPage() {
         url = `/api/customer/files?folderPath=${encodeURIComponent(folder)}`
       }
       
+      console.log('Frontend: Loading files with URL:', url)
+      console.log('Frontend: View type:', viewTypeToUse, 'Folder:', folder)
+      
       const response = await fetch(url)
       
       if (response.ok) {
         const data = await response.json()
+        console.log('Frontend: Received files data:', {
+          totalFiles: data.files?.length || 0,
+          sampleFile: data.files?.[0]?.id ? {
+            id: data.files[0].id,
+            name: data.files[0].name_for_display,
+            is_trashed: data.files[0].is_trashed
+          } : null
+        })
+        
+        // Check for our test files specifically
+        const testFile1 = data.files?.find((f: any) => f.id === '543c1d10-b840-4cd0-8e45-a14540efcb0a')
+        const testFile2 = data.files?.find((f: any) => f.id === 'b2b34a6b-d0c1-44fd-8c57-635bcd43d480')
+        
+        if (testFile1) {
+          console.log('Frontend: Found test file 1 in results:', {
+            id: testFile1.id,
+            name: testFile1.name_for_display,
+            is_trashed: testFile1.is_trashed
+          })
+        }
+        
+        if (testFile2) {
+          console.log('Frontend: Found test file 2 in results:', {
+            id: testFile2.id,
+            name: testFile2.name_for_display,
+            is_trashed: testFile2.is_trashed
+          })
+        }
+        
+        if (!testFile1 && !testFile2) {
+          console.log('Frontend: Test files NOT found in results - filtering worked!')
+        }
+        
         setFiles(data.files || [])
         setAccessInfo(data.access || null)
       } else if (response.status === 403) {
