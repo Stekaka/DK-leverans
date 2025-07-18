@@ -19,8 +19,14 @@ FROM files;
 -- 4. Uppdatera NULL-värden till false (om kolumnen precis lades till)
 -- UPDATE files SET is_trashed = false WHERE is_trashed IS NULL;
 
--- 5. Testa att sätta en fil som "trashed" (byt ut 'FILE_ID_HERE')
--- UPDATE files SET is_trashed = true WHERE id = 'FILE_ID_HERE';
+-- 5. Kontrollera specifik fil som vi just testade
+SELECT id, original_name, is_trashed, is_deleted, customer_id, uploaded_at
+FROM files 
+WHERE id = '543c1d10-b840-4cd0-8e45-a14540efcb0a';
 
--- 6. Kontrollera att uppdateringen fungerade
--- SELECT id, original_name, is_trashed FROM files WHERE id = 'FILE_ID_HERE';
+-- 6. Kontrollera om den finns bland trashed files
+SELECT COUNT(*) as found_in_trash
+FROM files 
+WHERE id = '543c1d10-b840-4cd0-8e45-a14540efcb0a' 
+AND is_trashed = true 
+AND is_deleted = false;
