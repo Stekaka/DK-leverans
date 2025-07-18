@@ -1114,8 +1114,8 @@ export default function DashboardPage() {
                         )}
                         {/* Video overlay */}
                         <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
-                          <div className="bg-white bg-opacity-90 rounded-full p-3">
-                            <svg className="w-8 h-8 text-slate-800" fill="currentColor" viewBox="0 0 20 20">
+                          <div className="bg-white dark:bg-gray-100 bg-opacity-90 dark:bg-opacity-90 rounded-full p-3">
+                            <svg className="w-8 h-8 text-slate-800 dark:text-slate-700" fill="currentColor" viewBox="0 0 20 20">
                               <path d="M8 5v10l8-5-8-5z"/>
                             </svg>
                           </div>
@@ -1272,7 +1272,7 @@ export default function DashboardPage() {
                         e.stopPropagation()
                         updateFileRating(file.id, 'unrated')
                       }}
-                      className="p-1 rounded text-gray-400 hover:text-gray-600 transition-colors"
+                      className="p-1 rounded text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                       title="Ta bort betyg"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1574,7 +1574,7 @@ export default function DashboardPage() {
                                 e.stopPropagation()
                                 updateFileRating(file.id, 'unrated')
                               }}
-                              className="p-1 rounded text-gray-400 hover:text-gray-600 transition-colors"
+                              className="p-1 rounded text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                               title="Ta bort betyg"
                             >
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
