@@ -66,9 +66,9 @@ export async function GET(request: NextRequest) {
       query = query.eq('is_trashed', true)
       console.log('Files API: Filtering for trash view (is_trashed = true)')
     } else {
-      // Normal vy: visa bara filer som inte är i papperskorgen
+      // Normal vy OCH "all"-vy: visa bara filer som inte är i papperskorgen
       query = query.eq('is_trashed', false)
-      console.log('Files API: Filtering for normal view (is_trashed = false)')
+      console.log('Files API: Filtering for normal/all view (is_trashed = false)')
       
       // Filtrera på mapp om specificerad och inte "alla filer"-vy
       if (folderPath !== null && viewMode !== 'all') {
@@ -84,7 +84,8 @@ export async function GET(request: NextRequest) {
         }
       }
     }
-    // Om viewMode === 'all' eller folderPath är null, visa alla filer (ingen filtrering)
+    // Nu filtrerar ALLA normala vyer (inklusive 'all') bort is_trashed=true filer
+    // Bara 'trash'-vyn visar papperskorg-filer
 
     console.log(`Files API: Query params - viewMode: ${viewMode}, folderPath: ${folderPath}, customerId: ${customer.id}`)
     
