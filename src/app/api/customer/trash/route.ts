@@ -66,8 +66,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Kontrollera att filen tillhör kunden
-    console.log('Looking for file:', { fileId, customerId: customer.id })
-    
     const { data: file, error: fileError } = await supabaseAdmin
       .from('files')
       .select('id, original_name, is_trashed, is_deleted')
@@ -75,12 +73,9 @@ export async function POST(request: NextRequest) {
       .eq('customer_id', customer.id)
       .single()
 
-    console.log('File lookup result:', { file, fileError })
-
     if (fileError || !file) {
-      console.error('File not found or error:', { fileError, fileId, customerId: customer.id })
       return NextResponse.json(
-        { error: 'Filen hittades inte: ' + (fileError?.message || 'Unknown error') },
+        { error: 'Filen hittades inte' },
         { status: 404 }
       )
     }
@@ -124,8 +119,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Uppdatera filen
-    console.log('Attempting to update file:', { fileId, updateData, customerId: customer.id })
-    
     const { error: updateError } = await supabaseAdmin
       .from('files')
       .update(updateData)
@@ -135,12 +128,10 @@ export async function POST(request: NextRequest) {
     if (updateError) {
       console.error('Error updating file trash status:', updateError)
       return NextResponse.json(
-        { error: 'Kunde inte uppdatera fil: ' + updateError.message },
+        { error: 'Kunde inte uppdatera fil' },
         { status: 500 }
       )
     }
-
-    console.log('File updated successfully:', { fileId, action, updateData })
 
     return NextResponse.json({
       success: true,

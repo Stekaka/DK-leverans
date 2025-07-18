@@ -64,11 +64,9 @@ export async function GET(request: NextRequest) {
     // Hantera papperskorg-vy
     if (viewMode === 'trash') {
       query = query.eq('is_trashed', true)
-      console.log('Files API: Filtering for trash view (is_trashed = true)')
     } else {
       // Normal vy OCH "all"-vy: visa bara filer som inte är i papperskorgen
       query = query.eq('is_trashed', false)
-      console.log('Files API: Filtering for normal/all view (is_trashed = false)')
       
       // Filtrera på mapp om specificerad och inte "alla filer"-vy
       if (folderPath !== null && viewMode !== 'all') {
@@ -76,50 +74,20 @@ export async function GET(request: NextRequest) {
           // Root-mapp: visa bara filer som faktiskt ligger i root
           // (customer_folder_path är null eller tom sträng)
           query = query.or(`customer_folder_path.is.null,customer_folder_path.eq.`)
-          console.log('Files API: Filtering for root folder')
         } else {
           // Specifik mapp: visa bara filer med exakt denna customer_folder_path
           query = query.eq('customer_folder_path', folderPath)
-          console.log('Files API: Filtering for folder:', folderPath)
         }
       }
     }
     // Nu filtrerar ALLA normala vyer (inklusive 'all') bort is_trashed=true filer
     // Bara 'trash'-vyn visar papperskorg-filer
 
-    console.log(`Files API: Query params - viewMode: ${viewMode}, folderPath: ${folderPath}, customerId: ${customer.id}`)
-    
     const { data: files, error } = await query.order('uploaded_at', { ascending: false })
 
     if (error) {
       console.error('Error fetching customer files:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
-    }
-
-    console.log(`Files API: Fetched ${files?.length || 0} files for customer ${customer.id}`)
-    
-    // Log detailed info about is_trashed status
-    if (files && files.length > 0) {
-      const trashedCount = files.filter(f => f.is_trashed === true).length
-      const normalCount = files.filter(f => f.is_trashed === false).length
-      console.log(`Files API: Results breakdown - trashed: ${trashedCount}, normal: ${normalCount}`)
-      
-      // Log sample file with our specific ID if present
-      const testFile = files.find(f => f.id === '543c1d10-b840-4cd0-8e45-a14540efcb0a')
-      if (testFile) {
-        console.log('Files API: Found test file in results:', {
-          id: testFile.id,
-          name: testFile.original_name,
-          is_trashed: testFile.is_trashed,
-          is_deleted: testFile.is_deleted
-        })
-      }
-      
-      console.log('Sample file data:', {
-        id: files[0].id,
-        customer_rating: files[0].customer_rating,
-        customer_notes: files[0].customer_notes ? 'has notes' : 'no notes'
-      })
     }
 
     // Hämta access-information separat (icke-blockerande)

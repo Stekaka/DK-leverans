@@ -7,6 +7,7 @@ import ImageGallery from '../../components/ImageGallery'
 import DrönarkompanietLogo from '@/components/DrönarkompanietLogo'
 import ThemeToggle from '@/components/ThemeToggle'
 import OrganizeModal from '@/components/OrganizeModal'
+import AccessPopup from '@/components/AccessPopup'
 import { useTheme } from '@/contexts/ThemeContext'
 import { CustomerFile, Customer } from '@/types/customer'
 
@@ -27,6 +28,7 @@ export default function DashboardPage() {
   const [galleryStartIndex, setGalleryStartIndex] = useState(0)
   const [showOrganizeModal, setShowOrganizeModal] = useState(false)
   const [fileToOrganize, setFileToOrganize] = useState<CustomerFile | null>(null)
+  const [showAccessPopup, setShowAccessPopup] = useState(false)
   const [accessInfo, setAccessInfo] = useState<{
     type: string
     expiresAt?: string
@@ -94,46 +96,10 @@ export default function DashboardPage() {
         url = `/api/customer/files?folderPath=${encodeURIComponent(folder)}`
       }
       
-      console.log('Frontend: Loading files with URL:', url)
-      console.log('Frontend: View type:', viewTypeToUse, 'Folder:', folder)
-      
       const response = await fetch(url)
       
       if (response.ok) {
         const data = await response.json()
-        console.log('Frontend: Received files data:', {
-          totalFiles: data.files?.length || 0,
-          sampleFile: data.files?.[0]?.id ? {
-            id: data.files[0].id,
-            name: data.files[0].name_for_display,
-            is_trashed: data.files[0].is_trashed
-          } : null
-        })
-        
-        // Check for our test files specifically
-        const testFile1 = data.files?.find((f: any) => f.id === '543c1d10-b840-4cd0-8e45-a14540efcb0a')
-        const testFile2 = data.files?.find((f: any) => f.id === 'b2b34a6b-d0c1-44fd-8c57-635bcd43d480')
-        
-        if (testFile1) {
-          console.log('Frontend: Found test file 1 in results:', {
-            id: testFile1.id,
-            name: testFile1.name_for_display,
-            is_trashed: testFile1.is_trashed
-          })
-        }
-        
-        if (testFile2) {
-          console.log('Frontend: Found test file 2 in results:', {
-            id: testFile2.id,
-            name: testFile2.name_for_display,
-            is_trashed: testFile2.is_trashed
-          })
-        }
-        
-        if (!testFile1 && !testFile2) {
-          console.log('Frontend: Test files NOT found in results - filtering worked!')
-        }
-        
         setFiles(data.files || [])
         setAccessInfo(data.access || null)
       } else if (response.status === 403) {
@@ -656,15 +622,15 @@ export default function DashboardPage() {
                       Din åtkomst har upphört
                     </h3>
                     <p className="text-red-700 dark:text-red-300 text-sm mb-4">
-                      Din 30-dagars gratisperiod är över. Kontakta oss för att förlänga åtkomsten eller köpa permanent access.
+                      Din åtkomsttid har gått ut. Se alternativen nedan för att återfå åtkomst till dina filer.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-3">
-                      <a 
-                        href="mailto:kontakt@dronarkompaniet.se?subject=Förläng filåtkomst&body=Hej! Jag skulle vilja förlänga min åtkomst till filerna i leveransportalen."
+                      <button
+                        onClick={() => setShowAccessPopup(true)}
                         className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium text-center"
                       >
-                        Kontakta oss för förlängning
-                      </a>
+                        Se alternativ för förlängning
+                      </button>
                       <a 
                         href="mailto:kontakt@dronarkompaniet.se?subject=Köp permanent access&body=Hej! Jag är intresserad av att köpa permanent access (1500kr/år för 500GB)."
                         className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium text-center"
@@ -690,16 +656,15 @@ export default function DashboardPage() {
                       Din åtkomst upphör snart!
                     </h3>
                     <p className="text-orange-700 dark:text-orange-300 text-sm mb-4">
-                      Du har {accessInfo.daysRemaining} dag{accessInfo.daysRemaining !== 1 ? 'ar' : ''} kvar av din gratisperiod. 
-                      Kontakta oss för att förlänga eller köp permanent access.
+                      Dina filer är tillgängliga i {accessInfo.daysRemaining} dag{accessInfo.daysRemaining !== 1 ? 'ar' : ''} till. Vill du ha längre tid?
                     </p>
                     <div className="flex flex-col sm:flex-row gap-3">
-                      <a 
-                        href="mailto:kontakt@dronarkompaniet.se?subject=Förläng filåtkomst&body=Hej! Jag skulle vilja förlänga min åtkomst till filerna i leveransportalen."
+                      <button
+                        onClick={() => setShowAccessPopup(true)}
                         className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium text-center"
                       >
-                        Kontakta oss för förlängning
-                      </a>
+                        Se alternativ för förlängning
+                      </button>
                       <a 
                         href="mailto:kontakt@dronarkompaniet.se?subject=Köp permanent access&body=Hej! Jag är intresserad av att köpa permanent access (1500kr/år för 500GB)."
                         className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium text-center"
@@ -748,9 +713,15 @@ export default function DashboardPage() {
                     <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-2">
                       Gratisperiod aktiv
                     </h3>
-                    <p className="text-blue-700 dark:text-blue-300 text-sm">
-                      Du har {accessInfo.daysRemaining} dag{accessInfo.daysRemaining !== 1 ? 'ar' : ''} kvar av din 30-dagars gratisperiod.
+                    <p className="text-blue-700 dark:text-blue-300 text-sm mb-3">
+                      Dina filer är tillgängliga i {accessInfo.daysRemaining} dag{accessInfo.daysRemaining !== 1 ? 'ar' : ''} till. Vill du ha längre tid?
                     </p>
+                    <button
+                      onClick={() => setShowAccessPopup(true)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium"
+                    >
+                      Se alternativ för förlängning
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1719,6 +1690,14 @@ export default function DashboardPage() {
           onSave={saveFileOrganization}
         />
       )}
+
+      {/* Access Popup */}
+      <AccessPopup
+        isOpen={showAccessPopup}
+        onClose={() => setShowAccessPopup(false)}
+        daysRemaining={accessInfo?.daysRemaining}
+        isPermanent={accessInfo?.isPermanent}
+      />
     </div>
   )
 }
