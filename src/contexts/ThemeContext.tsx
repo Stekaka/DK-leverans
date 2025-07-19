@@ -12,19 +12,17 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('light')
+  const [theme, setTheme] = useState<Theme>('dark') // Standard är dark mode
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    // Check localStorage for saved theme or system preference
+    // Check localStorage for saved theme or default to dark
     const savedTheme = localStorage.getItem('dk-theme') as Theme
     if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark')) {
       setTheme(savedTheme)
     } else {
-      // Check system preference
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-      const systemTheme = prefersDark ? 'dark' : 'light'
-      setTheme(systemTheme)
+      // Default till dark mode istället för system preference
+      setTheme('dark')
     }
     setMounted(true)
   }, [])
@@ -65,9 +63,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 export function useTheme() {
   const context = useContext(ThemeContext)
   if (context === undefined) {
-    // Fallback for SSR/static generation - return default values
+    // Fallback for SSR/static generation - standard är dark mode
     return {
-      theme: 'light' as Theme,
+      theme: 'dark' as Theme,
       toggleTheme: () => {}
     }
   }

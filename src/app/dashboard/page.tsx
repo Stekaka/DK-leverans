@@ -604,8 +604,11 @@ export default function DashboardPage() {
         {accessInfo && (
           <div className="mb-6">
             {accessInfo.isExpired ? (
-              <div className="bg-gradient-to-r from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 
-                              rounded-lg p-3 sm:p-4 border border-red-200 dark:border-red-700/50 shadow-sm">
+              <div className={`rounded-lg p-3 sm:p-4 shadow-sm ${
+                theme === 'dark'
+                  ? 'bg-gradient-to-r from-red-900/20 to-red-800/20 border border-red-700/50'
+                  : 'bg-gradient-to-r from-red-50 to-red-100 border border-red-200'
+              }`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-lg 
@@ -615,7 +618,9 @@ export default function DashboardPage() {
                       </svg>
                     </div>
                     <div>
-                      <p className="text-red-800 dark:text-red-200 text-sm font-medium">
+                      <p className={`text-sm font-medium ${
+                        theme === 'dark' ? 'text-red-200' : 'text-red-800'
+                      }`}>
                         <span className="font-semibold">Åtkomst upphörd.</span> Se alternativen för att återfå åtkomst till dina filer.
                       </p>
                     </div>
@@ -631,8 +636,11 @@ export default function DashboardPage() {
                 </div>
               </div>
             ) : accessInfo.daysRemaining <= 7 && !accessInfo.isPermanent ? (
-              <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 
-                              rounded-lg p-3 sm:p-4 border border-yellow-200 dark:border-yellow-700/50 shadow-sm">
+              <div className={`rounded-lg p-3 sm:p-4 shadow-sm ${
+                theme === 'dark'
+                  ? 'bg-gradient-to-r from-yellow-900/20 to-orange-900/20 border border-yellow-700/50'
+                  : 'bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200'
+              }`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-lg 
@@ -642,7 +650,9 @@ export default function DashboardPage() {
                       </svg>
                     </div>
                     <div>
-                      <p className="text-orange-800 dark:text-orange-200 text-sm font-medium">
+                      <p className={`text-sm font-medium ${
+                        theme === 'dark' ? 'text-orange-200' : 'text-orange-800'
+                      }`}>
                         <span className="font-semibold">Upphör snart!</span> Dina filer är tillgängliga i {accessInfo.daysRemaining} dag{accessInfo.daysRemaining !== 1 ? 'ar' : ''} till.
                       </p>
                     </div>
@@ -658,8 +668,11 @@ export default function DashboardPage() {
                 </div>
               </div>
             ) : accessInfo.isPermanent ? (
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 
-                              rounded-xl p-4 sm:p-6 border border-green-200 dark:border-green-700/50 shadow-sm">
+              <div className={`rounded-xl p-4 sm:p-6 shadow-sm ${
+                theme === 'dark'
+                  ? 'bg-gradient-to-r from-green-900/20 to-emerald-900/20 border border-green-700/50'
+                  : 'bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200'
+              }`}>
                 <div className="flex items-start space-x-4">
                   <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl 
                                   flex items-center justify-center shadow-md flex-shrink-0">
@@ -668,10 +681,14 @@ export default function DashboardPage() {
                     </svg>
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-green-800 dark:text-green-200 mb-2">
+                    <h3 className={`text-lg font-semibold mb-2 ${
+                      theme === 'dark' ? 'text-green-200' : 'text-green-800'
+                    }`}>
                       Permanent Access Aktiv
                     </h3>
-                    <div className="text-green-700 dark:text-green-300 text-sm space-y-1">
+                    <div className={`text-sm space-y-1 ${
+                      theme === 'dark' ? 'text-green-300' : 'text-green-700'
+                    }`}>
                       <p>Du har permanent åtkomst till dina filer!</p>
                       <p>Lagring: {accessInfo.storageUsedGb?.toFixed(1) || 0} GB av {accessInfo.storageLimitGb} GB använt</p>
                       {accessInfo.expiresAt && (
@@ -682,8 +699,11 @@ export default function DashboardPage() {
                 </div>
               </div>
             ) : (
-              <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 
-                              rounded-lg p-3 sm:p-4 border border-blue-200 dark:border-blue-700/50 shadow-sm">
+              <div className={`rounded-lg p-3 sm:p-4 shadow-sm ${
+                theme === 'dark'
+                  ? 'bg-gradient-to-r from-blue-900/20 to-blue-800/20 border border-blue-700/50'
+                  : 'bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200'
+              }`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg 
@@ -693,7 +713,9 @@ export default function DashboardPage() {
                       </svg>
                     </div>
                     <div>
-                      <p className="text-blue-800 dark:text-blue-200 text-sm font-medium">
+                      <p className={`text-sm font-medium ${
+                        theme === 'dark' ? 'text-blue-200' : 'text-blue-800'
+                      }`}>
                         Dina filer är tillgängliga i {accessInfo.daysRemaining} dag{accessInfo.daysRemaining !== 1 ? 'ar' : ''} till. Vill du ha längre tid?
                       </p>
                     </div>
