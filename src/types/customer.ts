@@ -18,6 +18,7 @@ export interface CustomerFile {
   customer_rating: 'unrated' | 'favorite' | 'good' | 'poor'
   customer_notes?: string
   organization_updated_at?: string
+  is_trashed?: boolean
 }
 
 export interface Customer {

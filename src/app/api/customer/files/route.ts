@@ -90,6 +90,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
+    // Debug: Logga hur många filer som hittades och deras trash-status
+    console.log(`Files API: Found ${files?.length || 0} files for viewMode=${viewMode}, customer=${customer.id}`)
+    if (files) {
+      const trashedCount = files.filter(f => f.is_trashed).length
+      const normalCount = files.filter(f => !f.is_trashed).length
+      console.log(`Files breakdown: ${normalCount} normal, ${trashedCount} trashed`)
+    }
+
     // Hämta access-information separat (icke-blockerande)
     let accessInfo = null
     try {

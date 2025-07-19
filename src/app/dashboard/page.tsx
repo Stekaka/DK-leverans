@@ -82,18 +82,19 @@ export default function DashboardPage() {
       const viewTypeToUse = newViewType !== undefined ? newViewType : viewType
       
       let url: string
+      const timestamp = Date.now() // Cache-busting
       if (viewTypeToUse === 'all') {
         // "Alla filer"-vy: visa alla filer oavsett mapp
-        url = '/api/customer/files?view=all'
+        url = `/api/customer/files?view=all&t=${timestamp}`
       } else if (viewTypeToUse === 'root') {
         // Root-mapp: bara filer i root
-        url = '/api/customer/files?folderPath='
+        url = `/api/customer/files?folderPath=&t=${timestamp}`
       } else if (viewTypeToUse === 'trash') {
         // Papperskorg: bara filer i papperskorgen
-        url = '/api/customer/files?view=trash'
+        url = `/api/customer/files?view=trash&t=${timestamp}`
       } else {
         // Specifik mapp
-        url = `/api/customer/files?folderPath=${encodeURIComponent(folder)}`
+        url = `/api/customer/files?folderPath=${encodeURIComponent(folder)}&t=${timestamp}`
       }
       
       const response = await fetch(url)
@@ -454,14 +455,18 @@ export default function DashboardPage() {
 
   // Hantera papperskorg-åtgärder
   const handleTrashAction = async (fileId: string, action: 'trash' | 'restore' | 'delete_forever') => {
-    // Spara original files state för återställning vid fel
-    const originalFiles = files
-    
     try {
-      console.log('Starting trash action:', { fileId, action })
+      console.log('Starting trash action:', { fileId, action, currentViewType: viewType })
       
-      // Optimistisk uppdatering först - ta bort filen från nuvarande vy
-      setFiles(prevFiles => prevFiles.filter(file => file.id !== fileId))
+      // Hitta filen först för debug
+      const targetFile = files.find(f => f.id === fileId)
+      if (targetFile) {
+        console.log('Target file before action:', { 
+          id: targetFile.id, 
+          name: targetFile.name_for_display, 
+          is_trashed: targetFile.is_trashed 
+        })
+      }
       
       const response = await fetch('/api/customer/trash', {
         method: 'POST',
@@ -480,21 +485,19 @@ export default function DashboardPage() {
       if (response.ok) {
         console.log('Trash action success:', result.message)
         
-        // Framgångsrik operation - optimistisk uppdatering redan gjord
-        // Ingen reload behövs
+        // Ladda om filer efter framgångsrik operation för att säkerställa korrekt state
+        console.log('Reloading files after trash action...')
+        await loadFiles(currentFolder, viewType)
+        
+        // Visa framgångsmeddelande
+        alert(result.message)
       } else {
         console.error('Trash action failed:', result)
         alert('Fel: ' + result.error)
-        
-        // Återställ original files state vid fel
-        setFiles(originalFiles)
       }
     } catch (error) {
       console.error('Error with trash action:', error)
       alert('Ett fel uppstod vid hantering av filen')
-      
-      // Återställ original files state vid fel  
-      setFiles(originalFiles)
     }
   }
 
