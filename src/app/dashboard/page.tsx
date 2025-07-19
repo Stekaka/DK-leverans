@@ -537,9 +537,17 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-gray-900 dark:text-white transition-colors">
+    <div className={`min-h-screen transition-colors ${
+      theme === 'dark' 
+        ? 'bg-slate-900 text-white' 
+        : 'bg-slate-50 text-gray-900'
+    }`}>
       {/* Header */}
-      <header className="pt-20 pb-4 bg-white dark:bg-slate-800 border-b-2 border-yellow-200 dark:border-slate-600">
+      <header className={`pt-20 pb-4 border-b-2 transition-colors ${
+        theme === 'dark'
+          ? 'bg-slate-800 border-slate-600'
+          : 'bg-white border-yellow-200'
+      }`}>
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
           {/* Mobile Layout */}
           <div className="block sm:hidden">
