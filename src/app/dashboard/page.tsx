@@ -539,7 +539,7 @@ export default function DashboardPage() {
   return (
     <div className={`min-h-screen transition-colors ${
       theme === 'dark' 
-        ? 'bg-slate-900 text-white' 
+        ? 'dark bg-slate-900 text-white' 
         : 'bg-slate-50 text-gray-900'
     }`}>
       {/* Header */}
