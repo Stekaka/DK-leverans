@@ -767,33 +767,71 @@ export default function DashboardPage() {
 
         {/* Stats - Mobile Optimized */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
-          <div className="bg-white dark:bg-slate-800 p-3 sm:p-4 lg:p-6 rounded-lg shadow-lg border border-yellow-50 dark:border-slate-700 transition-colors">
-            <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-yellow-600 dark:text-yellow-400">{totalFiles}</div>
-            <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Totala filer</div>
+          <div className={`p-3 sm:p-4 lg:p-6 rounded-lg shadow-lg transition-colors ${
+            theme === 'dark' 
+              ? 'bg-slate-800 border-slate-700' 
+              : 'bg-white border-yellow-50'
+          }`}>
+            <div className={`text-xl sm:text-2xl lg:text-3xl font-bold ${
+              theme === 'dark' ? 'text-yellow-400' : 'text-yellow-600'
+            }`}>{totalFiles}</div>
+            <div className={`text-xs sm:text-sm ${
+              theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
+            }`}>Totala filer</div>
           </div>
-          <div className="bg-white dark:bg-slate-800 p-3 sm:p-4 lg:p-6 rounded-lg shadow-lg border border-yellow-50 dark:border-slate-700 transition-colors">
-            <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-green-600 dark:text-green-400">{totalImages}</div>
-            <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Bilder</div>
+          <div className={`p-3 sm:p-4 lg:p-6 rounded-lg shadow-lg transition-colors ${
+            theme === 'dark' 
+              ? 'bg-slate-800 border-slate-700' 
+              : 'bg-white border-yellow-50'
+          }`}>
+            <div className={`text-xl sm:text-2xl lg:text-3xl font-bold ${
+              theme === 'dark' ? 'text-green-400' : 'text-green-600'
+            }`}>{totalImages}</div>
+            <div className={`text-xs sm:text-sm ${
+              theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
+            }`}>Bilder</div>
           </div>
-          <div className="bg-white dark:bg-slate-800 p-3 sm:p-4 lg:p-6 rounded-lg shadow-lg border border-yellow-50 dark:border-slate-700 transition-colors">
-            <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-purple-600 dark:text-purple-400">{totalVideos}</div>
-            <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Videor</div>
+          <div className={`p-3 sm:p-4 lg:p-6 rounded-lg shadow-lg transition-colors ${
+            theme === 'dark' 
+              ? 'bg-slate-800 border-slate-700' 
+              : 'bg-white border-yellow-50'
+          }`}>
+            <div className={`text-xl sm:text-2xl lg:text-3xl font-bold ${
+              theme === 'dark' ? 'text-purple-400' : 'text-purple-600'
+            }`}>{totalVideos}</div>
+            <div className={`text-xs sm:text-sm ${
+              theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
+            }`}>Videor</div>
           </div>
-          <div className="bg-white dark:bg-slate-800 p-3 sm:p-4 lg:p-6 rounded-lg shadow-lg border border-yellow-50 dark:border-slate-700 transition-colors">
-            <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-orange-600 dark:text-orange-400">{formattedTotalSize}</div>
-            <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Total storlek</div>
+          <div className={`p-3 sm:p-4 lg:p-6 rounded-lg shadow-lg transition-colors ${
+            theme === 'dark' 
+              ? 'bg-slate-800 border-slate-700' 
+              : 'bg-white border-yellow-50'
+          }`}>
+            <div className={`text-xl sm:text-2xl lg:text-3xl font-bold ${
+              theme === 'dark' ? 'text-orange-400' : 'text-orange-600'
+            }`}>{formattedTotalSize}</div>
+            <div className={`text-xs sm:text-sm ${
+              theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
+            }`}>Total storlek</div>
           </div>
         </div>
 
         {/* Folder Navigation */}
         {folders.length > 0 && (
           <div className="mb-6">
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-4 sm:p-6 border border-gray-100 dark:border-slate-700 transition-colors">
+            <div className={`rounded-xl shadow-lg p-4 sm:p-6 border transition-colors ${
+              theme === 'dark'
+                ? 'bg-slate-800 border-slate-700'
+                : 'bg-white border-gray-100'
+            }`}>
               <div className="flex items-center space-x-3 mb-4">
                 <svg className="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
                 </svg>
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Mappar</span>
+                <span className={`text-sm font-medium ${
+                  theme === 'dark' ? 'text-slate-300' : 'text-slate-700'
+                }`}>Mappar</span>
               </div>
               <div className="flex flex-wrap gap-2">
                 <button
@@ -801,7 +839,9 @@ export default function DashboardPage() {
                   className={`px-3 py-2 rounded-lg text-sm transition-colors ${
                     viewType === 'all' 
                       ? 'bg-yellow-600 text-white shadow-md' 
-                      : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+                      : theme === 'dark'
+                        ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
                   Alla filer
@@ -811,7 +851,9 @@ export default function DashboardPage() {
                   className={`px-3 py-2 rounded-lg text-sm transition-colors ${
                     viewType === 'root' 
                       ? 'bg-yellow-600 text-white shadow-md' 
-                      : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+                      : theme === 'dark'
+                        ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
                   Root
@@ -823,7 +865,9 @@ export default function DashboardPage() {
                     className={`px-3 py-2 rounded-lg text-sm truncate max-w-48 transition-colors ${
                       currentFolder === folder && viewType === 'folder'
                         ? 'bg-yellow-600 text-white shadow-md' 
-                        : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+                        : theme === 'dark'
+                          ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                     title={folder}
                   >
@@ -835,7 +879,9 @@ export default function DashboardPage() {
                   className={`px-3 py-2 rounded-lg text-sm transition-colors flex items-center space-x-2 ${
                     viewType === 'trash' 
                       ? 'bg-red-600 text-white shadow-md' 
-                      : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+                      : theme === 'dark'
+                        ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -858,17 +904,25 @@ export default function DashboardPage() {
 
         {/* Filters and Controls */}
         <div className="mb-6">
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-4 sm:p-6 border border-gray-100 dark:border-slate-700 transition-colors space-y-4">
+          <div className={`rounded-xl shadow-lg p-4 sm:p-6 border transition-colors space-y-4 ${
+            theme === 'dark'
+              ? 'bg-slate-800 border-slate-700'
+              : 'bg-white border-gray-100'
+          }`}>
             {/* Filter Row */}
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Filtyp:</span>
+                <span className={`text-sm font-medium ${
+                  theme === 'dark' ? 'text-slate-300' : 'text-slate-700'
+                }`}>Filtyp:</span>
                 <button
                   onClick={() => setFilter('all')}
                   className={`px-3 py-2 rounded-lg text-sm transition-colors ${
                     filter === 'all' 
                       ? 'bg-yellow-600 text-white shadow-md' 
-                      : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+                      : theme === 'dark'
+                        ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
                   Alla ({totalFiles})
@@ -878,7 +932,9 @@ export default function DashboardPage() {
                   className={`px-3 py-2 rounded-lg text-sm transition-colors ${
                     filter === 'images' 
                       ? 'bg-green-600 text-white shadow-md' 
-                      : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+                      : theme === 'dark'
+                        ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
                   Bilder ({totalImages})
@@ -888,7 +944,9 @@ export default function DashboardPage() {
                   className={`px-3 py-2 rounded-lg text-sm transition-colors ${
                     filter === 'videos' 
                       ? 'bg-purple-600 text-white shadow-md' 
-                      : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+                      : theme === 'dark'
+                        ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
                   Videor ({totalVideos})
@@ -896,13 +954,17 @@ export default function DashboardPage() {
               </div>
               
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Betyg:</span>
+                <span className={`text-sm font-medium ${
+                  theme === 'dark' ? 'text-slate-300' : 'text-slate-700'
+                }`}>Betyg:</span>
                 <button
                   onClick={() => setFilter('favorite')}
                   className={`px-3 py-2 rounded-lg text-sm flex items-center space-x-1 transition-colors ${
                     filter === 'favorite' 
                       ? 'bg-yellow-500 text-white shadow-md' 
-                      : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+                      : theme === 'dark'
+                        ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -915,7 +977,9 @@ export default function DashboardPage() {
                   className={`px-3 py-2 rounded-lg text-sm flex items-center space-x-1 transition-colors ${
                     filter === 'good' 
                       ? 'bg-green-500 text-white shadow-md' 
-                      : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+                      : theme === 'dark'
+                        ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -928,7 +992,9 @@ export default function DashboardPage() {
                   className={`px-3 py-2 rounded-lg text-sm flex items-center space-x-1 transition-colors ${
                     filter === 'poor' 
                       ? 'bg-red-500 text-white shadow-md' 
-                      : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+                      : theme === 'dark'
+                        ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -989,14 +1055,18 @@ export default function DashboardPage() {
             {/* View Mode Toggle */}
             <div className="border-t border-gray-200 dark:border-slate-600 pt-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Visningsläge:</span>
+                <span className={`text-sm font-medium ${
+                  theme === 'dark' ? 'text-slate-300' : 'text-slate-700'
+                }`}>Visningsläge:</span>
                 <div className="flex items-center space-x-1">
                   <button
                     onClick={() => setViewMode('grid')}
                     className={`p-2 rounded-lg transition-colors ${
                       viewMode === 'grid' 
                         ? 'bg-yellow-600 text-white shadow-md' 
-                        : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+                        : theme === 'dark'
+                          ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -1008,7 +1078,9 @@ export default function DashboardPage() {
                     className={`p-2 rounded-lg transition-colors ${
                       viewMode === 'list' 
                         ? 'bg-yellow-600 text-white shadow-md' 
-                        : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+                        : theme === 'dark'
+                          ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -1023,7 +1095,11 @@ export default function DashboardPage() {
 
         {/* File Display */}
         {filteredFiles.length === 0 ? (
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-8 sm:p-12 text-center border border-gray-100 dark:border-slate-700 transition-colors">
+          <div className={`rounded-xl shadow-lg p-8 sm:p-12 text-center border transition-colors ${
+            theme === 'dark'
+              ? 'bg-slate-800 border-slate-700'
+              : 'bg-white border-gray-100'
+          }`}>
             <svg className="w-12 h-12 text-slate-400 dark:text-slate-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
@@ -1037,8 +1113,12 @@ export default function DashboardPage() {
             {filteredFiles.map((file, index) => (
               <div
                 key={file.id}
-                className={`group bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all 
-                           cursor-pointer border border-gray-100 dark:border-slate-700 ${
+                className={`group rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all 
+                           cursor-pointer border ${
+                  theme === 'dark'
+                    ? 'bg-slate-800 border-slate-700'
+                    : 'bg-white border-gray-100'
+                } ${
                   selectedItems.includes(file.id) ? 'ring-2 ring-yellow-500' : ''
                 }`}
                 onClick={() => toggleSelection(file.id)}
@@ -1354,29 +1434,51 @@ export default function DashboardPage() {
           </div>
         ) : (
           /* List View */
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden border border-gray-100 dark:border-slate-700 transition-colors">
+          <div className={`rounded-xl shadow-lg overflow-hidden border transition-colors ${
+            theme === 'dark'
+              ? 'bg-slate-800 border-slate-700'
+              : 'bg-white border-gray-100'
+          }`}>
             <div className="overflow-x-auto">
               <table className="w-full table-auto">
-                <thead className="bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600">
+                <thead className={`border-b ${
+                  theme === 'dark'
+                    ? 'bg-slate-700 border-slate-600'
+                    : 'bg-slate-50 border-slate-200'
+                }`}>
                   <tr>
-                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    <th className={`px-3 sm:px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                      theme === 'dark' ? 'text-slate-400' : 'text-slate-500'
+                    }`}>
                       Fil
                     </th>
-                    <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    <th className={`hidden sm:table-cell px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                      theme === 'dark' ? 'text-slate-400' : 'text-slate-500'
+                    }`}>
                       Storlek
                     </th>
-                    <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    <th className={`hidden sm:table-cell px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                      theme === 'dark' ? 'text-slate-400' : 'text-slate-500'
+                    }`}>
                       Datum
                     </th>
-                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    <th className={`px-3 sm:px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                      theme === 'dark' ? 'text-slate-400' : 'text-slate-500'
+                    }`}>
                       Betyg
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                      theme === 'dark' ? 'text-slate-400' : 'text-slate-500'
+                    }`}>
                       Åtgärder
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
+                <tbody className={`divide-y ${
+                  theme === 'dark'
+                    ? 'bg-slate-800 divide-slate-700'
+                    : 'bg-white divide-slate-200'
+                }`}>
                   {filteredFiles.map((file, index) => (
                     <tr 
                       key={file.id} 
