@@ -537,21 +537,9 @@ export default function DashboardPage() {
   }
 
   return (
-    <div 
-      className="min-h-screen transition-colors" 
-      style={{
-        backgroundColor: theme === 'dark' ? '#0f172a' : '#f8fafc',
-        color: theme === 'dark' ? '#ffffff' : '#000000'
-      }}
-    >
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-gray-900 dark:text-white transition-colors">
       {/* Header */}
-      <header 
-        className="pt-20 pb-4"
-        style={{
-          backgroundColor: theme === 'dark' ? '#1e293b' : '#ffffff',
-          borderBottom: `2px solid ${theme === 'dark' ? '#475569' : '#fef3c7'}`
-        }}
-      >
+      <header className="pt-20 pb-4 bg-white dark:bg-slate-800 border-b-2 border-yellow-200 dark:border-slate-600">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
           {/* Mobile Layout */}
           <div className="block sm:hidden">
