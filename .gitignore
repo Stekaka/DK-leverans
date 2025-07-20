@@ -26,6 +26,18 @@ pids/
 
 # Build outputs
 *.tsbuildinfo
+.vercel/
+
+# VS Code performance optimization
+**/*-debug.*
+**/*-test.*
+**/*-old.*
+**/*-backup.*
+**/*-new.*
+**/debug-*
+**/test-*
+uploads/customers/*
+!uploads/customers/.gitkeep
 
 # Operating System
 .DS_Store

@@ -65,7 +65,6 @@ export async function GET(request: NextRequest) {
         .single()
         
       if (error || !customerData) {
-        console.error('Admin access check - customer not found:', targetCustomerId, error)
         return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
       }
       customer = customerData
