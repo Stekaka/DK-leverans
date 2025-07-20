@@ -17,9 +17,9 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
 // Verifiera admin-session
 async function verifyAdminSession(request: NextRequest) {
   const sessionToken = request.cookies.get('admin_session')?.value
-  const adminPassword = process.env.ADMIN_PASSWORD
+  const adminPassword = 'dk2025!'
 
-  if (!sessionToken || !adminPassword) {
+  if (!sessionToken) {
     throw new Error('Ingen giltig admin-session')
   }
 

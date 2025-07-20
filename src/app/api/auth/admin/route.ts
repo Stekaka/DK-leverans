@@ -7,8 +7,8 @@ export async function POST(request: NextRequest) {
   try {
     const { username, password } = await request.json()
     
-    // Hämta admin-lösenord från environment variable
-    const adminPassword = process.env.ADMIN_PASSWORD || 'dk2025!'
+    // Använd det gamla lösenordet som standard
+    const adminPassword = 'dk2025!'
 
     // Verifiera admin-inloggning
     if (username === 'admin' && password === adminPassword) {
