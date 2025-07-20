@@ -75,7 +75,6 @@ export async function GET(request: NextRequest) {
     }
 
     // Kontrollera access med enkel SQL-query istället för funktion
-    console.log('Checking access for customer:', customer.id)
     
     // Först kolla permanent access
     const { data: permanentAccess, error: permanentError } = await supabaseAdmin
@@ -89,7 +88,6 @@ export async function GET(request: NextRequest) {
       .single()
 
     if (!permanentError && permanentAccess) {
-      console.log('Customer has permanent access')
       const daysRemaining = permanentAccess.expires_at 
         ? Math.ceil((new Date(permanentAccess.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
         : 999999
@@ -119,8 +117,6 @@ export async function GET(request: NextRequest) {
     const daysRemaining = customer.access_expires_at 
       ? Math.ceil((new Date(customer.access_expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
       : 30
-
-    console.log('Access check result:', { hasAccess, daysRemaining, expiresAt: customer.access_expires_at })
 
     return NextResponse.json({
       customer: {

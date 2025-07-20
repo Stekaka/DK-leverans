@@ -10,6 +10,24 @@ import ImageGallery from '@/components/ImageGallery'
 import OrganizeModal from '@/components/OrganizeModal'
 import { useTheme } from '@/contexts/ThemeContext'
 import { CustomerFile, Customer } from '@/types/customer'
+import {
+  FolderIcon,
+  TrashIcon,
+  StarIcon,
+  VideoCameraIcon,
+  DocumentIcon,
+  PhotoIcon,
+  EyeIcon,
+  PencilIcon,
+  ArrowDownTrayIcon,
+  XMarkIcon,
+  Squares2X2Icon,
+  ListBulletIcon,
+  ArrowPathIcon,
+  CheckIcon,
+  HandThumbUpIcon,
+  HandThumbDownIcon
+} from '@heroicons/react/24/outline'
 
 export default function CustomerDashboardV2() {
   const { theme } = useTheme()
@@ -649,7 +667,10 @@ export default function CustomerDashboardV2() {
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                📁 Root
+                <div className="flex items-center gap-2">
+                  <FolderIcon className="w-4 h-4" />
+                  Root
+                </div>
               </button>
             </div>
 
@@ -670,7 +691,10 @@ export default function CustomerDashboardV2() {
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
-                    📁 {folder}
+                    <div className="flex items-center gap-2">
+                      <FolderIcon className="w-4 h-4" />
+                      {folder}
+                    </div>
                   </button>
                 ))}
               </div>
@@ -714,7 +738,10 @@ export default function CustomerDashboardV2() {
                       : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
                 }`}
               >
-                🔲 Grid
+                <div className="flex items-center gap-2">
+                  <Squares2X2Icon className="w-4 h-4" />
+                  Grid
+                </div>
               </button>
               <button
                 onClick={() => setViewMode('list')}
@@ -728,7 +755,10 @@ export default function CustomerDashboardV2() {
                       : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
                 }`}
               >
-                📋 Lista
+                <div className="flex items-center gap-2">
+                  <ListBulletIcon className="w-4 h-4" />
+                  Lista
+                </div>
               </button>
             </div>
           </div>
@@ -779,7 +809,10 @@ export default function CustomerDashboardV2() {
                     : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
               }`}
             >
-              🔲 Grid
+              <div className="flex items-center gap-2">
+                <Squares2X2Icon className="w-4 h-4" />
+                Grid
+              </div>
             </button>
             <button
               onClick={() => setViewMode('list')}
@@ -793,7 +826,10 @@ export default function CustomerDashboardV2() {
                     : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
               }`}
             >
-              📋 Lista
+              <div className="flex items-center gap-2">
+                <ListBulletIcon className="w-4 h-4" />
+                Lista
+              </div>
             </button>
           </div>
         </div>
@@ -842,7 +878,10 @@ export default function CustomerDashboardV2() {
                     : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
               }`}
             >
-              🔲 Grid
+              <div className="flex items-center gap-2">
+                <Squares2X2Icon className="w-4 h-4" />
+                Grid
+              </div>
             </button>
             <button
               onClick={() => setViewMode('list')}
@@ -856,7 +895,10 @@ export default function CustomerDashboardV2() {
                     : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
               }`}
             >
-              📋 Lista
+              <div className="flex items-center gap-2">
+                <ListBulletIcon className="w-4 h-4" />
+                Lista
+              </div>
             </button>
           </div>
         </div>
@@ -951,7 +993,7 @@ export default function CustomerDashboardV2() {
                               : 'text-gray-400 hover:text-yellow-500'
                         }`}
                       >
-                        ⭐
+                        <StarIcon className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => updateRating(file.id, file.customer_rating === 'good' ? '' : 'good')}
@@ -963,7 +1005,7 @@ export default function CustomerDashboardV2() {
                               : 'text-gray-400 hover:text-green-500'
                         }`}
                       >
-                        👍
+                        <HandThumbUpIcon className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => updateRating(file.id, file.customer_rating === 'poor' ? '' : 'poor')}
@@ -975,7 +1017,7 @@ export default function CustomerDashboardV2() {
                               : 'text-gray-400 hover:text-red-500'
                         }`}
                       >
-                        👎
+                        <HandThumbDownIcon className="w-4 h-4" />
                       </button>
                     </div>
 
@@ -992,7 +1034,7 @@ export default function CustomerDashboardV2() {
                             : 'text-gray-400 hover:text-blue-500'
                         }`}
                       >
-                        ✏️
+                        <PencilIcon className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleTrashAction(file.id, 'trash')}
@@ -1002,7 +1044,7 @@ export default function CustomerDashboardV2() {
                             : 'text-gray-400 hover:text-red-500'
                         }`}
                       >
-                        🗑️
+                        <TrashIcon className="w-4 h-4" />
                       </button>
                     </div>
                   </>
@@ -1016,7 +1058,7 @@ export default function CustomerDashboardV2() {
                           : 'text-gray-400 hover:text-green-500'
                       }`}
                     >
-                      ↩️
+                      <ArrowPathIcon className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => {
@@ -1030,7 +1072,7 @@ export default function CustomerDashboardV2() {
                           : 'text-gray-400 hover:text-red-500'
                       }`}
                     >
-                      ❌
+                      <XMarkIcon className="w-4 h-4" />
                     </button>
                   </div>
                 )}
@@ -1119,7 +1161,7 @@ export default function CustomerDashboardV2() {
                               : 'text-gray-400 hover:text-yellow-500'
                         }`}
                       >
-                        ⭐
+                        <StarIcon className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => updateRating(file.id, file.customer_rating === 'good' ? '' : 'good')}
@@ -1131,7 +1173,7 @@ export default function CustomerDashboardV2() {
                               : 'text-gray-400 hover:text-green-500'
                         }`}
                       >
-                        👍
+                        <HandThumbUpIcon className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => updateRating(file.id, file.customer_rating === 'poor' ? '' : 'poor')}
@@ -1143,7 +1185,7 @@ export default function CustomerDashboardV2() {
                               : 'text-gray-400 hover:text-red-500'
                         }`}
                       >
-                        👎
+                        <HandThumbDownIcon className="w-4 h-4" />
                       </button>
                     </div>
 
@@ -1160,7 +1202,7 @@ export default function CustomerDashboardV2() {
                             : 'text-gray-400 hover:text-blue-500'
                         }`}
                       >
-                        ✏️
+                        <PencilIcon className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleTrashAction(file.id, 'trash')}
@@ -1170,7 +1212,7 @@ export default function CustomerDashboardV2() {
                             : 'text-gray-400 hover:text-red-500'
                         }`}
                       >
-                        🗑️
+                        <TrashIcon className="w-4 h-4" />
                       </button>
                     </div>
                   </>
@@ -1184,7 +1226,7 @@ export default function CustomerDashboardV2() {
                           : 'text-gray-400 hover:text-green-500'
                       }`}
                     >
-                      ↩️
+                      <ArrowPathIcon className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => {
@@ -1198,7 +1240,7 @@ export default function CustomerDashboardV2() {
                           : 'text-gray-400 hover:text-red-500'
                       }`}
                     >
-                      ❌
+                      <XMarkIcon className="w-4 h-4" />
                     </button>
                   </div>
                 )}
