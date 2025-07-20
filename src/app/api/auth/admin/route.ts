@@ -6,12 +6,17 @@ import { cookies } from 'next/headers'
 export async function POST(request: NextRequest) {
   try {
     const { username, password } = await request.json()
+    
+    // Hämta admin-lösenord från environment variable
+    const adminPassword = process.env.ADMIN_PASSWORD || 'dk2025!'
 
-    // Hårdkodad admin-inloggning för nu
-    if (username === 'admin' && password === 'dk2025!') {
-      // Skapa admin session
+    // Verifiera admin-inloggning
+    if (username === 'admin' && password === adminPassword) {
+      // Skapa admin session token (base64 av lösenordet för enkel verifiering)
+      const sessionToken = Buffer.from(adminPassword).toString('base64')
+      
       const cookieStore = await cookies()
-      cookieStore.set('admin-session', 'authenticated', {
+      cookieStore.set('admin_session', sessionToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
