@@ -12,8 +12,26 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   }
 })
 
-export async function GET() {
+// Verifiera admin-session
+async function verifyAdminSession(request: NextRequest) {
+  const sessionToken = request.cookies.get('admin_session')?.value
+  const adminPassword = 'dk2025!'
+
+  if (!sessionToken) {
+    throw new Error('Ingen giltig admin-session')
+  }
+
+  const decoded = Buffer.from(sessionToken, 'base64').toString()
+  if (decoded !== adminPassword) {
+    throw new Error('Ogiltig admin-session')
+  }
+}
+
+export async function GET(request: NextRequest) {
   try {
+    // Verifiera admin-session först
+    await verifyAdminSession(request)
+    
     const { data, error } = await supabaseAdmin
       .from('customers')
       .select('*')

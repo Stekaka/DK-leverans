@@ -11,9 +11,27 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   }
 })
 
+// Verifiera admin-session
+async function verifyAdminSession(request: NextRequest) {
+  const sessionToken = request.cookies.get('admin_session')?.value
+  const adminPassword = 'dk2025!'
+
+  if (!sessionToken) {
+    throw new Error('Ingen giltig admin-session')
+  }
+
+  const decoded = Buffer.from(sessionToken, 'base64').toString()
+  if (decoded !== adminPassword) {
+    throw new Error('Ogiltig admin-session')
+  }
+}
+
 // GET - Hämta mappstruktur för en kund
 export async function GET(request: NextRequest) {
   try {
+    // Verifiera admin-session först
+    await verifyAdminSession(request)
+    
     const { searchParams } = new URL(request.url)
     const customerId = searchParams.get('customerId')
 
@@ -69,6 +87,9 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Folders API Error:', error)
+    if (error instanceof Error && error.message.includes('admin')) {
+      return NextResponse.json({ error: error.message }, { status: 401 })
+    }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -76,6 +97,9 @@ export async function GET(request: NextRequest) {
 // POST - Skapa ny mapp eller flytta fil
 export async function POST(request: NextRequest) {
   try {
+    // Verifiera admin-session först
+    await verifyAdminSession(request)
+    
     const body = await request.json()
     
     // Skapa ny mapp
@@ -139,6 +163,9 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Folders API Error:', error)
+    if (error instanceof Error && error.message.includes('admin')) {
+      return NextResponse.json({ error: error.message }, { status: 401 })
+    }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
