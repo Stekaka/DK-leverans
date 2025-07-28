@@ -238,17 +238,17 @@ export default function DashboardPage() {
     if (selectedFiles.length === 1) {
       await downloadFile(selectedFiles[0])
     } else {
-      // För stora batch-requests (>100 filer), dela upp i mindre delar
-      if (selectedFiles.length > 100) {
+      // För stora batch-requests (>20 filer), dela upp i mindre delar (Vercel timeout fix)
+      if (selectedFiles.length > 20) {
         const confirmLarge = confirm(
-          `Du har valt ${selectedFiles.length} filer. Detta kommer att delas upp i ${Math.ceil(selectedFiles.length / 100)} separata ZIP-filer. Fortsätt?`
+          `Du har valt ${selectedFiles.length} filer. Detta kommer att delas upp i ${Math.ceil(selectedFiles.length / 20)} separata ZIP-filer (max 20 per ZIP på grund av serverlimiter). Fortsätt?`
         )
         if (!confirmLarge) return
         
-        // Dela upp i grupper om 100 filer
+        // Dela upp i grupper om 20 filer
         const chunks = []
-        for (let i = 0; i < selectedFiles.length; i += 100) {
-          chunks.push(selectedFiles.slice(i, i + 100))
+        for (let i = 0; i < selectedFiles.length; i += 20) {
+          chunks.push(selectedFiles.slice(i, i + 20))
         }
         
         // Ladda ner varje grupp
@@ -300,7 +300,7 @@ export default function DashboardPage() {
         return
       }
       
-      // Normal batch download för ≤100 filer
+      // Normal batch download för ≤20 filer
       try {
         console.log('Starting batch download for files:', selectedFiles.map(f => f.id))
         
@@ -357,17 +357,17 @@ export default function DashboardPage() {
     if (filteredFiles.length === 1) {
       await downloadFile(filteredFiles[0])
     } else {
-      // För stora batch-requests (>100 filer), dela upp i mindre delar
-      if (filteredFiles.length > 100) {
+      // För stora batch-requests (>20 filer), dela upp i mindre delar (Vercel timeout fix)
+      if (filteredFiles.length > 20) {
         const confirmLarge = confirm(
-          `Du vill ladda ner ${filteredFiles.length} filer. Detta kommer att delas upp i ${Math.ceil(filteredFiles.length / 100)} separata ZIP-filer. Fortsätt?`
+          `Du vill ladda ner ${filteredFiles.length} filer. Detta kommer att delas upp i ${Math.ceil(filteredFiles.length / 20)} separata ZIP-filer (max 20 per ZIP på grund av serverlimiter). Fortsätt?`
         )
         if (!confirmLarge) return
         
-        // Dela upp i grupper om 100 filer
+        // Dela upp i grupper om 20 filer
         const chunks = []
-        for (let i = 0; i < filteredFiles.length; i += 100) {
-          chunks.push(filteredFiles.slice(i, i + 100))
+        for (let i = 0; i < filteredFiles.length; i += 20) {
+          chunks.push(filteredFiles.slice(i, i + 20))
         }
         
         // Ladda ner varje grupp
@@ -417,7 +417,7 @@ export default function DashboardPage() {
         return
       }
       
-      // Normal batch download för ≤100 filer
+      // Normal batch download för ≤20 filer
       try {
         const response = await fetch('/api/customer/download/batch', {
           method: 'POST',

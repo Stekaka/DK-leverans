@@ -151,17 +151,17 @@ export default function QuickPortalPage() {
   const downloadAll = async () => {
     if (files.length === 0) return
     
-    // För stora batch-requests (>100 filer), dela upp i mindre delar
-    if (files.length > 100) {
+    // För stora batch-requests (>20 filer), dela upp i mindre delar (Vercel timeout fix)
+    if (files.length > 20) {
       const confirmLarge = confirm(
-        `Du vill ladda ner ${files.length} filer. Detta kommer att delas upp i ${Math.ceil(files.length / 100)} separata ZIP-filer. Fortsätt?`
+        `Du vill ladda ner ${files.length} filer. Detta kommer att delas upp i ${Math.ceil(files.length / 20)} separata ZIP-filer (max 20 per ZIP på grund av serverlimiter). Fortsätt?`
       )
       if (!confirmLarge) return
       
-      // Dela upp i grupper om 100 filer
+      // Dela upp i grupper om 20 filer
       const chunks = []
-      for (let i = 0; i < files.length; i += 100) {
-        chunks.push(files.slice(i, i + 100))
+      for (let i = 0; i < files.length; i += 20) {
+        chunks.push(files.slice(i, i + 20))
       }
       
       // Ladda ner varje grupp
@@ -211,7 +211,7 @@ export default function QuickPortalPage() {
       return
     }
     
-    // Normal batch download för ≤100 filer
+    // Normal batch download för ≤20 filer
     try {
       const fileIds = files.map(f => f.id)
       const response = await fetch('/api/customer/download/batch', {

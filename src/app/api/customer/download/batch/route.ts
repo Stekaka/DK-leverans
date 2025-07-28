@@ -107,11 +107,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Filer krävs för batch-nedladdning' }, { status: 400 })
     }
 
-    // Begränsa till max 100 filer åt gången för att undvika timeout och minnesproblem
-    if (fileIds.length > 100) {
-      console.log(`[BATCH-DOWNLOAD] Too many files requested: ${fileIds.length} (max 100 per batch)`)
+    // Begränsa till max 20 filer åt gången för att undvika timeout på Vercel (10s limit)
+    if (fileIds.length > 20) {
+      console.log(`[BATCH-DOWNLOAD] Too many files requested: ${fileIds.length} (max 20 per batch for Vercel)`)
       return NextResponse.json({ 
-        error: `För många filer (${fileIds.length}). Max 100 filer per nedladdning. Dela upp i mindre grupper.` 
+        error: `För många filer (${fileIds.length}). Max 20 filer per nedladdning på grund av serverlimiter. Frontend delar upp automatiskt.` 
       }, { status: 400 })
     }
 
