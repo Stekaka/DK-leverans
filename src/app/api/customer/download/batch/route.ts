@@ -100,60 +100,66 @@ export async function POST(request: NextRequest) {
     // Skapa ZIP för flera filer eller stora nedladdningar
     const zipName = `${customer.name.replace(/[^a-zA-Z0-9]/g, '_')}_files_${new Date().getTime()}.zip`
     
-    // Skapa en readable stream för ZIP
+    console.log(`Creating ZIP archive: ${zipName}`)
+    
+    // Skapa ZIP archive
     const archive = archiver('zip', {
       zlib: { level: 6 } // Komprimering nivå (0-9)
     })
 
-    // Sätt upp response headers för ZIP
-    const response = new NextResponse(
-      new ReadableStream({
-        start(controller) {
-          archive.on('data', (chunk) => {
-            controller.enqueue(new Uint8Array(chunk))
-          })
-          
-          archive.on('end', () => {
-            controller.close()
-          })
-          
-          archive.on('error', (err) => {
-            console.error('Archive error:', err)
-            controller.error(err)
-          })
-          
-          // Lägg till alla filer i ZIP:en
-          Promise.all(
-            files.map(async (file) => {
-              try {
-                console.log(`Adding ${file.original_name} to ZIP...`)
-                const fileBuffer = await r2Service.getFile(file.filename)
-                archive.append(fileBuffer, { name: file.original_name })
-              } catch (error) {
-                console.error(`Error adding file ${file.original_name}:`, error)
-                // Fortsätt med andra filer även om en misslyckas
-              }
-            })
-          ).then(() => {
-            console.log('All files added to ZIP, finalizing...')
-            archive.finalize()
-          }).catch((error) => {
-            console.error('Error adding files to ZIP:', error)
-            controller.error(error)
-          })
-        }
-      }),
-      {
-        headers: {
-          'Content-Type': 'application/zip',
-          'Content-Disposition': `attachment; filename="${zipName}"`,
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Transfer-Encoding': 'chunked'
-        }
-      }
-    )
+    let archiveFinished = false
+    const chunks: Buffer[] = []
 
-    return response
+    // Samla alla ZIP chunks
+    archive.on('data', (chunk: Buffer) => {
+      chunks.push(chunk)
+    })
+    
+    archive.on('end', () => {
+      console.log('Archive finalized')
+      archiveFinished = true
+    })
+    
+    archive.on('error', (err) => {
+      console.error('Archive error:', err)
+      throw err
+    })
+
+    // Lägg till alla filer i ZIP:en sekventiellt (undvik parallella requests till R2)
+    console.log(`Adding ${files.length} files to ZIP...`)
+    for (const file of files) {
+      try {
+        console.log(`Adding ${file.original_name} to ZIP...`)
+        const fileBuffer = await r2Service.getFile(file.filename)
+        archive.append(fileBuffer, { name: file.original_name })
+        console.log(`Successfully added ${file.original_name} (${fileBuffer.length} bytes)`)
+      } catch (error) {
+        console.error(`Error adding file ${file.original_name}:`, error)
+        // Fortsätt med andra filer även om en misslyckas
+      }
+    }
+
+    // Finalisera ZIP:en
+    console.log('Finalizing ZIP archive...')
+    archive.finalize()
+
+    // Vänta på att ZIP:en ska bli klar
+    while (!archiveFinished) {
+      await new Promise(resolve => setTimeout(resolve, 100))
+    }
+
+    // Kombinera alla chunks
+    const zipBuffer = Buffer.concat(chunks)
+    console.log(`ZIP created successfully, size: ${zipBuffer.length} bytes`)
+
+    return new NextResponse(zipBuffer, {
+      headers: {
+        'Content-Type': 'application/zip',
+        'Content-Disposition': `attachment; filename="${zipName}"`,
+        'Content-Length': zipBuffer.length.toString(),
+        'Cache-Control': 'no-cache, no-store, must-revalidate'
+      }
+    })
 
   } catch (error: any) {
     console.error('Batch download API error:', error)

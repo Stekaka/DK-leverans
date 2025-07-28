@@ -74,6 +74,13 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Filen hittades inte' }, { status: 404 })
     }
 
+    console.log(`Organize API: Updating file ${fileId} for customer ${customer.id}`, {
+      displayName,
+      customerFolderPath,
+      existingName: existingFile.display_name || existingFile.original_name,
+      existingPath: existingFile.customer_folder_path
+    })
+
     // Preparera uppdateringsdata
     const updateData: any = {
       organization_updated_at: new Date().toISOString()

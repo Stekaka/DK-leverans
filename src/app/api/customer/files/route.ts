@@ -51,8 +51,12 @@ export async function GET(request: NextRequest) {
     const customer = await verifyCustomerSession(request)
 
     const { searchParams } = new URL(request.url)
-    const folderPath = searchParams.get('folderPath') // För mappfiltrering
-    const viewMode = searchParams.get('view') // 'all', 'trash' för papperskorg, annars mappfiltrering
+    const folderPath = searchParams.get('folderPath') || searchParams.get('folder') || '' // Flexibel folder parameter
+    const viewMode = searchParams.get('view') // 'all', 'trash' för papperskorg
+    const sortBy = searchParams.get('sortBy') || 'name' // 'name', 'date', 'size'
+    const sortOrder = searchParams.get('sortOrder') || 'asc' // 'asc', 'desc'
+
+    console.log(`Files API: customer=${customer.id}, folder="${folderPath}", view="${viewMode}", sort=${sortBy}_${sortOrder}`)
 
     // Bygg query för filer
     let query = supabaseAdmin
@@ -65,14 +69,13 @@ export async function GET(request: NextRequest) {
     if (viewMode === 'trash') {
       query = query.eq('is_trashed', true)
     } else {
-      // Normal vy OCH "all"-vy: visa bara filer som inte är i papperskorgen
+      // Normal vy: visa bara filer som inte är i papperskorgen
       query = query.eq('is_trashed', false)
       
       // Filtrera på mapp om specificerad och inte "alla filer"-vy
-      if (folderPath !== null && viewMode !== 'all') {
-        if (folderPath === '') {
+      if (viewMode !== 'all') {
+        if (folderPath === '' || folderPath === '/') {
           // Root-mapp: visa bara filer som faktiskt ligger i root
-          // (customer_folder_path är null eller tom sträng)
           query = query.or(`customer_folder_path.is.null,customer_folder_path.eq.`)
         } else {
           // Specifik mapp: visa bara filer med exakt denna customer_folder_path
@@ -80,37 +83,41 @@ export async function GET(request: NextRequest) {
         }
       }
     }
-    // Nu filtrerar ALLA normala vyer (inklusive 'all') bort is_trashed=true filer
-    // Bara 'trash'-vyn visar papperskorg-filer
 
-    const { data: files, error } = await query.order('uploaded_at', { ascending: false })
+    // Sortering baserat på parameters
+    let orderColumn = 'uploaded_at'
+    let orderDirection = { ascending: sortOrder === 'asc' }
+    
+    switch (sortBy) {
+      case 'name':
+        orderColumn = 'original_name'
+        break
+      case 'date':
+        orderColumn = 'uploaded_at'
+        break
+      case 'size':
+        orderColumn = 'file_size'
+        break
+      default:
+        orderColumn = 'original_name'
+    }
+
+    const { data: files, error } = await query.order(orderColumn, orderDirection)
 
     if (error) {
       console.error('Error fetching customer files:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    // Debug: Logga hur många filer som hittades och deras trash-status
-    console.log(`Files API: Found ${files?.length || 0} files for viewMode=${viewMode}, customer=${customer.id}`)
-    if (files) {
-      const trashedCount = files.filter(f => f.is_trashed).length
-      const normalCount = files.filter(f => !f.is_trashed).length
-      console.log(`Files breakdown: ${normalCount} normal, ${trashedCount} trashed`)
+    if (error) {
+      console.error('Error fetching customer files:', error)
+      return NextResponse.json({ 
+        error: 'Kunde inte hämta filer', 
+        details: String(error) || 'Okänt fel'
+      }, { status: 500 })
     }
 
-    // Hämta access-information separat (icke-blockerande)
-    let accessInfo = null
-    try {
-      const { data: accessCheck, error: accessError } = await supabaseAdmin
-        .rpc('check_customer_access', { customer_uuid: customer.id })
-
-      if (!accessError && accessCheck && accessCheck[0]) {
-        accessInfo = accessCheck[0]
-      }
-    } catch (accessError) {
-      console.error('Error checking access (non-blocking):', accessError)
-      // Fortsätt ändå med filvisning
-    }
+    console.log(`Files API: Found ${files?.length || 0} files (sorted by ${sortBy} ${sortOrder})`)
 
     // Lägg till formaterad filstorlek och generera nedladdningslänkar
     const filesWithDetails = await Promise.all(
@@ -160,24 +167,19 @@ export async function GET(request: NextRequest) {
       files: filesWithDetails,
       total_files: filesWithDetails.length,
       total_size: files?.reduce((acc, file) => acc + file.file_size, 0) || 0,
+      folder: folderPath,
+      viewMode,
+      sortBy,
+      sortOrder,
       customer: {
         name: customer.name,
         project: customer.project
-      },
-      access: accessInfo ? {
-        type: accessInfo.access_type,
-        expiresAt: accessInfo.expires_at,
-        daysRemaining: accessInfo.days_remaining,
-        storageUsedGb: accessInfo.storage_used_gb,
-        storageLimitGb: accessInfo.storage_limit_gb,
-        isPermanent: accessInfo.access_type === 'permanent',
-        hasAccess: accessInfo.has_access
-      } : null
+      }
     })
 
   } catch (error: any) {
     console.error('Customer Files API Error:', error)
-    if (error.message.includes('session') || error.message.includes('Session')) {
+    if (error.message?.includes('session') || error.message?.includes('Session')) {
       return NextResponse.json({ error: error.message }, { status: 401 })
     }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

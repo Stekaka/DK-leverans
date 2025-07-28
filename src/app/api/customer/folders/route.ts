@@ -49,6 +49,109 @@ export async function GET(request: NextRequest) {
     // Verifiera customer session
     const customer = await verifyCustomerSession(request)
 
+    const { searchParams } = new URL(request.url)
+    const parentPath = searchParams.get('parent') || searchParams.get('parentPath') || ''
+    const sortBy = searchParams.get('sortBy') || 'name'
+    const sortOrder = searchParams.get('sortOrder') || 'asc'
+
+    console.log(`Folders API: customer=${customer.id}, parent="${parentPath}", sort=${sortBy}_${sortOrder}`)
+
+    // Hämta alla unika mappsökvägar för kunden
+    let query = supabaseAdmin
+      .from('files')
+      .select('customer_folder_path')
+      .eq('customer_id', customer.id)
+      .eq('is_deleted', false)
+      .eq('is_trashed', false)
+      .not('customer_folder_path', 'is', null)
+      .not('customer_folder_path', 'eq', '')
+
+    const { data: folderData, error } = await query
+
+    if (error) {
+      console.error('Error fetching folders:', error)
+      return NextResponse.json({ 
+        error: 'Kunde inte hämta mappar', 
+        details: String(error) || 'Okänt fel'
+      }, { status: 500 })
+    }
+
+    // Extrahera unika mappnamn och filtrera baserat på parent
+    const folderPaths = new Set<string>()
+    
+    folderData?.forEach(item => {
+      if (item.customer_folder_path) {
+        const path = item.customer_folder_path
+        
+        // Om vi söker efter en specifik parent-mapp
+        if (parentPath) {
+          if (path.startsWith(parentPath + '/')) {
+            // Hämta nästa nivå efter parent
+            const relativePath = path.substring(parentPath.length + 1)
+            const nextFolder = relativePath.split('/')[0]
+            if (nextFolder) {
+              folderPaths.add(parentPath + '/' + nextFolder)
+            }
+          }
+        } else {
+          // Root-nivå: bara första delen av sökvägen
+          const firstFolder = path.split('/')[0]
+          if (firstFolder) {
+            folderPaths.add(firstFolder)
+          }
+        }
+      }
+    })
+
+    // Konvertera till array och sortera
+    let folders = Array.from(folderPaths).map(path => {
+      const name = path.split('/').pop() || path
+      return {
+        id: path,
+        name: name,
+        path: path,
+        type: 'folder' as const,
+        created_at: new Date().toISOString() // Placeholder
+      }
+    })
+
+    // Sortera mapparna
+    folders.sort((a, b) => {
+      let compareA: string | number = a.name
+      let compareB: string | number = b.name
+      
+      if (sortBy === 'date') {
+        compareA = a.created_at
+        compareB = b.created_at
+      }
+      
+      if (typeof compareA === 'string' && typeof compareB === 'string') {
+        const result = compareA.localeCompare(compareB, 'sv')
+        return sortOrder === 'desc' ? -result : result
+      }
+      
+      return 0
+    })
+
+    console.log(`Folders API: Found ${folders.length} folders in "${parentPath}"`)
+
+    const response = NextResponse.json({
+      folders,
+      parent: parentPath,
+      sortBy,
+      sortOrder,
+      customer: {
+        name: customer.name,
+        project: customer.project
+      }
+    })
+
+    // Cache-headers
+    response.headers.set('Cache-Control', 'no-cache, must-revalidate')
+    response.headers.set('ETag', `"folders-${customer.id}-${Date.now()}"`)
+    
+    return response
+
     // Hämta alla mappar för kunden (från files och folders tabeller)
     const { data: fileFolders, error: fileError } = await supabaseAdmin
       .from('files')

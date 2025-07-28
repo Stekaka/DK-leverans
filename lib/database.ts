@@ -161,8 +161,8 @@ export const utils = {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   },
 
-  // Formatera datum
+  // Formatera datum med tid
   formatDate(dateString: string): string {
-    return new Date(dateString).toLocaleDateString('sv-SE')
+    return new Date(dateString).toLocaleString('sv-SE')
   }
 }

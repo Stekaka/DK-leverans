@@ -280,17 +280,63 @@ export default function AdminDashboard() {
       if (response.ok) {
         const data = await response.json()
         console.log('Access data for', customerId, ':', data)
-        setCustomersWithAccess(prev => ({
-          ...prev,
-          [customerId]: data.access
-        }))
+        
+        // Kontrollera att vi faktiskt fick access data
+        if (data && data.access) {
+          setCustomersWithAccess(prev => ({
+            ...prev,
+            [customerId]: data.access
+          }))
+        } else {
+          console.warn('No access data returned for customer:', customerId)
+          // Sätt en default access status
+          setCustomersWithAccess(prev => ({
+            ...prev,
+            [customerId]: {
+              hasAccess: false,
+              accessType: 'expired',
+              isExpired: true,
+              daysRemaining: 0,
+              storageUsedGb: 0,
+              storageLimitGb: 0
+            }
+          }))
+        }
       } else {
         console.error('Failed to load access for customer', customerId, ':', response.status)
-        const errorData = await response.json()
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
         console.error('Error details:', errorData)
+        
+        // Sätt en error status så vi inte visar "Laddar..." för evigt
+        setCustomersWithAccess(prev => ({
+          ...prev,
+          [customerId]: {
+            hasAccess: false,
+            accessType: 'error',
+            isExpired: true,
+            daysRemaining: 0,
+            storageUsedGb: 0,
+            storageLimitGb: 0,
+            error: errorData.error || 'Kunde inte ladda access data'
+          }
+        }))
       }
     } catch (error) {
       console.error('Error loading customer access:', error)
+      
+      // Sätt en error status så vi inte visar "Laddar..." för evigt
+      setCustomersWithAccess(prev => ({
+        ...prev,
+        [customerId]: {
+          hasAccess: false,
+          accessType: 'error',
+          isExpired: true,
+          daysRemaining: 0,
+          storageUsedGb: 0,
+          storageLimitGb: 0,
+          error: 'Nätverksfel vid laddning av access data'
+        }
+      }))
     }
   }
 
@@ -398,6 +444,10 @@ export default function AdminDashboard() {
               <div className="flex items-center space-x-2">
                 <span className="text-xs text-slate-600 dark:text-slate-400">Inloggad som: Admin</span>
                 <span className="text-slate-300 dark:text-slate-600">•</span>
+                <Link href="/admin/quick-upload" className="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700 transition-colors">
+                  Quick Upload
+                </Link>
+                <span className="text-slate-300 dark:text-slate-600">•</span>
                 <Link href="/" className="text-yellow-600 dark:text-yellow-400 hover:text-yellow-700 dark:hover:text-yellow-300 text-xs transition-colors">
                   Till kundportal
                 </Link>
@@ -418,6 +468,9 @@ export default function AdminDashboard() {
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-slate-600 dark:text-slate-400">Inloggad som: Admin</span>
+              <Link href="/admin/quick-upload" className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition-colors">
+                Quick Upload
+              </Link>
               <Link href="/" className="text-yellow-600 dark:text-yellow-400 hover:text-yellow-700 dark:hover:text-yellow-300 transition-colors">
                 Till kundportal
               </Link>
@@ -601,7 +654,7 @@ export default function AdminDashboard() {
                                     ) : (
                                       <>
                                         <div>Utgår: {accessInfo.expiresAt ? new Date(accessInfo.expiresAt).toLocaleDateString('sv-SE') : 'Okänt'}</div>
-                                        <div>Senast aktiv: {customer.last_access ? new Date(customer.last_access).toLocaleDateString('sv-SE') : 'Aldrig'}</div>
+                                        <div>Senast aktiv: {customer.last_access ? new Date(customer.last_access).toLocaleString('sv-SE') : 'Aldrig'}</div>
                                       </>
                                     )}
                                   </div>
@@ -724,6 +777,20 @@ export default function AdminDashboard() {
                             {(() => {
                               const accessInfo = customersWithAccess[customer.id]
                               if (!accessInfo) return 'Laddar...'
+                              
+                              // Visa error om det finns ett
+                              if (accessInfo.accessType === 'error') {
+                                return (
+                                  <div>
+                                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                                      Fel
+                                    </span>
+                                    <div className="text-xs mt-1 text-red-600">
+                                      {accessInfo.error || 'Okänt fel'}
+                                    </div>
+                                  </div>
+                                )
+                              }
                               
                               if (accessInfo.accessType === 'permanent') {
                                 return (

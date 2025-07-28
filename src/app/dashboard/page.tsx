@@ -239,16 +239,25 @@ export default function DashboardPage() {
       await downloadFile(selectedFiles[0])
     } else {
       try {
+        console.log('Starting batch download for files:', selectedFiles.map(f => f.id))
+        
         const response = await fetch('/api/customer/download/batch', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ fileIds: selectedFiles.map(f => f.id) })
         })
 
+        console.log('Batch download response status:', response.status)
+        console.log('Response headers:', Object.fromEntries(response.headers.entries()))
+
         if (response.ok) {
+          console.log('Converting response to blob...')
           const blob = await response.blob()
+          console.log('Blob size:', blob.size, 'type:', blob.type)
+          
           const contentDisposition = response.headers.get('Content-Disposition')
           const filename = contentDisposition?.match(/filename="(.+)"/)?.[1] || `selected_files_${new Date().getTime()}.zip`
+          console.log('Download filename:', filename)
           
           const url = window.URL.createObjectURL(blob)
           const link = document.createElement('a')
@@ -257,13 +266,16 @@ export default function DashboardPage() {
           link.style.display = 'none'
           
           document.body.appendChild(link)
+          console.log('Triggering download...')
           link.click()
           document.body.removeChild(link)
           window.URL.revokeObjectURL(url)
           
+          console.log('Download completed successfully')
           setSelectedItems([])
         } else {
           const errorData = await response.json()
+          console.error('Batch download failed:', errorData)
           alert(`Kunde inte ladda ner filerna: ${errorData.error || 'Okänt fel'}`)
         }
       } catch (error) {
