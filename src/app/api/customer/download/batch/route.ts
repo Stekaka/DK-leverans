@@ -65,6 +65,28 @@ async function verifyCustomerSession(request: NextRequest) {
   return customer
 }
 
+// GET /api/customer/download/batch - Return method info (debugging)
+export async function GET(request: NextRequest) {
+  return NextResponse.json({ 
+    message: 'Batch download API - use POST method',
+    methods: ['POST'],
+    timestamp: new Date().toISOString()
+  }, { status: 200 })
+}
+
+// OPTIONS /api/customer/download/batch - CORS preflight
+export async function OPTIONS(request: NextRequest) {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Allow': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  })
+}
+
 // POST /api/customer/download/batch - Batch nedladdning med automatisk ZIP
 // Force deployment: 2025-07-28 10:40
 export async function POST(request: NextRequest) {
