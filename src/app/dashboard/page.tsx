@@ -10,6 +10,7 @@ import OrganizeModal from '@/components/OrganizeModal'
 import AccessPopup from '@/components/AccessPopup'
 import { useTheme } from '@/contexts/ThemeContext'
 import { CustomerFile, Customer } from '@/types/customer'
+import ClientZipCreator, { ProgressCallback } from '@/lib/client-zip'
 
 export default function DashboardPage() {
   const { theme } = useTheme()
@@ -46,6 +47,14 @@ export default function DashboardPage() {
     totalFiles: number
     processedFiles: number
   }>>(new Map())
+
+  // Client-side ZIP state
+  const [isCreatingClientZip, setIsCreatingClientZip] = useState(false)
+  const [clientZipProgress, setClientZipProgress] = useState({ 
+    current: 0, total: 0, fileName: '', phase: 'downloading' as 'downloading' | 'creating' | 'saving' 
+  })
+  const [clientZipCreator, setClientZipCreator] = useState<ClientZipCreator | null>(null)
+
   const router = useRouter()
 
   // Verifiera session och ladda data vid start
@@ -234,6 +243,82 @@ export default function DashboardPage() {
     }
   }
 
+  // Client-side ZIP creation
+  const createClientZip = async (filesToZip: CustomerFile[], zipName: string) => {
+    try {
+      setIsCreatingClientZip(true)
+      setClientZipProgress({ current: 0, total: filesToZip.length, fileName: '', phase: 'downloading' })
+
+      // Kontrollera webbläsarstöd
+      const browserSupport = ClientZipCreator.checkBrowserSupport()
+      if (!browserSupport.supported) {
+        alert(`Din webbläsare stöder inte stora ZIP-nedladdningar: ${browserSupport.message}`)
+        return false
+      }
+
+      if (browserSupport.message) {
+        console.warn('Browser support warning:', browserSupport.message)
+      }
+
+      // Skapa ZIP creator
+      const zipCreator = new ClientZipCreator()
+      setClientZipCreator(zipCreator)
+
+      // Progress callback
+      const onProgress: ProgressCallback = (progress, current, total, fileName) => {
+        setClientZipProgress({
+          current,
+          total,
+          fileName: fileName || '',
+          phase: progress >= 90 ? (progress >= 98 ? 'saving' : 'creating') : 'downloading'
+        })
+      }
+
+      // Förbered filer för nedladdning
+      const downloadableFiles = filesToZip.map(file => ({
+        id: file.id,
+        original_name: file.original_name,
+        download_url: file.download_url
+      }))
+
+      console.log(`🚀 CLIENT-ZIP: Starting creation of ${zipName} with ${filesToZip.length} files`)
+      
+      // Skapa och ladda ner ZIP
+      const success = await zipCreator.createAndDownloadZip(
+        downloadableFiles,
+        zipName,
+        onProgress,
+        6 // Parallellism: 6 filer samtidigt
+      )
+
+      if (success) {
+        console.log(`✅ CLIENT-ZIP: Successfully created and downloaded ${zipName}`)
+        return true
+      } else {
+        throw new Error('ZIP creation failed')
+      }
+
+    } catch (error) {
+      console.error('❌ CLIENT-ZIP: Error creating ZIP:', error)
+      alert(`Ett fel uppstod vid skapande av ZIP-fil: ${error instanceof Error ? error.message : 'Okänt fel'}`)
+      return false
+    } finally {
+      setIsCreatingClientZip(false)
+      setClientZipCreator(null)
+      setClientZipProgress({ current: 0, total: 0, fileName: '', phase: 'downloading' })
+    }
+  }
+
+  // Avbryt client-side ZIP creation
+  const cancelClientZip = () => {
+    if (clientZipCreator) {
+      clientZipCreator.abort()
+      setIsCreatingClientZip(false)
+      setClientZipCreator(null)
+      setClientZipProgress({ current: 0, total: 0, fileName: '', phase: 'downloading' })
+    }
+  }
+
   const downloadSelected = async () => {
     const selectedFiles = filteredFiles.filter(file => selectedItems.includes(file.id))
     
@@ -253,135 +338,24 @@ export default function DashboardPage() {
     
     console.log(`Download request: ${selectedFiles.length} files, ${totalSizeGB.toFixed(1)} GB`)
 
-    // SMART STRATEGI baserat på storlek
-    if (totalSizeGB > 5) {
-      // STORA NEDLADDNINGAR: Automatisk chunking med omedelbar start
-      const chunkSize = Math.min(20, Math.max(5, Math.floor(selectedFiles.length / Math.ceil(totalSizeGB / 2))))
-      
-      const confirmLarge = confirm(
-        `Stor nedladdning: ${selectedFiles.length} filer (${totalSizeGB.toFixed(1)} GB)\n\n` +
-        `För att säkerställa att nedladdningen fungerar kommer filerna att delas upp i ${Math.ceil(selectedFiles.length / chunkSize)} separata ZIP-filer.\n\n` +
-        `Första ZIP:en börjar laddas ner OMEDELBART. Fortsätt?`
-      )
-      if (!confirmLarge) return
+    // ANVÄND CLIENT-SIDE ZIP för ALLA multi-file downloads
+    const confirmDownload = confirm(
+      `Ladda ner ${selectedFiles.length} filer som EN enda ZIP-fil?\n\n` +
+      `Total storlek: ${totalSizeGB.toFixed(1)} GB\n\n` +
+      `ZIP-filen skapas lokalt i din webbläsare för bästa prestanda och tillförlitlighet.`
+    )
+    
+    if (!confirmDownload) return
 
-      // Dela upp i chunks och starta nedladdning DIREKT
-      const chunks = []
-      for (let i = 0; i < selectedFiles.length; i += chunkSize) {
-        chunks.push(selectedFiles.slice(i, i + chunkSize))
-      }
+    // Skapa ZIP-filnamn
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/[:]/g, '-')
+    const zipFileName = `valda_filer_${timestamp}.zip`
 
-      // Starta första chunken OMEDELBART
-      for (let i = 0; i < chunks.length; i++) {
-        const chunk = chunks[i]
-        const chunkSizeGB = chunk.reduce((sum, f) => sum + f.file_size, 0) / (1024 * 1024 * 1024)
-        
-        try {
-          console.log(`Starting immediate download chunk ${i + 1}/${chunks.length}: ${chunk.length} files (${chunkSizeGB.toFixed(1)} GB)`)
-          
-          const response = await fetch('/api/customer/download/batch', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ fileIds: chunk.map(f => f.id) })
-          })
-
-          if (response.ok) {
-            const blob = await response.blob()
-            const contentDisposition = response.headers.get('Content-Disposition')
-            const filename = contentDisposition?.match(/filename="(.+)"/)?.[1] || 
-              `files_${i + 1}_of_${chunks.length}_${new Date().getTime()}.zip`
-            
-            const url = window.URL.createObjectURL(blob)
-            const link = document.createElement('a')
-            link.href = url
-            link.download = filename
-            link.style.display = 'none'
-            
-            document.body.appendChild(link)
-            link.click()
-            document.body.removeChild(link)
-            window.URL.revokeObjectURL(url)
-            
-            console.log(`✅ Downloaded chunk ${i + 1}/${chunks.length} successfully`)
-            
-            // Kort paus mellan nedladdningar för att inte överbelasta
-            if (i < chunks.length - 1) {
-              await new Promise(resolve => setTimeout(resolve, 2000))
-            }
-          } else {
-            const errorData = await response.json()
-            console.error(`Chunk ${i + 1} failed:`, errorData)
-            alert(`Fel vid nedladdning av del ${i + 1}: ${errorData.error || 'Okänt fel'}`)
-            break
-          }
-        } catch (error) {
-          console.error(`Chunk ${i + 1} error:`, error)
-          alert(`Ett fel uppstod vid nedladdning av del ${i + 1}`)
-          break
-        }
-      }
-      
-      setSelectedItems([])
-    } else {
-      // SMÅ NEDLADDNINGAR: Använd asynkron ZIP för bättre UX
-      try {
-        console.log('Starting async ZIP creation for selected files:', selectedFiles.map(f => f.id))
-        
-        const response = await fetch('/api/customer/download/prepare', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fileIds: selectedFiles.map(f => f.id) })
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-          alert(`ZIP-fil förbereds med ${selectedFiles.length} filer. Du får en automatisk nedladdning när den är klar.`)
-          
-          checkDownloadStatus(data.downloadId)
-          setSelectedItems([])
-        } else {
-          // Fallback till chunking om async misslyckas
-          console.log('Async preparation failed, falling back to immediate chunking')
-          const chunkSize = 15
-          const chunks = []
-          for (let i = 0; i < selectedFiles.length; i += chunkSize) {
-            chunks.push(selectedFiles.slice(i, i + chunkSize))
-          }
-
-          for (let i = 0; i < chunks.length; i++) {
-            const chunk = chunks[i]
-            const response = await fetch('/api/customer/download/batch', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ fileIds: chunk.map(f => f.id) })
-            })
-
-            if (response.ok) {
-              const blob = await response.blob()
-              const filename = `selected_files_part_${i + 1}_${new Date().getTime()}.zip`
-              
-              const url = window.URL.createObjectURL(blob)
-              const link = document.createElement('a')
-              link.href = url
-              link.download = filename
-              link.style.display = 'none'
-              
-              document.body.appendChild(link)
-              link.click()
-              document.body.removeChild(link)
-              window.URL.revokeObjectURL(url)
-              
-              if (i < chunks.length - 1) {
-                await new Promise(resolve => setTimeout(resolve, 1000))
-              }
-            }
-          }
-          setSelectedItems([])
-        }
-      } catch (error) {
-        console.error('Download error:', error)
-        alert('Ett fel uppstod vid nedladdning')
-      }
+    // Använd client-side ZIP creation
+    const success = await createClientZip(selectedFiles, zipFileName)
+    
+    if (success) {
+      setSelectedItems([]) // Rensa val efter framgångsrik nedladdning
     }
   }
 
@@ -402,168 +376,23 @@ export default function DashboardPage() {
     
     console.log(`Download ALL request: ${filteredFiles.length} files, ${totalSizeGB.toFixed(1)} GB`)
 
-    // SMART STRATEGI för stora nedladdningar
-    if (totalSizeGB > 5) {
-      // STORA NEDLADDNINGAR: Omedelbar chunking för Marc's fall (54 GB)
-      const chunkSize = Math.min(20, Math.max(5, Math.floor(filteredFiles.length / Math.ceil(totalSizeGB / 2))))
-      
-      const confirmLarge = confirm(
-        `STOR NEDLADDNING: ${filteredFiles.length} filer (${totalSizeGB.toFixed(1)} GB)\n\n` +
-        `För att säkerställa att nedladdningen fungerar kommer filerna att delas upp i ${Math.ceil(filteredFiles.length / chunkSize)} separata ZIP-filer.\n\n` +
-        `⚡ FÖRSTA ZIP:EN BÖRJAR LADDAS NER OMEDELBART! ⚡\n\n` +
-        `Fortsätt med nedladdning?`
-      )
-      if (!confirmLarge) return
+    // ANVÄND CLIENT-SIDE ZIP för ALLA multi-file downloads
+    const confirmDownload = confirm(
+      `Ladda ner ALLA ${filteredFiles.length} filer som EN enda ZIP-fil?\n\n` +
+      `Total storlek: ${totalSizeGB.toFixed(1)} GB\n\n` +
+      `⚡ PERFEKT för stora nedladdningar! ⚡\n` +
+      `ZIP-filen skapas lokalt i din webbläsare för bästa prestanda.\n\n` +
+      `Fortsätt?`
+    )
+    
+    if (!confirmDownload) return
 
-      // Visa progress-meddelande
-      const progressDiv = document.createElement('div')
-      progressDiv.style.cssText = `
-        position: fixed; top: 20px; right: 20px; z-index: 9999;
-        background: #1f2937; color: white; padding: 15px; border-radius: 8px;
-        border: 2px solid #fbbf24; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        max-width: 300px; font-family: system-ui;
-      `
-      progressDiv.innerHTML = `
-        <div style="font-weight: bold; color: #fbbf24; margin-bottom: 8px;">
-          🚀 Stor nedladdning pågår
-        </div>
-        <div id="download-progress">Förbereder första ZIP-filen...</div>
-      `
-      document.body.appendChild(progressDiv)
+    // Skapa ZIP-filnamn
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/[:]/g, '-')
+    const zipFileName = `alla_filer_${timestamp}.zip`
 
-      // Dela upp i chunks
-      const chunks = []
-      for (let i = 0; i < filteredFiles.length; i += chunkSize) {
-        chunks.push(filteredFiles.slice(i, i + chunkSize))
-      }
-
-      // Starta nedladdning av varje chunk OMEDELBART
-      for (let i = 0; i < chunks.length; i++) {
-        const chunk = chunks[i]
-        const chunkSizeGB = chunk.reduce((sum, f) => sum + f.file_size, 0) / (1024 * 1024 * 1024)
-        
-        // Uppdatera progress
-        const progressEl = document.getElementById('download-progress')
-        if (progressEl) {
-          progressEl.innerHTML = `Laddar ner ZIP ${i + 1} av ${chunks.length}<br><small>${chunk.length} filer (${chunkSizeGB.toFixed(1)} GB)</small>`
-        }
-        
-        try {
-          console.log(`Starting immediate download chunk ${i + 1}/${chunks.length}: ${chunk.length} files (${chunkSizeGB.toFixed(1)} GB)`)
-          
-          const response = await fetch('/api/customer/download/batch', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ fileIds: chunk.map(f => f.id) })
-          })
-
-          if (response.ok) {
-            const blob = await response.blob()
-            const contentDisposition = response.headers.get('Content-Disposition')
-            const filename = contentDisposition?.match(/filename="(.+)"/)?.[1] || 
-              `alla_filer_${i + 1}_av_${chunks.length}_${new Date().getTime()}.zip`
-            
-            const url = window.URL.createObjectURL(blob)
-            const link = document.createElement('a')
-            link.href = url
-            link.download = filename
-            link.style.display = 'none'
-            
-            document.body.appendChild(link)
-            link.click()
-            document.body.removeChild(link)
-            window.URL.revokeObjectURL(url)
-            
-            console.log(`✅ Downloaded chunk ${i + 1}/${chunks.length} successfully: ${filename}`)
-            
-            // Kort paus mellan nedladdningar
-            if (i < chunks.length - 1) {
-              await new Promise(resolve => setTimeout(resolve, 3000))
-            }
-          } else {
-            const errorData = await response.json()
-            console.error(`Chunk ${i + 1} failed:`, errorData)
-            if (progressEl) {
-              progressEl.innerHTML = `❌ Fel vid nedladdning av ZIP ${i + 1}: ${errorData.error || 'Okänt fel'}`
-            }
-            break
-          }
-        } catch (error) {
-          console.error(`Chunk ${i + 1} error:`, error)
-          const progressEl = document.getElementById('download-progress')
-          if (progressEl) {
-            progressEl.innerHTML = `❌ Ett fel uppstod vid nedladdning av ZIP ${i + 1}`
-          }
-          break
-        }
-      }
-      
-      // Ta bort progress-meddelande efter 10 sekunder
-      setTimeout(() => {
-        if (document.body.contains(progressDiv)) {
-          document.body.removeChild(progressDiv)
-        }
-      }, 10000)
-      
-    } else {
-      // SMÅ NEDLADDNINGAR: Använd asynkron ZIP
-      try {
-        console.log('Starting async ZIP creation for all files:', filteredFiles.map(f => f.id))
-        
-        const response = await fetch('/api/customer/download/prepare', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fileIds: filteredFiles.map(f => f.id) })
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-          alert(`ZIP-fil förbereds med ${filteredFiles.length} filer. Du får en automatisk nedladdning när den är klar.`)
-          
-          checkDownloadStatus(data.downloadId)
-        } else {
-          // Fallback till chunking
-          console.log('Async preparation failed, falling back to immediate chunking')
-          const chunkSize = 15
-          const chunks = []
-          for (let i = 0; i < filteredFiles.length; i += chunkSize) {
-            chunks.push(filteredFiles.slice(i, i + chunkSize))
-          }
-
-          for (let i = 0; i < chunks.length; i++) {
-            const chunk = chunks[i]
-            const response = await fetch('/api/customer/download/batch', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ fileIds: chunk.map(f => f.id) })
-            })
-
-            if (response.ok) {
-              const blob = await response.blob()
-              const filename = `alla_filer_del_${i + 1}_${new Date().getTime()}.zip`
-              
-              const url = window.URL.createObjectURL(blob)
-              const link = document.createElement('a')
-              link.href = url
-              link.download = filename
-              link.style.display = 'none'
-              
-              document.body.appendChild(link)
-              link.click()
-              document.body.removeChild(link)
-              window.URL.revokeObjectURL(url)
-              
-              if (i < chunks.length - 1) {
-                await new Promise(resolve => setTimeout(resolve, 1500))
-              }
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Download error:', error)
-        alert('Ett fel uppstod vid nedladdning')
-      }
-    }
+    // Använd client-side ZIP creation
+    await createClientZip(filteredFiles, zipFileName)
   }
 
   // Hantera mappnavigering
@@ -906,6 +735,76 @@ export default function DashboardPage() {
           </div>
         </div>
       </header>
+
+      {/* Client-Side ZIP Progress Overlay */}
+      {isCreatingClientZip && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-slate-800 rounded-xl p-8 max-w-md w-full mx-4 shadow-2xl border">
+            <div className="text-center">
+              <div className="mb-6">
+                <div className="relative w-24 h-24 mx-auto mb-4">
+                  <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 36 36">
+                    <path
+                      className="text-gray-200 dark:text-gray-600"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      fill="transparent"
+                      strokeDasharray="100,100"
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
+                    <path
+                      className="text-yellow-500"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      fill="transparent"
+                      strokeDasharray={`${Math.round((clientZipProgress.current / clientZipProgress.total) * 100)},100`}
+                      strokeLinecap="round"
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-xl font-bold text-yellow-600 dark:text-yellow-400">
+                      {clientZipProgress.total > 0 ? Math.round((clientZipProgress.current / clientZipProgress.total) * 100) : 0}%
+                    </span>
+                  </div>
+                </div>
+                
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                  🗜️ Skapar ZIP-fil
+                </h3>
+                
+                <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
+                  <p>
+                    <span className="font-medium">Status:</span>{' '}
+                    {clientZipProgress.phase === 'downloading' && '📥 Laddar ner filer'}
+                    {clientZipProgress.phase === 'creating' && '📦 Skapar ZIP-fil'}
+                    {clientZipProgress.phase === 'saving' && '💾 Sparar ZIP-fil'}
+                  </p>
+                  
+                  <p>
+                    <span className="font-medium">Progress:</span>{' '}
+                    {clientZipProgress.current} av {clientZipProgress.total} filer
+                  </p>
+                  
+                  {clientZipProgress.fileName && (
+                    <p className="truncate" title={clientZipProgress.fileName}>
+                      <span className="font-medium">Aktuell:</span>{' '}
+                      {clientZipProgress.fileName}
+                    </p>
+                  )}
+                </div>
+              </div>
+              
+              <button
+                onClick={cancelClientZip}
+                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                Avbryt
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
         {/* Access Status Banner */}
