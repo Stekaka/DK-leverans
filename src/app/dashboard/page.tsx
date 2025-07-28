@@ -39,6 +39,13 @@ export default function DashboardPage() {
     isExpired?: boolean
     canExtend?: boolean
   } | null>(null)
+  const [activeDownloads, setActiveDownloads] = useState<Map<string, {
+    id: string
+    status: string
+    progress: number
+    totalFiles: number
+    processedFiles: number
+  }>>(new Map())
   const router = useRouter()
 
   // Verifiera session och ladda data vid start
@@ -238,112 +245,32 @@ export default function DashboardPage() {
     if (selectedFiles.length === 1) {
       await downloadFile(selectedFiles[0])
     } else {
-      // För stora batch-requests (>20 filer), dela upp i mindre delar (Vercel timeout fix)
-      if (selectedFiles.length > 20) {
-        const confirmLarge = confirm(
-          `Du har valt ${selectedFiles.length} filer. Detta kommer att delas upp i ${Math.ceil(selectedFiles.length / 20)} separata ZIP-filer (max 20 per ZIP på grund av serverlimiter). Fortsätt?`
-        )
-        if (!confirmLarge) return
-        
-        // Dela upp i grupper om 20 filer
-        const chunks = []
-        for (let i = 0; i < selectedFiles.length; i += 20) {
-          chunks.push(selectedFiles.slice(i, i + 20))
-        }
-        
-        // Ladda ner varje grupp
-        for (let i = 0; i < chunks.length; i++) {
-          const chunk = chunks[i]
-          try {
-            console.log(`Downloading chunk ${i + 1}/${chunks.length} with ${chunk.length} files`)
-            
-            const response = await fetch('/api/customer/download/batch', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ fileIds: chunk.map(f => f.id) })
-            })
-
-            if (response.ok) {
-              const blob = await response.blob()
-              const contentDisposition = response.headers.get('Content-Disposition')
-              const filename = contentDisposition?.match(/filename="(.+)"/)?.[1] || `files_part_${i + 1}_${new Date().getTime()}.zip`
-              
-              const url = window.URL.createObjectURL(blob)
-              const link = document.createElement('a')
-              link.href = url
-              link.download = filename
-              link.style.display = 'none'
-              
-              document.body.appendChild(link)
-              link.click()
-              document.body.removeChild(link)
-              window.URL.revokeObjectURL(url)
-              
-              console.log(`Downloaded chunk ${i + 1}/${chunks.length} successfully`)
-              
-              // Kort paus mellan nedladdningar
-              if (i < chunks.length - 1) {
-                await new Promise(resolve => setTimeout(resolve, 1000))
-              }
-            } else {
-              const errorData = await response.json()
-              console.error(`Chunk ${i + 1} download failed:`, errorData)
-              alert(`Fel vid nedladdning av del ${i + 1}: ${errorData.error || 'Okänt fel'}`)
-            }
-          } catch (error) {
-            console.error(`Chunk ${i + 1} download error:`, error)
-            alert(`Ett fel uppstod vid nedladdning av del ${i + 1}`)
-          }
-        }
-        
-        setSelectedItems([])
-        return
-      }
-      
-      // Normal batch download för ≤20 filer
+      // Asynkron ZIP-skapning för alla multi-file downloads
       try {
-        console.log('Starting batch download for files:', selectedFiles.map(f => f.id))
+        console.log('Starting async ZIP creation for selected files:', selectedFiles.map(f => f.id))
         
-        const response = await fetch('/api/customer/download/batch', {
+        // Starta ZIP-förberedelse
+        const response = await fetch('/api/customer/download/prepare', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ fileIds: selectedFiles.map(f => f.id) })
         })
 
-        console.log('Batch download response status:', response.status)
-        console.log('Response headers:', Object.fromEntries(response.headers.entries()))
-
         if (response.ok) {
-          console.log('Converting response to blob...')
-          const blob = await response.blob()
-          console.log('Blob size:', blob.size, 'type:', blob.type)
+          const data = await response.json()
+          alert(`ZIP-fil förbereds med ${selectedFiles.length} filer. Du får en automatisk nedladdning när den är klar.`)
           
-          const contentDisposition = response.headers.get('Content-Disposition')
-          const filename = contentDisposition?.match(/filename="(.+)"/)?.[1] || `selected_files_${new Date().getTime()}.zip`
-          console.log('Download filename:', filename)
-          
-          const url = window.URL.createObjectURL(blob)
-          const link = document.createElement('a')
-          link.href = url
-          link.download = filename
-          link.style.display = 'none'
-          
-          document.body.appendChild(link)
-          console.log('Triggering download...')
-          link.click()
-          document.body.removeChild(link)
-          window.URL.revokeObjectURL(url)
-          
-          console.log('Download completed successfully')
+          // Starta statustracking
+          checkDownloadStatus(data.downloadId)
           setSelectedItems([])
         } else {
           const errorData = await response.json()
-          console.error('Batch download failed:', errorData)
-          alert(`Kunde inte ladda ner filerna: ${errorData.error || 'Okänt fel'}`)
+          console.error('ZIP preparation failed:', errorData)
+          alert(`Kunde inte förbereda ZIP: ${errorData.error || 'Okänt fel'}`)
         }
       } catch (error) {
-        console.error('Batch download error:', error)
-        alert('Ett fel uppstod vid batch-nedladdning')
+        console.error('ZIP preparation error:', error)
+        alert('Ett fel uppstod vid förberedelse av ZIP-nedladdning')
       }
     }
   }
@@ -357,96 +284,31 @@ export default function DashboardPage() {
     if (filteredFiles.length === 1) {
       await downloadFile(filteredFiles[0])
     } else {
-      // För stora batch-requests (>20 filer), dela upp i mindre delar (Vercel timeout fix)
-      if (filteredFiles.length > 20) {
-        const confirmLarge = confirm(
-          `Du vill ladda ner ${filteredFiles.length} filer. Detta kommer att delas upp i ${Math.ceil(filteredFiles.length / 20)} separata ZIP-filer (max 20 per ZIP på grund av serverlimiter). Fortsätt?`
-        )
-        if (!confirmLarge) return
-        
-        // Dela upp i grupper om 20 filer
-        const chunks = []
-        for (let i = 0; i < filteredFiles.length; i += 20) {
-          chunks.push(filteredFiles.slice(i, i + 20))
-        }
-        
-        // Ladda ner varje grupp
-        for (let i = 0; i < chunks.length; i++) {
-          const chunk = chunks[i]
-          try {
-            console.log(`Downloading chunk ${i + 1}/${chunks.length} with ${chunk.length} files`)
-            
-            const response = await fetch('/api/customer/download/batch', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ fileIds: chunk.map(f => f.id) })
-            })
-
-            if (response.ok) {
-              const blob = await response.blob()
-              const contentDisposition = response.headers.get('Content-Disposition')
-              const filename = contentDisposition?.match(/filename="(.+)"/)?.[1] || `all_files_part_${i + 1}_${new Date().getTime()}.zip`
-              
-              const url = window.URL.createObjectURL(blob)
-              const link = document.createElement('a')
-              link.href = url
-              link.download = filename
-              link.style.display = 'none'
-              
-              document.body.appendChild(link)
-              link.click()
-              document.body.removeChild(link)
-              window.URL.revokeObjectURL(url)
-              
-              console.log(`Downloaded chunk ${i + 1}/${chunks.length} successfully`)
-              
-              // Kort paus mellan nedladdningar
-              if (i < chunks.length - 1) {
-                await new Promise(resolve => setTimeout(resolve, 1000))
-              }
-            } else {
-              const errorData = await response.json()
-              console.error(`Chunk ${i + 1} download failed:`, errorData)
-              alert(`Fel vid nedladdning av del ${i + 1}: ${errorData.error || 'Okänt fel'}`)
-            }
-          } catch (error) {
-            console.error(`Chunk ${i + 1} download error:`, error)
-            alert(`Ett fel uppstod vid nedladdning av del ${i + 1}`)
-          }
-        }
-        return
-      }
-      
-      // Normal batch download för ≤20 filer
+      // Asynkron ZIP-skapning för alla multi-file downloads
       try {
-        const response = await fetch('/api/customer/download/batch', {
+        console.log('Starting async ZIP creation for all files:', filteredFiles.map(f => f.id))
+        
+        // Starta ZIP-förberedelse
+        const response = await fetch('/api/customer/download/prepare', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ fileIds: filteredFiles.map(f => f.id) })
         })
 
         if (response.ok) {
-          const blob = await response.blob()
-          const contentDisposition = response.headers.get('Content-Disposition')
-          const filename = contentDisposition?.match(/filename="(.+)"/)?.[1] || `all_files_${new Date().getTime()}.zip`
+          const data = await response.json()
+          alert(`ZIP-fil förbereds med ${filteredFiles.length} filer. Du får en automatisk nedladdning när den är klar.`)
           
-          const url = window.URL.createObjectURL(blob)
-          const link = document.createElement('a')
-          link.href = url
-          link.download = filename
-          link.style.display = 'none'
-          
-          document.body.appendChild(link)
-          link.click()
-          document.body.removeChild(link)
-          window.URL.revokeObjectURL(url)
+          // Starta statustracking
+          checkDownloadStatus(data.downloadId)
         } else {
           const errorData = await response.json()
-          alert(`Kunde inte ladda ner filerna: ${errorData.error || 'Okänt fel'}`)
+          console.error('ZIP preparation failed:', errorData)
+          alert(`Kunde inte förbereda ZIP: ${errorData.error || 'Okänt fel'}`)
         }
       } catch (error) {
-        console.error('Batch download error:', error)
-        alert('Ett fel uppstod vid batch-nedladdning')
+        console.error('ZIP preparation error:', error)
+        alert('Ett fel uppstod vid förberedelse av ZIP-nedladdning')
       }
     }
   }
@@ -526,6 +388,60 @@ export default function DashboardPage() {
 
   const closeGallery = () => {
     setShowGallery(false)
+  }
+
+  // Async download status tracking
+  const checkDownloadStatus = async (downloadId: string) => {
+    try {
+      const response = await fetch(`/api/customer/download/status/${downloadId}`)
+      
+      if (response.ok) {
+        const status = await response.json()
+        
+        setActiveDownloads(prev => new Map(prev.set(downloadId, {
+          id: downloadId,
+          status: status.status,
+          progress: status.progress,
+          totalFiles: status.totalFiles,
+          processedFiles: status.processedFiles
+        })))
+
+        if (status.status === 'completed' && status.downloadUrl) {
+          // Auto-download when ready
+          const link = document.createElement('a')
+          link.href = status.downloadUrl
+          link.style.display = 'none'
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          
+          // Remove from active downloads after 5 seconds
+          setTimeout(() => {
+            setActiveDownloads(prev => {
+              const newMap = new Map(prev)
+              newMap.delete(downloadId)
+              return newMap
+            })
+          }, 5000)
+          
+          alert(`ZIP-fil med ${status.totalFiles} filer har laddats ner!`)
+        } else if (status.status === 'failed') {
+          alert(`ZIP-skapandet misslyckades: ${status.error || 'Okänt fel'}`)
+          setActiveDownloads(prev => {
+            const newMap = new Map(prev)
+            newMap.delete(downloadId)
+            return newMap
+          })
+        } else if (status.status === 'preparing' || status.status === 'processing') {
+          // Continue polling
+          setTimeout(() => checkDownloadStatus(downloadId), 2000)
+        }
+      } else {
+        console.error('Failed to check download status')
+      }
+    } catch (error) {
+      console.error('Error checking download status:', error)
+    }
   }
 
   // Öppna organiseringsmodal
