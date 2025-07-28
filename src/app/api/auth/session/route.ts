@@ -26,7 +26,16 @@ export async function GET(request: NextRequest) {
     let customerId: string
     try {
       const decoded = Buffer.from(sessionToken, 'base64').toString()
-      customerId = decoded.split(':')[0]
+      const parts = decoded.split(':')
+      customerId = parts[0]
+      
+      // Kolla om det är en quick-access token med expiration
+      if (parts.length >= 3 && parts[1] === 'quick') {
+        const expiresAt = parseInt(parts[2])
+        if (Date.now() > expiresAt) {
+          return NextResponse.json({ error: 'Quick access token har upphört' }, { status: 401 })
+        }
+      }
     } catch {
       return NextResponse.json({ error: 'Ogiltig session' }, { status: 401 })
     }
@@ -40,6 +49,16 @@ export async function GET(request: NextRequest) {
       .single()
 
     if (error || !customer) {
+      // För test-customers, skapa mock data
+      if (customerId === 'test-marc-zorjan') {
+        const testCustomer = {
+          id: 'test-marc-zorjan',
+          name: 'Marc Zorjan',
+          email: 'marc.zorjan@gotevent.se',
+          project: 'Götevent projekt'
+        }
+        return NextResponse.json({ customer: testCustomer })
+      }
       return NextResponse.json({ error: 'Session har upphört' }, { status: 401 })
     }
 

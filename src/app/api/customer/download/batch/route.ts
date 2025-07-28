@@ -27,7 +27,16 @@ async function verifyCustomerSession(request: NextRequest) {
   let customerId: string
   try {
     const decoded = Buffer.from(sessionToken, 'base64').toString()
-    customerId = decoded.split(':')[0]
+    const parts = decoded.split(':')
+    customerId = parts[0]
+    
+    // Kolla om det är en quick-access token med expiration
+    if (parts.length >= 3 && parts[1] === 'quick') {
+      const expiresAt = parseInt(parts[2])
+      if (Date.now() > expiresAt) {
+        throw new Error('Quick access token har upphört')
+      }
+    }
   } catch {
     throw new Error('Ogiltig session')
   }
@@ -40,6 +49,16 @@ async function verifyCustomerSession(request: NextRequest) {
     .single()
 
   if (error || !customer) {
+    // För test-customers, skapa mock data
+    if (customerId === 'test-marc-zorjan') {
+      return {
+        id: 'test-marc-zorjan',
+        name: 'Marc Zorjan',
+        email: 'marc.zorjan@gotevent.se',
+        project: 'Götevent projekt',
+        status: 'active'
+      }
+    }
     throw new Error('Session har upphört')
   }
 
@@ -48,18 +67,33 @@ async function verifyCustomerSession(request: NextRequest) {
 
 // POST /api/customer/download/batch - Batch nedladdning med automatisk ZIP
 export async function POST(request: NextRequest) {
+  const startTime = Date.now()
+  console.log(`[BATCH-DOWNLOAD] Starting batch download at ${new Date().toISOString()}`)
+  
   try {
     // Verifiera session
     const customer = await verifyCustomerSession(request)
     const customerId = customer.id
+    console.log(`[BATCH-DOWNLOAD] Customer verified: ${customer.email}`)
 
     const { fileIds } = await request.json()
+    console.log(`[BATCH-DOWNLOAD] Requested files: ${fileIds?.length || 0}`)
 
     if (!fileIds || !Array.isArray(fileIds) || fileIds.length === 0) {
+      console.log(`[BATCH-DOWNLOAD] Invalid fileIds: ${JSON.stringify(fileIds)}`)
       return NextResponse.json({ error: 'Filer krävs för batch-nedladdning' }, { status: 400 })
     }
 
+    // Begränsa till max 100 filer åt gången för att undvika timeout och minnesproblem
+    if (fileIds.length > 100) {
+      console.log(`[BATCH-DOWNLOAD] Too many files requested: ${fileIds.length} (max 100 per batch)`)
+      return NextResponse.json({ 
+        error: `För många filer (${fileIds.length}). Max 100 filer per nedladdning. Dela upp i mindre grupper.` 
+      }, { status: 400 })
+    }
+
     // Hämta alla filer och verifiera ägarskap
+    console.log(`[BATCH-DOWNLOAD] Fetching file metadata from database...`)
     const { data: files, error: filesError } = await supabaseAdmin
       .from('files')
       .select('id, customer_id, filename, original_name, file_type, file_size')
@@ -67,11 +101,14 @@ export async function POST(request: NextRequest) {
       .eq('customer_id', customerId)
 
     if (filesError || !files || files.length === 0) {
+      console.log(`[BATCH-DOWNLOAD] No files found or access denied. Error:`, filesError)
       return NextResponse.json(
         { error: 'Inga filer hittades eller åtkomst nekad' },
         { status: 404 }
       )
     }
+
+    console.log(`[BATCH-DOWNLOAD] Found ${files.length} files in database`)
 
     // Beräkna total storlek
     const totalSize = files.reduce((acc, file) => acc + (file.file_size || 0), 0)
@@ -126,31 +163,66 @@ export async function POST(request: NextRequest) {
     })
 
     // Lägg till alla filer i ZIP:en sekventiellt (undvik parallella requests till R2)
-    console.log(`Adding ${files.length} files to ZIP...`)
+    console.log(`[BATCH-DOWNLOAD] Adding ${files.length} files to ZIP...`)
+    let addedFiles = 0
+    let failedFiles = 0
+    
     for (const file of files) {
       try {
-        console.log(`Adding ${file.original_name} to ZIP...`)
+        const fileStartTime = Date.now()
+        console.log(`[BATCH-DOWNLOAD] [${addedFiles + 1}/${files.length}] Adding ${file.original_name} to ZIP...`)
+        
         const fileBuffer = await r2Service.getFile(file.filename)
         archive.append(fileBuffer, { name: file.original_name })
-        console.log(`Successfully added ${file.original_name} (${fileBuffer.length} bytes)`)
+        
+        const fileEndTime = Date.now()
+        addedFiles++
+        console.log(`[BATCH-DOWNLOAD] [${addedFiles}/${files.length}] Successfully added ${file.original_name} (${fileBuffer.length} bytes) in ${fileEndTime - fileStartTime}ms`)
+        
+        // Progress update every 10 files
+        if (addedFiles % 10 === 0) {
+          const elapsed = Date.now() - startTime
+          console.log(`[BATCH-DOWNLOAD] Progress: ${addedFiles}/${files.length} files (${((addedFiles/files.length)*100).toFixed(1)}%) in ${elapsed}ms`)
+        }
+        
       } catch (error) {
-        console.error(`Error adding file ${file.original_name}:`, error)
+        failedFiles++
+        console.error(`[BATCH-DOWNLOAD] Error adding file ${file.original_name}:`, error)
         // Fortsätt med andra filer även om en misslyckas
       }
     }
 
+    console.log(`[BATCH-DOWNLOAD] Completed adding files: ${addedFiles} successful, ${failedFiles} failed`)
+
     // Finalisera ZIP:en
-    console.log('Finalizing ZIP archive...')
+    console.log(`[BATCH-DOWNLOAD] Finalizing ZIP archive...`)
     archive.finalize()
 
-    // Vänta på att ZIP:en ska bli klar
-    while (!archiveFinished) {
+    // Vänta på att ZIP:en ska bli klar med timeout
+    console.log(`[BATCH-DOWNLOAD] Waiting for ZIP finalization...`)
+    let waitTime = 0
+    const maxWaitTime = 30000 // 30 seconds max wait for finalization
+    
+    while (!archiveFinished && waitTime < maxWaitTime) {
       await new Promise(resolve => setTimeout(resolve, 100))
+      waitTime += 100
+    }
+
+    if (!archiveFinished) {
+      console.error(`[BATCH-DOWNLOAD] ZIP finalization timeout after ${maxWaitTime}ms`)
+      throw new Error('ZIP creation timeout')
     }
 
     // Kombinera alla chunks
     const zipBuffer = Buffer.concat(chunks)
-    console.log(`ZIP created successfully, size: ${zipBuffer.length} bytes`)
+    const endTime = Date.now()
+    const totalTime = endTime - startTime
+    
+    console.log(`[BATCH-DOWNLOAD] ZIP created successfully:`)
+    console.log(`[BATCH-DOWNLOAD] - Files: ${addedFiles}/${files.length} (${failedFiles} failed)`)
+    console.log(`[BATCH-DOWNLOAD] - ZIP size: ${zipBuffer.length} bytes (${(zipBuffer.length / 1024 / 1024).toFixed(2)} MB)`)
+    console.log(`[BATCH-DOWNLOAD] - Total time: ${totalTime}ms (${(totalTime / 1000).toFixed(1)}s)`)
+    console.log(`[BATCH-DOWNLOAD] - Average per file: ${(totalTime / files.length).toFixed(0)}ms`)
 
     return new NextResponse(zipBuffer, {
       headers: {
@@ -162,11 +234,18 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error: any) {
-    console.error('Batch download API error:', error)
+    const endTime = Date.now()
+    const totalTime = endTime - startTime
+    console.error(`[BATCH-DOWNLOAD] ERROR after ${totalTime}ms:`, error)
     
     // Hantera session-fel specifikt
     if (error.message?.includes('session') || error.message?.includes('Session')) {
       return NextResponse.json({ error: error.message }, { status: 401 })
+    }
+    
+    // Hantera timeout-fel
+    if (error.message?.includes('timeout')) {
+      return NextResponse.json({ error: 'ZIP-skapandet tog för lång tid. Försök med färre filer.' }, { status: 408 })
     }
     
     return NextResponse.json(

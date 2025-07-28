@@ -151,6 +151,67 @@ export default function QuickPortalPage() {
   const downloadAll = async () => {
     if (files.length === 0) return
     
+    // För stora batch-requests (>100 filer), dela upp i mindre delar
+    if (files.length > 100) {
+      const confirmLarge = confirm(
+        `Du vill ladda ner ${files.length} filer. Detta kommer att delas upp i ${Math.ceil(files.length / 100)} separata ZIP-filer. Fortsätt?`
+      )
+      if (!confirmLarge) return
+      
+      // Dela upp i grupper om 100 filer
+      const chunks = []
+      for (let i = 0; i < files.length; i += 100) {
+        chunks.push(files.slice(i, i + 100))
+      }
+      
+      // Ladda ner varje grupp
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i]
+        try {
+          console.log(`[QUICK-DOWNLOAD] Downloading chunk ${i + 1}/${chunks.length} with ${chunk.length} files`)
+          
+          const response = await fetch('/api/customer/download/batch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fileIds: chunk.map(f => f.id) })
+          })
+
+          if (response.ok) {
+            const blob = await response.blob()
+            const contentDisposition = response.headers.get('Content-Disposition')
+            const filename = contentDisposition?.match(/filename="(.+)"/)?.[1] || `${customer?.project || 'files'}_part_${i + 1}.zip`
+            
+            const url = window.URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = filename
+            a.style.display = 'none'
+            
+            document.body.appendChild(a)
+            a.click()
+            document.body.removeChild(a)
+            window.URL.revokeObjectURL(url)
+            
+            console.log(`[QUICK-DOWNLOAD] Downloaded chunk ${i + 1}/${chunks.length} successfully`)
+            
+            // Kort paus mellan nedladdningar
+            if (i < chunks.length - 1) {
+              await new Promise(resolve => setTimeout(resolve, 1000))
+            }
+          } else {
+            const errorData = await response.json()
+            console.error(`Chunk ${i + 1} download failed:`, errorData)
+            alert(`Fel vid nedladdning av del ${i + 1}: ${errorData.error || 'Okänt fel'}`)
+          }
+        } catch (error) {
+          console.error(`Chunk ${i + 1} download error:`, error)
+          alert(`Ett fel uppstod vid nedladdning av del ${i + 1}`)
+        }
+      }
+      return
+    }
+    
+    // Normal batch download för ≤100 filer
     try {
       const fileIds = files.map(f => f.id)
       const response = await fetch('/api/customer/download/batch', {
@@ -160,21 +221,26 @@ export default function QuickPortalPage() {
       })
       
       if (!response.ok) {
-        throw new Error('Batch-nedladdning misslyckades')
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Batch-nedladdning misslyckades')
       }
 
       const blob = await response.blob()
+      const contentDisposition = response.headers.get('Content-Disposition')
+      const filename = contentDisposition?.match(/filename="(.+)"/)?.[1] || `${customer?.project || 'files'}_alla_filer.zip`
+      
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `${customer?.project || 'files'}_alla_filer.zip`
+      a.download = filename
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
     } catch (error) {
       console.error('Batch download error:', error)
-      alert('Kunde inte ladda ner alla filer')
+      const errorMessage = error instanceof Error ? error.message : 'Okänt fel'
+      alert(`Kunde inte ladda ner alla filer: ${errorMessage}`)
     }
   }
 

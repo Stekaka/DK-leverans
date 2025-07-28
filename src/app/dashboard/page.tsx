@@ -238,6 +238,69 @@ export default function DashboardPage() {
     if (selectedFiles.length === 1) {
       await downloadFile(selectedFiles[0])
     } else {
+      // För stora batch-requests (>100 filer), dela upp i mindre delar
+      if (selectedFiles.length > 100) {
+        const confirmLarge = confirm(
+          `Du har valt ${selectedFiles.length} filer. Detta kommer att delas upp i ${Math.ceil(selectedFiles.length / 100)} separata ZIP-filer. Fortsätt?`
+        )
+        if (!confirmLarge) return
+        
+        // Dela upp i grupper om 100 filer
+        const chunks = []
+        for (let i = 0; i < selectedFiles.length; i += 100) {
+          chunks.push(selectedFiles.slice(i, i + 100))
+        }
+        
+        // Ladda ner varje grupp
+        for (let i = 0; i < chunks.length; i++) {
+          const chunk = chunks[i]
+          try {
+            console.log(`Downloading chunk ${i + 1}/${chunks.length} with ${chunk.length} files`)
+            
+            const response = await fetch('/api/customer/download/batch', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ fileIds: chunk.map(f => f.id) })
+            })
+
+            if (response.ok) {
+              const blob = await response.blob()
+              const contentDisposition = response.headers.get('Content-Disposition')
+              const filename = contentDisposition?.match(/filename="(.+)"/)?.[1] || `files_part_${i + 1}_${new Date().getTime()}.zip`
+              
+              const url = window.URL.createObjectURL(blob)
+              const link = document.createElement('a')
+              link.href = url
+              link.download = filename
+              link.style.display = 'none'
+              
+              document.body.appendChild(link)
+              link.click()
+              document.body.removeChild(link)
+              window.URL.revokeObjectURL(url)
+              
+              console.log(`Downloaded chunk ${i + 1}/${chunks.length} successfully`)
+              
+              // Kort paus mellan nedladdningar
+              if (i < chunks.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 1000))
+              }
+            } else {
+              const errorData = await response.json()
+              console.error(`Chunk ${i + 1} download failed:`, errorData)
+              alert(`Fel vid nedladdning av del ${i + 1}: ${errorData.error || 'Okänt fel'}`)
+            }
+          } catch (error) {
+            console.error(`Chunk ${i + 1} download error:`, error)
+            alert(`Ett fel uppstod vid nedladdning av del ${i + 1}`)
+          }
+        }
+        
+        setSelectedItems([])
+        return
+      }
+      
+      // Normal batch download för ≤100 filer
       try {
         console.log('Starting batch download for files:', selectedFiles.map(f => f.id))
         
@@ -294,6 +357,67 @@ export default function DashboardPage() {
     if (filteredFiles.length === 1) {
       await downloadFile(filteredFiles[0])
     } else {
+      // För stora batch-requests (>100 filer), dela upp i mindre delar
+      if (filteredFiles.length > 100) {
+        const confirmLarge = confirm(
+          `Du vill ladda ner ${filteredFiles.length} filer. Detta kommer att delas upp i ${Math.ceil(filteredFiles.length / 100)} separata ZIP-filer. Fortsätt?`
+        )
+        if (!confirmLarge) return
+        
+        // Dela upp i grupper om 100 filer
+        const chunks = []
+        for (let i = 0; i < filteredFiles.length; i += 100) {
+          chunks.push(filteredFiles.slice(i, i + 100))
+        }
+        
+        // Ladda ner varje grupp
+        for (let i = 0; i < chunks.length; i++) {
+          const chunk = chunks[i]
+          try {
+            console.log(`Downloading chunk ${i + 1}/${chunks.length} with ${chunk.length} files`)
+            
+            const response = await fetch('/api/customer/download/batch', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ fileIds: chunk.map(f => f.id) })
+            })
+
+            if (response.ok) {
+              const blob = await response.blob()
+              const contentDisposition = response.headers.get('Content-Disposition')
+              const filename = contentDisposition?.match(/filename="(.+)"/)?.[1] || `all_files_part_${i + 1}_${new Date().getTime()}.zip`
+              
+              const url = window.URL.createObjectURL(blob)
+              const link = document.createElement('a')
+              link.href = url
+              link.download = filename
+              link.style.display = 'none'
+              
+              document.body.appendChild(link)
+              link.click()
+              document.body.removeChild(link)
+              window.URL.revokeObjectURL(url)
+              
+              console.log(`Downloaded chunk ${i + 1}/${chunks.length} successfully`)
+              
+              // Kort paus mellan nedladdningar
+              if (i < chunks.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 1000))
+              }
+            } else {
+              const errorData = await response.json()
+              console.error(`Chunk ${i + 1} download failed:`, errorData)
+              alert(`Fel vid nedladdning av del ${i + 1}: ${errorData.error || 'Okänt fel'}`)
+            }
+          } catch (error) {
+            console.error(`Chunk ${i + 1} download error:`, error)
+            alert(`Ett fel uppstod vid nedladdning av del ${i + 1}`)
+          }
+        }
+        return
+      }
+      
+      // Normal batch download för ≤100 filer
       try {
         const response = await fetch('/api/customer/download/batch', {
           method: 'POST',
@@ -788,14 +912,16 @@ export default function DashboardPage() {
               </div>
               <div className="flex-1">
                 <h3 className="text-base sm:text-lg font-semibold text-yellow-800 dark:text-yellow-200 mb-1">
-                  Smart ZIP-nedladdning aktiverad
+                  {filteredFiles.length > 100 ? 'Stor nedladdning - automatisk uppdelning' : 'Smart ZIP-nedladdning aktiverad'}
                 </h3>
                 <p className="text-yellow-700 dark:text-yellow-300 text-sm">
-                  {filteredFiles.length > 10 ? 
+                  {filteredFiles.length > 100 ? (
+                    <>Med {filteredFiles.length} filer kommer nedladdningen automatiskt att delas upp i {Math.ceil(filteredFiles.length / 100)} separata ZIP-filer (max 100 filer per ZIP). Detta förbättrar prestanda och tillförlitlighet.</>
+                  ) : filteredFiles.length > 10 ? 
                     `Med ${filteredFiles.length} filer kommer de automatiskt att zippas för enklare nedladdning.` :
                     `Med ${formattedTotalSize} kommer filerna automatiskt att zippas för snabbare nedladdning.`
                   }
-                  {" "}ZIP aktiveras automatiskt för {'>'}10 filer eller {'>'}5GB total storlek.
+                  {" "}ZIP aktiveras automatiskt för {'>'}{filteredFiles.length > 100 ? '10' : '10'} filer eller {'>'}5GB total storlek.
                 </p>
               </div>
             </div>
