@@ -66,6 +66,7 @@ async function verifyCustomerSession(request: NextRequest) {
 }
 
 // POST /api/customer/download/batch - Batch nedladdning med automatisk ZIP
+// Force deployment: 2025-07-28 10:40
 export async function POST(request: NextRequest) {
   const startTime = Date.now()
   console.log(`[BATCH-DOWNLOAD] Starting batch download at ${new Date().toISOString()}`)
