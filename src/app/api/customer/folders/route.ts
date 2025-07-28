@@ -135,8 +135,11 @@ export async function GET(request: NextRequest) {
 
     console.log(`Folders API: Found ${folders.length} folders in "${parentPath}"`)
 
+    // Extract just the folder names as strings for React compatibility
+    const folderNames = folders.map(folder => folder.name)
+
     const response = NextResponse.json({
-      folders,
+      folders: folderNames,
       parent: parentPath,
       sortBy,
       sortOrder,
