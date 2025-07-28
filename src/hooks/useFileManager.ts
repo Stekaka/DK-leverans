@@ -32,8 +32,8 @@ export const useFileManager = (customerId?: string) => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
-  // Cache för att förbättra prestanda
-  const [cache, setCache] = useState<Map<string, any>>(new Map())
+  // Cache för att förbättra prestanda (endast primitiva värden)
+  const [cache, setCache] = useState<Record<string, any>>({})
 
   const loadFiles = useCallback(async (
     folderPath = '', 
@@ -46,8 +46,8 @@ export const useFileManager = (customerId?: string) => {
     const cacheKey = `files-${folderPath}-${viewMode}-${sortBy}-${sortOrder}`
     
     // Kolla cache först
-    if (cache.has(cacheKey)) {
-      const cachedData = cache.get(cacheKey)
+    if (cache[cacheKey]) {
+      const cachedData = cache[cacheKey]
       if (Date.now() - cachedData.timestamp < 10000) { // 10 sekunder cache
         setFiles(cachedData.files)
         return
@@ -75,9 +75,12 @@ export const useFileManager = (customerId?: string) => {
       setFiles(data.files || [])
       
       // Uppdatera cache
-      setCache(prev => new Map(prev).set(cacheKey, {
-        files: data.files || [],
-        timestamp: Date.now()
+      setCache(prev => ({
+        ...prev,
+        [cacheKey]: {
+          files: data.files || [],
+          timestamp: Date.now()
+        }
       }))
       
     } catch (err) {
@@ -94,8 +97,8 @@ export const useFileManager = (customerId?: string) => {
     const cacheKey = `folders-${parentPath}-${sortBy}-${sortOrder}`
     
     // Kolla cache först
-    if (cache.has(cacheKey)) {
-      const cachedData = cache.get(cacheKey)
+    if (cache[cacheKey]) {
+      const cachedData = cache[cacheKey]
       if (Date.now() - cachedData.timestamp < 10000) { // 10 sekunder cache
         setFolders(cachedData.folders)
         return
@@ -122,9 +125,12 @@ export const useFileManager = (customerId?: string) => {
       setFolders(data.folders || [])
       
       // Uppdatera cache
-      setCache(prev => new Map(prev).set(cacheKey, {
-        folders: data.folders || [],
-        timestamp: Date.now()
+      setCache(prev => ({
+        ...prev,
+        [cacheKey]: {
+          folders: data.folders || [],
+          timestamp: Date.now()
+        }
       }))
       
     } catch (err) {
@@ -152,7 +158,7 @@ export const useFileManager = (customerId?: string) => {
       }
       
       // Rensa cache för att tvinga om-laddning
-      setCache(new Map())
+      setCache({})
       
       return true
     } catch (err) {
@@ -181,7 +187,7 @@ export const useFileManager = (customerId?: string) => {
       setFiles(prev => prev.filter(f => f.id !== fileId))
       
       // Rensa cache
-      setCache(new Map())
+      setCache({})
       
       return true
     } catch (err) {
@@ -210,7 +216,7 @@ export const useFileManager = (customerId?: string) => {
       setFiles(prev => prev.filter(f => f.id !== fileId))
       
       // Rensa cache
-      setCache(new Map())
+      setCache({})
       
       return true
     } catch (err) {
@@ -221,7 +227,7 @@ export const useFileManager = (customerId?: string) => {
   }, [])
 
   const clearCache = useCallback(() => {
-    setCache(new Map())
+    setCache({})
   }, [])
 
   return {
