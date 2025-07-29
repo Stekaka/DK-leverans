@@ -289,7 +289,7 @@ export default function DashboardPage() {
         downloadableFiles,
         zipName,
         onProgress,
-        6, // Parallellism: 6 filer samtidigt
+        2, // Minska parallelism till 2 för att undvika server-överbelastning
         customer?.id // Skicka med customer ID för authentication
       )
 

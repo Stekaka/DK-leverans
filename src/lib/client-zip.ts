@@ -13,6 +13,51 @@ export interface DownloadProgress {
 }
 
 /**
+ * Semaphore för att begränsa samtidiga operationer
+ */
+class Semaphore {
+  private permits: number
+  private queue: Array<(value: unknown) => void> = []
+
+  constructor(permits: number) {
+    this.permits = permits
+  }
+
+  async acquire<T>(task: () => Promise<T>): Promise<T> {
+    if (this.permits > 0) {
+      this.permits--
+      try {
+        return await task()
+      } finally {
+        this.release()
+      }
+    }
+
+    return new Promise((resolve, reject) => {
+      this.queue.push(async () => {
+        try {
+          const result = await task()
+          resolve(result)
+        } catch (error) {
+          reject(error)
+        } finally {
+          this.release()
+        }
+      })
+    })
+  }
+
+  private release(): void {
+    this.permits++
+    if (this.queue.length > 0) {
+      this.permits--
+      const next = this.queue.shift()
+      if (next) next(undefined)
+    }
+  }
+}
+
+/**
  * Client-side ZIP creation för stora nedladdningar
  * Laddar ner filer parallellt och skapar ZIP lokalt i webbläsaren
  */
@@ -40,7 +85,7 @@ export class ClientZipCreator {
       console.log(`🚀 CLIENT-ZIP: Starting download of ${files.length} files`)
       
       // Fase 1: Ladda ner alla filer och lägg till i ZIP
-      await this.downloadAndAddFiles(files, onProgress, concurrency, customerId)
+      await this.downloadAndAddFiles(files, onProgress, 2, customerId) // Minska till 2 samtidiga
       
       // Fas 2: Skapa ZIP-blob
       if (onProgress) onProgress(95, files.length, files.length, 'Skapar ZIP-fil...')
@@ -67,52 +112,44 @@ export class ClientZipCreator {
   }
 
   /**
-   * Ladda ner filer parallellt och lägg till i ZIP
+   * Ladda ner filer med begränsad parallelism och retry-logik
    */
   private async downloadAndAddFiles(
     files: Array<{ id: string; original_name: string; download_url: string | null }>,
     onProgress?: ProgressCallback,
-    concurrency: number = 6,
+    concurrency: number = 2, // Minska till 2 samtidiga downloads
     customerId?: string
   ): Promise<void> {
-    const downloadPromises: Promise<void>[] = []
     let completedCount = 0
+    const semaphore = new Semaphore(concurrency)
 
-    // Skapa download-chunks för parallelism
-    for (let i = 0; i < files.length; i += concurrency) {
-      const chunk = files.slice(i, i + concurrency)
+    // Dela upp filer i småre batches för att inte överbelasta servern
+    const batchSize = 10
+    for (let batchStart = 0; batchStart < files.length; batchStart += batchSize) {
+      const batch = files.slice(batchStart, Math.min(batchStart + batchSize, files.length))
       
-      const chunkPromises = chunk.map(async (file) => {
-        try {
-          console.log(`📥 CLIENT-ZIP: Downloading ${file.original_name}`)
-          
-          // Skapa URL med customer_id som query parameter
-          let downloadUrl = `/api/customer/files/${file.id}/download`
-          if (customerId) {
-            downloadUrl += `?customer_id=${encodeURIComponent(customerId)}`
-          }
-          
-          console.log(`🔗 CLIENT-ZIP: Using download URL: ${downloadUrl}`)
-          console.log(`🔗 CLIENT-ZIP: customer_id: ${customerId}`)
-          console.log(`🔗 CLIENT-ZIP: file.id: ${file.id}`)
-          
-          // Använd vårt API som proxy istället för direkt R2-access
-          const response = await fetch(downloadUrl, {
-            method: 'GET',
-            credentials: 'include', // Inkludera cookies för authentication
-            signal: this.abortController?.signal
-          })
+      console.log(`🔄 CLIENT-ZIP: Processing batch ${Math.floor(batchStart / batchSize) + 1}/${Math.ceil(files.length / batchSize)} (${batch.length} files)`)
+      
+      // Skapa alla download-promises för denna batch
+      const downloadPromises = batch.map(async (file) => {
+        return semaphore.acquire(async () => {
+          return this.downloadFileWithRetry(file, customerId, 3, 2000) // 3 försök, 2s väntan
+        })
+      })
 
-          if (!response.ok) {
-            throw new Error(`Failed to download ${file.original_name}: ${response.status} ${response.statusText}`)
-          }
-
-          const fileBlob = await response.blob()
-          
-          // Lägg till filen i ZIP:en
+      // Vänta på alla nedladdningar i denna batch
+      const results = await Promise.allSettled(downloadPromises)
+      
+      // Lägg till framgångsrika filer i ZIP och hantera progress
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i]
+        const file = batch[i]
+        
+        if (result.status === 'fulfilled') {
+          const fileBlob = result.value
           this.zip.file(file.original_name, fileBlob)
-          
           completedCount++
+          
           const progress = Math.round((completedCount / files.length) * 90) // 90% för download-fasen
           
           if (onProgress) {
@@ -120,18 +157,74 @@ export class ClientZipCreator {
           }
 
           console.log(`✅ CLIENT-ZIP: Added ${file.original_name} to ZIP (${completedCount}/${files.length})`)
-          
-        } catch (error) {
-          console.error(`❌ CLIENT-ZIP: Failed to download ${file.original_name}:`, error)
-          throw error
+        } else {
+          console.error(`❌ CLIENT-ZIP: Failed to download ${file.original_name}:`, result.reason)
+          throw new Error(`Failed to download ${file.original_name}: ${result.reason.message}`)
         }
-      })
-
-      downloadPromises.push(...chunkPromises)
+      }
       
-      // Vänta på att denna chunk ska slutföras innan vi startar nästa
-      await Promise.all(chunkPromises)
+      // Liten paus mellan batches för att inte överbelasta servern
+      if (batchStart + batchSize < files.length) {
+        console.log('⏱️ CLIENT-ZIP: Brief pause between batches...')
+        await new Promise(resolve => setTimeout(resolve, 500)) // 500ms paus
+      }
     }
+  }
+
+  /**
+   * Ladda ner en fil med retry-logik
+   */
+  private async downloadFileWithRetry(
+    file: { id: string; original_name: string; download_url: string | null },
+    customerId?: string,
+    maxRetries: number = 3,
+    retryDelay: number = 1000
+  ): Promise<Blob> {
+    let lastError: Error | null = null
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`📥 CLIENT-ZIP: Downloading ${file.original_name} (attempt ${attempt}/${maxRetries})`)
+        
+        // Skapa URL med customer_id som query parameter
+        let downloadUrl = `/api/customer/files/${file.id}/download`
+        if (customerId) {
+          downloadUrl += `?customer_id=${encodeURIComponent(customerId)}`
+        }
+        
+        console.log(`🔗 CLIENT-ZIP: Using download URL: ${downloadUrl}`)
+        
+        // Använd vårt API som proxy istället för direkt R2-access
+        const response = await fetch(downloadUrl, {
+          method: 'GET',
+          credentials: 'include', // Inkludera cookies för authentication
+          signal: this.abortController?.signal
+        })
+
+        if (!response.ok) {
+          const errorMsg = `HTTP ${response.status}: ${response.statusText}`
+          throw new Error(errorMsg)
+        }
+
+        const fileBlob = await response.blob()
+        console.log(`✅ CLIENT-ZIP: Downloaded ${file.original_name} (${(fileBlob.size / (1024 * 1024)).toFixed(1)} MB)`)
+        
+        return fileBlob
+        
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error))
+        console.warn(`⚠️ CLIENT-ZIP: Attempt ${attempt}/${maxRetries} failed for ${file.original_name}:`, lastError.message)
+        
+        // Om det inte är sista försöket, vänta innan retry
+        if (attempt < maxRetries) {
+          const delay = retryDelay * attempt // Exponential backoff
+          console.log(`⏱️ CLIENT-ZIP: Waiting ${delay}ms before retry...`)
+          await new Promise(resolve => setTimeout(resolve, delay))
+        }
+      }
+    }
+    
+    throw lastError || new Error(`Failed to download ${file.original_name} after ${maxRetries} attempts`)
   }
 
   /**
