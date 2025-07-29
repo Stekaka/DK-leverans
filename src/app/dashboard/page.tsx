@@ -54,6 +54,7 @@ export default function DashboardPage() {
     current: 0, total: 0, fileName: '', phase: 'downloading' as 'downloading' | 'creating' | 'saving' 
   })
   const [clientZipCreator, setClientZipCreator] = useState<ClientZipCreator | null>(null)
+  const [isDownloadMinimized, setIsDownloadMinimized] = useState(false)
 
   const router = useRouter()
 
@@ -307,6 +308,7 @@ export default function DashboardPage() {
       setIsCreatingClientZip(false)
       setClientZipCreator(null)
       setClientZipProgress({ current: 0, total: 0, fileName: '', phase: 'downloading' })
+      setIsDownloadMinimized(false) // Reset minimized state
     }
   }
 
@@ -317,6 +319,7 @@ export default function DashboardPage() {
       setIsCreatingClientZip(false)
       setClientZipCreator(null)
       setClientZipProgress({ current: 0, total: 0, fileName: '', phase: 'downloading' })
+      setIsDownloadMinimized(false) // Reset minimized state
     }
   }
 
@@ -737,77 +740,153 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {/* Client-Side ZIP Progress Overlay */}
-      {isCreatingClientZip && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-slate-800 rounded-xl p-8 max-w-md w-full mx-4 shadow-2xl border">
-            <div className="text-center">
-              <div className="mb-6">
-                <div className="relative w-24 h-24 mx-auto mb-4">
-                  <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 36 36">
-                    <path
-                      className="text-gray-200 dark:text-gray-600"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      fill="transparent"
-                      strokeDasharray="100,100"
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                    />
-                    <path
-                      className="text-yellow-500"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      fill="transparent"
-                      strokeDasharray={`${Math.round((clientZipProgress.current / clientZipProgress.total) * 100)},100`}
-                      strokeLinecap="round"
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-xl font-bold text-yellow-600 dark:text-yellow-400">
-                      {clientZipProgress.total > 0 ? Math.round((clientZipProgress.current / clientZipProgress.total) * 100) : 0}%
-                    </span>
+        {/* Minimized Download Widget */}
+        {isCreatingClientZip && (
+          <div className="fixed top-4 right-4 z-50 max-w-xs w-full">
+            <div className={`rounded-xl shadow-2xl border backdrop-blur-sm transition-all duration-300 ${
+              theme === 'dark'
+                ? 'bg-slate-800/95 border-slate-700'
+                : 'bg-white/95 border-gray-200'
+            } ${isDownloadMinimized ? 'transform scale-95' : ''}`}>
+              
+              {isDownloadMinimized ? (
+                /* Minimized View */
+                <div className="p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">
+                        ZIP ({clientZipProgress.total > 0 ? Math.round((clientZipProgress.current / clientZipProgress.total) * 100) : 0}%)
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <button
+                        onClick={() => setIsDownloadMinimized(false)}
+                        className="p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded transition-colors"
+                        title="Expandera"
+                      >
+                        <svg className="w-3 h-3 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={cancelClientZip}
+                        className="p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded transition-colors"
+                        title="Avbryt"
+                      >
+                        <svg className="w-3 h-3 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  {/* Mini progress bar */}
+                  <div className={`w-full h-1 rounded-full overflow-hidden mt-2 ${
+                    theme === 'dark' ? 'bg-slate-700' : 'bg-gray-200'
+                  }`}>
+                    <div 
+                      className="h-full bg-gradient-to-r from-yellow-500 to-yellow-400 transition-all duration-300"
+                      style={{ 
+                        width: `${clientZipProgress.total > 0 ? Math.round((clientZipProgress.current / clientZipProgress.total) * 100) : 0}%` 
+                      }}
+                    ></div>
                   </div>
                 </div>
-                
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                  🗜️ Skapar ZIP-fil
-                </h3>
-                
-                <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
-                  <p>
-                    <span className="font-medium">Status:</span>{' '}
-                    {clientZipProgress.phase === 'downloading' && '📥 Laddar ner filer'}
-                    {clientZipProgress.phase === 'creating' && '📦 Skapar ZIP-fil'}
-                    {clientZipProgress.phase === 'saving' && '💾 Sparar ZIP-fil'}
-                  </p>
-                  
-                  <p>
-                    <span className="font-medium">Progress:</span>{' '}
-                    {clientZipProgress.current} av {clientZipProgress.total} filer
-                  </p>
-                  
+              ) : (
+                /* Expanded View */
+                <div className="p-4">
+                  {/* Header with minimize/close */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse"></div>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">
+                        ZIP Download
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <button
+                        onClick={() => setIsDownloadMinimized(true)}
+                        className="p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded transition-colors"
+                        title="Minimera"
+                      >
+                        <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={cancelClientZip}
+                        className="p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded transition-colors"
+                        title="Avbryt nedladdning"
+                      >
+                        <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="mb-3">
+                    <div className={`w-full h-2 rounded-full overflow-hidden ${
+                      theme === 'dark' ? 'bg-slate-700' : 'bg-gray-200'
+                    }`}>
+                      <div 
+                        className="h-full bg-gradient-to-r from-yellow-500 to-yellow-400 transition-all duration-300 ease-out"
+                        style={{ 
+                          width: `${clientZipProgress.total > 0 ? Math.round((clientZipProgress.current / clientZipProgress.total) * 100) : 0}%` 
+                        }}
+                      ></div>
+                    </div>
+                    <div className="flex justify-between items-center mt-1">
+                      <span className="text-xs font-medium text-yellow-600 dark:text-yellow-400">
+                        {clientZipProgress.total > 0 ? Math.round((clientZipProgress.current / clientZipProgress.total) * 100) : 0}%
+                      </span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {clientZipProgress.current} / {clientZipProgress.total}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Status */}
+                  <div className="text-xs text-gray-600 dark:text-gray-300 mb-2">
+                    {clientZipProgress.phase === 'downloading' && (
+                      <div className="flex items-center space-x-1">
+                        <svg className="w-3 h-3 text-blue-500 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Laddar ner filer...</span>
+                      </div>
+                    )}
+                    {clientZipProgress.phase === 'creating' && (
+                      <div className="flex items-center space-x-1">
+                        <svg className="w-3 h-3 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                        </svg>
+                        <span>Skapar ZIP-fil...</span>
+                      </div>
+                    )}
+                    {clientZipProgress.phase === 'saving' && (
+                      <div className="flex items-center space-x-1">
+                        <svg className="w-3 h-3 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5v5.586l-1.293-1.293zM9 4a1 1 0 012 0v2H9V4z" />
+                        </svg>
+                        <span>Sparar fil...</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Current file (truncated) */}
                   {clientZipProgress.fileName && (
-                    <p className="truncate" title={clientZipProgress.fileName}>
-                      <span className="font-medium">Aktuell:</span>{' '}
+                    <div className="text-xs text-gray-500 dark:text-gray-400 truncate" title={clientZipProgress.fileName}>
                       {clientZipProgress.fileName}
-                    </p>
+                    </div>
                   )}
                 </div>
-              </div>
-              
-              <button
-                onClick={cancelClientZip}
-                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors"
-              >
-                Avbryt
-              </button>
+              )}
             </div>
           </div>
-        </div>
-      )}
-
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
+        )}      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
         {/* Access Status Banner */}
         {accessInfo && (
           <div className="mb-6">
