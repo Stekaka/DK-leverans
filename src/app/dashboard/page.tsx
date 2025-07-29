@@ -294,7 +294,7 @@ export default function DashboardPage() {
         downloadableFiles,
         zipName,
         onProgress,
-        2, // Minska parallelism till 2 för att undvika server-överbelastning
+        1, // Minska parallelism till 1 för maximal stabilitet
         customer?.id // Skicka med customer ID för authentication
       )
 
@@ -337,6 +337,12 @@ export default function DashboardPage() {
   }
 
   const downloadSelected = async () => {
+    // Förhindra parallella nedladdningar
+    if (isCreatingClientZip) {
+      alert('En nedladdning pågår redan. Vänta tills den är klar.')
+      return
+    }
+
     const selectedFiles = filteredFiles.filter(file => selectedItems.includes(file.id))
     
     if (selectedFiles.length === 0) {
@@ -377,6 +383,12 @@ export default function DashboardPage() {
   }
 
   const downloadAll = async () => {
+    // Förhindra parallella nedladdningar
+    if (isCreatingClientZip) {
+      alert('En nedladdning pågår redan. Vänta tills den är klar.')
+      return
+    }
+
     if (filteredFiles.length === 0) {
       alert('Inga filer att ladda ner')
       return

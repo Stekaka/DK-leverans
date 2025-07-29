@@ -135,14 +135,14 @@ export class ClientZipCreator {
   private async downloadAndAddFiles(
     files: Array<{ id: string; original_name: string; download_url: string | null }>,
     onProgress?: ProgressCallback,
-    concurrency: number = 2, // Minska till 2 samtidiga downloads
+    concurrency: number = 1, // Minska till 1 samtidig download för stabilitet
     customerId?: string
   ): Promise<void> {
     let completedCount = 0
     const semaphore = new Semaphore(concurrency)
 
     // Dela upp filer i småre batches för att inte överbelasta servern
-    const batchSize = 10
+    const batchSize = 5 // Minska batch size
     for (let batchStart = 0; batchStart < files.length; batchStart += batchSize) {
       const batch = files.slice(batchStart, Math.min(batchStart + batchSize, files.length))
       
@@ -151,7 +151,7 @@ export class ClientZipCreator {
       // Skapa alla download-promises för denna batch
       const downloadPromises = batch.map(async (file) => {
         return semaphore.acquire(async () => {
-          return this.downloadFileWithRetry(file, customerId, 3, 2000) // 3 försök, 2s väntan
+          return this.downloadFileWithRetry(file, customerId, 3, 3000) // 3 försök, 3s väntan
         })
       })
 
@@ -196,10 +196,10 @@ export class ClientZipCreator {
         }
       }
       
-      // Liten paus mellan batches för att inte överbelasta servern
+      // Längre paus mellan batches för att inte överbelasta servern
       if (batchStart + batchSize < files.length) {
         console.log('⏱️ CLIENT-ZIP: Brief pause between batches...')
-        await new Promise(resolve => setTimeout(resolve, 500)) // 500ms paus
+        await new Promise(resolve => setTimeout(resolve, 1000)) // 1s paus
       }
     }
   }
@@ -227,25 +227,56 @@ export class ClientZipCreator {
         
         console.log(`🔗 CLIENT-ZIP: Using download URL: ${downloadUrl}`)
         
-        // Använd vårt API som proxy istället för direkt R2-access
-        const response = await fetch(downloadUrl, {
-          method: 'GET',
-          credentials: 'include', // Inkludera cookies för authentication
-          signal: this.abortController?.signal
-        })
-
-        if (!response.ok) {
-          const errorMsg = `HTTP ${response.status}: ${response.statusText}`
-          throw new Error(errorMsg)
-        }
-
-        const fileBlob = await response.blob()
-        console.log(`✅ CLIENT-ZIP: Downloaded ${file.original_name} (${(fileBlob.size / (1024 * 1024)).toFixed(1)} MB)`)
+        // Skapa en separat AbortController för varje försök med timeout
+        const timeoutController = new AbortController()
+        const timeoutId = setTimeout(() => {
+          timeoutController.abort()
+        }, 60000) // 60 sekunders timeout per försök
         
-        return fileBlob
+        // Kombinera user abort och timeout abort
+        const abortHandler = () => timeoutController.abort()
+        this.abortController?.signal.addEventListener('abort', abortHandler)
+        
+        try {
+          // Använd vårt API som proxy istället för direkt R2-access
+          const response = await fetch(downloadUrl, {
+            method: 'GET',
+            credentials: 'include', // Inkludera cookies för authentication
+            signal: timeoutController.signal
+          })
+
+          if (!response.ok) {
+            const errorText = await response.text().catch(() => 'Unknown error')
+            const errorMsg = `HTTP ${response.status}: ${response.statusText} - ${errorText}`
+            throw new Error(errorMsg)
+          }
+
+          const fileBlob = await response.blob()
+          console.log(`✅ CLIENT-ZIP: Downloaded ${file.original_name} (${(fileBlob.size / (1024 * 1024)).toFixed(1)} MB)`)
+          
+          clearTimeout(timeoutId)
+          this.abortController?.signal.removeEventListener('abort', abortHandler)
+          
+          return fileBlob
+        } finally {
+          clearTimeout(timeoutId)
+          this.abortController?.signal.removeEventListener('abort', abortHandler)
+        }
         
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error))
+        
+        // Mer specifik felhantering
+        if (lastError.name === 'AbortError' || lastError.message.includes('aborted')) {
+          if (this.abortController?.signal.aborted) {
+            console.log(`🛑 CLIENT-ZIP: Download aborted by user`)
+            throw new Error('Download avbruten av användaren')
+          } else {
+            console.warn(`⏰ CLIENT-ZIP: Download timeout for ${file.original_name} (attempt ${attempt}/${maxRetries})`)
+            lastError = new Error(`Timeout vid nedladdning av ${file.original_name}`)
+          }
+        }
+        
         console.warn(`⚠️ CLIENT-ZIP: Attempt ${attempt}/${maxRetries} failed for ${file.original_name}:`, lastError.message)
         
         // Om det inte är sista försöket, vänta innan retry
