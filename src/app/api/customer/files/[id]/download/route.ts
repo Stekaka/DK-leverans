@@ -18,16 +18,16 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const fileId = params.id
+  let customerId: string | null = null
+  
   try {
-    const fileId = params.id
     console.log(`[SINGLE-FILE-DOWNLOAD] Starting download for file ID: ${fileId}`)
 
     // Hämta session token från header eller cookie
     const authHeader = request.headers.get('authorization')
     const sessionToken = request.cookies.get('supabase-auth-token')?.value
     
-    let customerId: string | null = null
-
     // Försök autentisera med session token
     if (sessionToken) {
       try {
@@ -90,8 +90,30 @@ export async function GET(
 
   } catch (error) {
     console.error('[SINGLE-FILE-DOWNLOAD] Error:', error)
+    console.error('[SINGLE-FILE-DOWNLOAD] Stack:', error instanceof Error ? error.stack : 'No stack')
+    console.error('[SINGLE-FILE-DOWNLOAD] File ID:', fileId)
+    console.error('[SINGLE-FILE-DOWNLOAD] Customer ID:', customerId)
+    
+    // Ge mer specifik felhantering
+    if (error instanceof Error) {
+      if (error.message.includes('timeout')) {
+        return NextResponse.json(
+          { error: 'Fil-nedladdning timeout. Filen kan vara för stor.' },
+          { status: 504 }
+        )
+      } else if (error.message.includes('Failed to retrieve file')) {
+        return NextResponse.json(
+          { error: 'Kunde inte hämta fil från lagring' },
+          { status: 404 }
+        )
+      }
+    }
+    
     return NextResponse.json(
-      { error: 'Ett fel uppstod vid nedladdning av filen' },
+      { 
+        error: 'Ett fel uppstod vid nedladdning av filen',
+        details: error instanceof Error ? error.message : 'Okänt fel'
+      },
       { status: 500 }
     )
   }
