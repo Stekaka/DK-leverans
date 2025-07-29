@@ -50,8 +50,8 @@ export async function POST(request: NextRequest) {
           .from('files')
           .update({ 
             is_deleted: true,
-            deleted_at: new Date().toISOString(),
-            deletion_reason: 'Bulk deletion - R2 sync issues'
+            // deleted_at: new Date().toISOString(), // Column doesn't exist
+            // deletion_reason: 'Bulk deletion - R2 sync issues' // Column doesn't exist
           })
           .in('id', fileIds)
 
@@ -110,8 +110,8 @@ export async function POST(request: NextRequest) {
             .from('files')
             .update({ 
               is_deleted: true,
-              deleted_at: new Date().toISOString(),
-              deletion_reason: 'File not accessible during batch repair'
+              // deleted_at: new Date().toISOString(), // Column doesn't exist
+              // deletion_reason: 'File not accessible during batch repair' // Column doesn't exist
             })
             .eq('id', file.id)
 

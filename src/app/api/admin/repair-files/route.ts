@@ -70,8 +70,8 @@ export async function POST(request: NextRequest) {
               .from('files')
               .update({ 
                 is_deleted: true,
-                deleted_at: new Date().toISOString(),
-                deletion_reason: 'File not found in R2 storage during repair'
+                // deleted_at: new Date().toISOString(), // Column may not exist
+                // deletion_reason: 'File not found in R2 storage during repair' // Column may not exist
               })
               .eq('id', file.id)
 
