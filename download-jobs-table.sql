@@ -6,11 +6,13 @@ CREATE TABLE IF NOT EXISTS download_jobs (
   status TEXT NOT NULL DEFAULT 'preparing', -- preparing, processing, completed, failed
   total_files INTEGER NOT NULL,
   processed_files INTEGER DEFAULT 0,
+  failed_files INTEGER DEFAULT 0, -- Track files that couldn't be processed
   progress INTEGER DEFAULT 0, -- percentage 0-100
   total_size BIGINT NOT NULL,
   zip_filename TEXT,
   zip_size BIGINT,
   error TEXT,
+  failed_file_ids JSONB, -- Store IDs of files that failed to download
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   started_at TIMESTAMP WITH TIME ZONE,
   completed_at TIMESTAMP WITH TIME ZONE,
