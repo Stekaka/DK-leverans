@@ -19,6 +19,8 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
 async function verifyCustomerSession(request: NextRequest) {
   const sessionToken = request.cookies.get('customer_session')?.value
 
+  console.log('🔍 SESSION DEBUG: Token exists:', !!sessionToken)
+
   if (!sessionToken) {
     throw new Error('Ingen session hittades')
   }
@@ -27,6 +29,7 @@ async function verifyCustomerSession(request: NextRequest) {
   try {
     const decoded = Buffer.from(sessionToken, 'base64').toString()
     customerId = decoded.split(':')[0]
+    console.log('🔍 SESSION DEBUG: Decoded customer_id:', customerId)
   } catch {
     throw new Error('Ogiltig session')
   }
@@ -38,10 +41,19 @@ async function verifyCustomerSession(request: NextRequest) {
     .eq('status', 'active')
     .single()
 
+  console.log('🔍 SESSION DEBUG: Customer lookup result:', { 
+    found: !!customer, 
+    email: customer?.email,
+    status: customer?.status,
+    error: error?.message 
+  })
+
   if (error || !customer) {
+    console.log('🚨 SESSION DEBUG: Customer verification failed:', error?.message || 'Customer not found')
     throw new Error('Session har upphört')
   }
 
+  console.log('✅ SESSION DEBUG: Customer verified successfully:', customer.email)
   return customer
 }
 
@@ -64,6 +76,8 @@ export async function GET(request: NextRequest) {
       .select('*')
       .eq('customer_id', customer.id)
       .eq('is_deleted', false)
+
+    console.log(`📁 FILES DEBUG: Base query for customer ${customer.id} (${customer.email})`)
 
     // Hantera papperskorg-vy
     if (viewMode === 'trash') {
@@ -103,6 +117,8 @@ export async function GET(request: NextRequest) {
     }
 
     const { data: files, error } = await query.order(orderColumn, orderDirection)
+
+    console.log(`📁 FILES DEBUG: Query executed for ${customer.email}, found ${files?.length || 0} files`)
 
     if (error) {
       console.error('Error fetching customer files:', error)
