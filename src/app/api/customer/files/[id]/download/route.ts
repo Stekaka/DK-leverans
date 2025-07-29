@@ -59,21 +59,90 @@ export async function GET(
     // Hämta fil-information och kontrollera ägarskap
     const { data: file, error: fileError } = await supabaseAdmin
       .from('files')
-      .select('id, customer_id, filename, original_name, file_type, file_size')
+      .select('id, customer_id, filename, original_name, file_type, file_size, is_deleted, is_trashed, uploaded_at')
       .eq('id', fileId)
       .eq('customer_id', customerId)
       .single()
 
     if (fileError || !file) {
-      console.log(`[SINGLE-FILE-DOWNLOAD] File not found or access denied. Error:`, fileError)
+      console.log(`[SINGLE-FILE-DOWNLOAD] File not found or access denied.`)
+      console.log(`[SINGLE-FILE-DOWNLOAD] File ID: ${fileId}, Customer ID: ${customerId}`)
+      console.log(`[SINGLE-FILE-DOWNLOAD] Database error:`, fileError)
+      
+      // Detaljerad feldiagnostik
+      if (fileError?.code === 'PGRST116') {
+        // Ingen rad hittades - kolla om filen finns för någon annan kund
+        const { data: anyFile } = await supabaseAdmin
+          .from('files')
+          .select('id, customer_id, is_deleted, is_trashed')
+          .eq('id', fileId)
+          .single()
+        
+        if (anyFile) {
+          console.log(`[SINGLE-FILE-DOWNLOAD] File exists but belongs to customer ${anyFile.customer_id}, requested by ${customerId}`)
+          console.log(`[SINGLE-FILE-DOWNLOAD] File status: deleted=${anyFile.is_deleted}, trashed=${anyFile.is_trashed}`)
+          return NextResponse.json({ error: 'Fil hittades inte eller åtkomst nekad' }, { status: 404 })
+        } else {
+          console.log(`[SINGLE-FILE-DOWNLOAD] File ${fileId} does not exist in database at all`)
+          return NextResponse.json({ error: 'Filen existerar inte' }, { status: 404 })
+        }
+      }
+      
       return NextResponse.json({ error: 'Fil hittades inte eller åtkomst nekad' }, { status: 404 })
     }
 
-    console.log(`[SINGLE-FILE-DOWNLOAD] Found file: ${file.original_name} (${file.file_size} bytes)`)
+    // Kontrollera filstatus
+    if (file.is_deleted) {
+      console.log(`[SINGLE-FILE-DOWNLOAD] File ${fileId} is marked as deleted`)
+      return NextResponse.json({ error: 'Filen är borttagen' }, { status: 410 })
+    }
 
-    // Ladda ner fil från R2
-    const fileBuffer = await r2Service.getFile(file.filename)
-    console.log(`[SINGLE-FILE-DOWNLOAD] Successfully downloaded ${file.original_name} from R2`)
+    if (file.is_trashed) {
+      console.log(`[SINGLE-FILE-DOWNLOAD] File ${fileId} is in trash`)
+      return NextResponse.json({ error: 'Filen finns i papperskorgen' }, { status: 410 })
+    }
+
+    console.log(`[SINGLE-FILE-DOWNLOAD] Found file: ${file.original_name} (${file.file_size} bytes)`)
+    console.log(`[SINGLE-FILE-DOWNLOAD] R2 filename: ${file.filename}`)
+
+    // Ladda ner fil från R2 med detaljerad felhantering
+    let fileBuffer: Buffer
+    try {
+      fileBuffer = await r2Service.getFile(file.filename)
+      console.log(`[SINGLE-FILE-DOWNLOAD] Successfully downloaded ${file.original_name} from R2 (${fileBuffer.length} bytes)`)
+      
+      // Kontrollera att filstorleken stämmer
+      if (fileBuffer.length !== file.file_size) {
+        console.warn(`[SINGLE-FILE-DOWNLOAD] Size mismatch: DB says ${file.file_size}, got ${fileBuffer.length}`)
+      }
+    } catch (r2Error) {
+      console.error(`[SINGLE-FILE-DOWNLOAD] R2 Error for file ${file.filename}:`, r2Error)
+      
+      // Specifik R2 felhantering
+      if (r2Error instanceof Error) {
+        if (r2Error.message.includes('NoSuchKey') || r2Error.message.includes('Not Found')) {
+          console.log(`[SINGLE-FILE-DOWNLOAD] File not found in R2 storage: ${file.filename}`)
+          return NextResponse.json({ 
+            error: 'Filen finns inte längre i lagringen', 
+            details: `R2 key: ${file.filename}` 
+          }, { status: 404 })
+        } else if (r2Error.message.includes('Access Denied') || r2Error.message.includes('403')) {
+          console.log(`[SINGLE-FILE-DOWNLOAD] Access denied to R2 file: ${file.filename}`)
+          return NextResponse.json({ 
+            error: 'Åtkomst nekad till filen', 
+            details: 'R2 access denied' 
+          }, { status: 403 })
+        } else if (r2Error.message.includes('timeout')) {
+          console.log(`[SINGLE-FILE-DOWNLOAD] Timeout downloading from R2: ${file.filename}`)
+          return NextResponse.json({ 
+            error: 'Timeout vid nedladdning från lagring', 
+            details: 'R2 timeout' 
+          }, { status: 504 })
+        }
+      }
+      
+      throw r2Error // Re-throw för generisk felhantering
+    }
 
     // Returnera filen
     return new NextResponse(fileBuffer, {
