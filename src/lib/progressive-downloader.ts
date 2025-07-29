@@ -7,12 +7,17 @@
 export interface ProgressiveDownloadProgress {
   currentFile: number
   totalFiles: number
+  // Aliases for backward compatibility  
+  completed: number
+  total: number
   currentFileName: string
   downloadSpeed: string
   eta: string
   failedFiles: Array<{ file: any; error: string }>
   completedFiles: string[]
   phase: 'downloading' | 'completed' | 'cancelled'
+  downloadedBytes?: number
+  totalBytes?: number
 }
 
 export interface ProgressiveDownloadCallback {
@@ -236,11 +241,15 @@ export class ProgressiveDownloader {
     return {
       currentFile,
       totalFiles,
+      completed: currentFile, // Alias for backward compatibility
+      total: totalFiles, // Alias for backward compatibility  
       currentFileName,
       downloadSpeed,
       eta,
       failedFiles: [...this.failedFiles],
-      completedFiles: [...this.completedFiles]
+      completedFiles: [...this.completedFiles],
+      downloadedBytes: this.totalBytesDownloaded,
+      totalBytes: 0 // We don't track total bytes in this implementation
     }
   }
 
