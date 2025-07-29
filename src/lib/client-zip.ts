@@ -1,7 +1,7 @@
 import JSZip from 'jszip'
 
 export interface ProgressCallback {
-  (progress: number, current: number, total: number, fileName?: string): void
+  (progress: number, current: number, total: number, fileName?: string, downloadSpeed?: string, eta?: string): void
 }
 
 export interface DownloadProgress {
@@ -64,6 +64,9 @@ class Semaphore {
 export class ClientZipCreator {
   private zip: JSZip
   private abortController: AbortController | null = null
+  private downloadStartTime: number = 0
+  private totalBytesDownloaded: number = 0
+  private downloadSpeedHistory: number[] = []
 
   constructor() {
     this.zip = new JSZip()
@@ -81,6 +84,9 @@ export class ClientZipCreator {
   ): Promise<boolean> {
     try {
       this.abortController = new AbortController()
+      this.downloadStartTime = Date.now()
+      this.totalBytesDownloaded = 0
+      this.downloadSpeedHistory = []
       
       console.log(`🚀 CLIENT-ZIP: Starting download of ${files.length} files`)
       
@@ -150,13 +156,17 @@ export class ClientZipCreator {
           this.zip.file(file.original_name, fileBlob)
           completedCount++
           
+          // Uppdatera hastighetsberäkningar
+          this.totalBytesDownloaded += fileBlob.size
+          const { downloadSpeed, eta } = this.calculateDownloadStats(completedCount, files.length)
+          
           const progress = Math.round((completedCount / files.length) * 90) // 90% för download-fasen
           
           if (onProgress) {
-            onProgress(progress, completedCount, files.length, file.original_name)
+            onProgress(progress, completedCount, files.length, file.original_name, downloadSpeed, eta)
           }
 
-          console.log(`✅ CLIENT-ZIP: Added ${file.original_name} to ZIP (${completedCount}/${files.length})`)
+          console.log(`✅ CLIENT-ZIP: Added ${file.original_name} to ZIP (${completedCount}/${files.length}) - Speed: ${downloadSpeed}`)
         } else {
           console.error(`❌ CLIENT-ZIP: Failed to download ${file.original_name}:`, result.reason)
           throw new Error(`Failed to download ${file.original_name}: ${result.reason.message}`)
@@ -248,11 +258,74 @@ export class ClientZipCreator {
   }
 
   /**
+   * Beräkna nedladdningshastighet och uppskattad tid kvar
+   */
+  private calculateDownloadStats(completedFiles: number, totalFiles: number): { downloadSpeed: string; eta: string } {
+    const currentTime = Date.now()
+    const elapsedTime = (currentTime - this.downloadStartTime) / 1000 // sekunder
+    
+    if (elapsedTime === 0 || this.totalBytesDownloaded === 0) {
+      return { downloadSpeed: '0 MB/s', eta: 'Beräknar...' }
+    }
+    
+    // Beräkna genomsnittshastighet i bytes per sekund
+    const currentSpeed = this.totalBytesDownloaded / elapsedTime
+    
+    // Håll en rullande historik av hastigheter för jämnare visning
+    this.downloadSpeedHistory.push(currentSpeed)
+    if (this.downloadSpeedHistory.length > 10) {
+      this.downloadSpeedHistory.shift()
+    }
+    
+    // Använd medelvärde av senaste hastigheterna
+    const avgSpeed = this.downloadSpeedHistory.reduce((a, b) => a + b, 0) / this.downloadSpeedHistory.length
+    
+    // Formatera hastighet
+    let speedDisplay: string
+    if (avgSpeed > 1024 * 1024 * 1024) {
+      speedDisplay = `${(avgSpeed / (1024 * 1024 * 1024)).toFixed(1)} GB/s`
+    } else if (avgSpeed > 1024 * 1024) {
+      speedDisplay = `${(avgSpeed / (1024 * 1024)).toFixed(1)} MB/s`
+    } else if (avgSpeed > 1024) {
+      speedDisplay = `${(avgSpeed / 1024).toFixed(1)} KB/s`
+    } else {
+      speedDisplay = `${avgSpeed.toFixed(0)} B/s`
+    }
+    
+    // Beräkna uppskattad tid kvar
+    let etaDisplay: string
+    if (completedFiles >= totalFiles) {
+      etaDisplay = 'Klar!'
+    } else {
+      const remainingFiles = totalFiles - completedFiles
+      const avgTimePerFile = elapsedTime / completedFiles
+      const remainingSeconds = remainingFiles * avgTimePerFile
+      
+      if (remainingSeconds > 3600) {
+        const hours = Math.floor(remainingSeconds / 3600)
+        const minutes = Math.floor((remainingSeconds % 3600) / 60)
+        etaDisplay = `${hours}h ${minutes}m`
+      } else if (remainingSeconds > 60) {
+        const minutes = Math.floor(remainingSeconds / 60)
+        const seconds = Math.floor(remainingSeconds % 60)
+        etaDisplay = `${minutes}m ${seconds}s`
+      } else {
+        etaDisplay = `${Math.floor(remainingSeconds)}s`
+      }
+    }
+    
+    return { downloadSpeed: speedDisplay, eta: etaDisplay }
+  }
+
+  /**
    * Avbryt pågående nedladdning
    */
   abort(): void {
     if (this.abortController) {
       this.abortController.abort()
+      this.downloadStartTime = 0
+      this.totalBytesDownloaded = 0
+      this.downloadSpeedHistory = []
       console.log('🛑 CLIENT-ZIP: Download aborted by user')
     }
   }

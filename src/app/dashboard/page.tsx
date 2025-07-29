@@ -51,7 +51,8 @@ export default function DashboardPage() {
   // Client-side ZIP state
   const [isCreatingClientZip, setIsCreatingClientZip] = useState(false)
   const [clientZipProgress, setClientZipProgress] = useState({ 
-    current: 0, total: 0, fileName: '', phase: 'downloading' as 'downloading' | 'creating' | 'saving' 
+    current: 0, total: 0, fileName: '', phase: 'downloading' as 'downloading' | 'creating' | 'saving',
+    downloadSpeed: '', eta: ''
   })
   const [clientZipCreator, setClientZipCreator] = useState<ClientZipCreator | null>(null)
   const [isDownloadMinimized, setIsDownloadMinimized] = useState(false)
@@ -248,7 +249,7 @@ export default function DashboardPage() {
   const createClientZip = async (filesToZip: CustomerFile[], zipName: string) => {
     try {
       setIsCreatingClientZip(true)
-      setClientZipProgress({ current: 0, total: filesToZip.length, fileName: '', phase: 'downloading' })
+      setClientZipProgress({ current: 0, total: filesToZip.length, fileName: '', phase: 'downloading', downloadSpeed: '', eta: '' })
 
       // Kontrollera webbläsarstöd
       const browserSupport = ClientZipCreator.checkBrowserSupport()
@@ -266,12 +267,14 @@ export default function DashboardPage() {
       setClientZipCreator(zipCreator)
 
       // Progress callback
-      const onProgress: ProgressCallback = (progress, current, total, fileName) => {
+      const onProgress: ProgressCallback = (progress, current, total, fileName, downloadSpeed, eta) => {
         setClientZipProgress({
           current,
           total,
           fileName: fileName || '',
-          phase: progress >= 90 ? (progress >= 98 ? 'saving' : 'creating') : 'downloading'
+          phase: progress >= 90 ? (progress >= 98 ? 'saving' : 'creating') : 'downloading',
+          downloadSpeed: downloadSpeed || '',
+          eta: eta || ''
         })
       }
 
@@ -307,7 +310,7 @@ export default function DashboardPage() {
     } finally {
       setIsCreatingClientZip(false)
       setClientZipCreator(null)
-      setClientZipProgress({ current: 0, total: 0, fileName: '', phase: 'downloading' })
+      setClientZipProgress({ current: 0, total: 0, fileName: '', phase: 'downloading', downloadSpeed: '', eta: '' })
       setIsDownloadMinimized(false) // Reset minimized state
     }
   }
@@ -318,7 +321,7 @@ export default function DashboardPage() {
       clientZipCreator.abort()
       setIsCreatingClientZip(false)
       setClientZipCreator(null)
-      setClientZipProgress({ current: 0, total: 0, fileName: '', phase: 'downloading' })
+      setClientZipProgress({ current: 0, total: 0, fileName: '', phase: 'downloading', downloadSpeed: '', eta: '' })
       setIsDownloadMinimized(false) // Reset minimized state
     }
   }
@@ -758,6 +761,11 @@ export default function DashboardPage() {
                       <span className="text-sm font-medium text-gray-900 dark:text-white">
                         ZIP ({clientZipProgress.total > 0 ? Math.round((clientZipProgress.current / clientZipProgress.total) * 100) : 0}%)
                       </span>
+                      {clientZipProgress.downloadSpeed && (
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {clientZipProgress.downloadSpeed}
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center space-x-1">
                       <button
@@ -791,6 +799,12 @@ export default function DashboardPage() {
                       }}
                     ></div>
                   </div>
+                  {/* ETA in minimized view */}
+                  {clientZipProgress.eta && (
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-center">
+                      {clientZipProgress.eta} kvar
+                    </div>
+                  )}
                 </div>
               ) : (
                 /* Expanded View */
@@ -845,6 +859,21 @@ export default function DashboardPage() {
                         {clientZipProgress.current} / {clientZipProgress.total}
                       </span>
                     </div>
+                    {/* Speed and ETA row */}
+                    {(clientZipProgress.downloadSpeed || clientZipProgress.eta) && (
+                      <div className="flex justify-between items-center mt-1">
+                        {clientZipProgress.downloadSpeed && (
+                          <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                            ⚡ {clientZipProgress.downloadSpeed}
+                          </span>
+                        )}
+                        {clientZipProgress.eta && (
+                          <span className="text-xs text-green-600 dark:text-green-400">
+                            ⏱️ {clientZipProgress.eta} kvar
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Status */}
