@@ -52,10 +52,11 @@ export default function DashboardPage() {
   const [isCreatingClientZip, setIsCreatingClientZip] = useState(false)
   const [clientZipProgress, setClientZipProgress] = useState({ 
     current: 0, total: 0, fileName: '', phase: 'downloading' as 'downloading' | 'creating' | 'saving',
-    downloadSpeed: '', eta: ''
+    downloadSpeed: '', eta: '', failedFiles: [] as string[]
   })
   const [clientZipCreator, setClientZipCreator] = useState<ClientZipCreator | null>(null)
   const [isDownloadMinimized, setIsDownloadMinimized] = useState(false)
+  const [showFailedFilesModal, setShowFailedFilesModal] = useState(false)
 
   const router = useRouter()
 
@@ -249,7 +250,7 @@ export default function DashboardPage() {
   const createClientZip = async (filesToZip: CustomerFile[], zipName: string) => {
     try {
       setIsCreatingClientZip(true)
-      setClientZipProgress({ current: 0, total: filesToZip.length, fileName: '', phase: 'downloading', downloadSpeed: '', eta: '' })
+      setClientZipProgress({ current: 0, total: filesToZip.length, fileName: '', phase: 'downloading', downloadSpeed: '', eta: '', failedFiles: [] })
 
       // Kontrollera webbläsarstöd
       const browserSupport = ClientZipCreator.checkBrowserSupport()
@@ -267,14 +268,15 @@ export default function DashboardPage() {
       setClientZipCreator(zipCreator)
 
       // Progress callback
-      const onProgress: ProgressCallback = (progress, current, total, fileName, downloadSpeed, eta) => {
+      const onProgress: ProgressCallback = (progress, current, total, fileName, downloadSpeed, eta, failedFiles) => {
         setClientZipProgress({
           current,
           total,
           fileName: fileName || '',
           phase: progress >= 90 ? (progress >= 98 ? 'saving' : 'creating') : 'downloading',
           downloadSpeed: downloadSpeed || '',
-          eta: eta || ''
+          eta: eta || '',
+          failedFiles: failedFiles || []
         })
       }
 
@@ -298,6 +300,14 @@ export default function DashboardPage() {
 
       if (success) {
         console.log(`✅ CLIENT-ZIP: Successfully created and downloaded ${zipName}`)
+        
+        // Kontrollera om det finns misslyckade filer
+        const failedFiles = zipCreator.getFailedFiles()
+        if (failedFiles.length > 0) {
+          setShowFailedFilesModal(true)
+          console.warn(`⚠️ CLIENT-ZIP: ${failedFiles.length} files failed to download:`, failedFiles)
+        }
+        
         return true
       } else {
         throw new Error('ZIP creation failed')
@@ -310,7 +320,7 @@ export default function DashboardPage() {
     } finally {
       setIsCreatingClientZip(false)
       setClientZipCreator(null)
-      setClientZipProgress({ current: 0, total: 0, fileName: '', phase: 'downloading', downloadSpeed: '', eta: '' })
+      setClientZipProgress({ current: 0, total: 0, fileName: '', phase: 'downloading', downloadSpeed: '', eta: '', failedFiles: [] })
       setIsDownloadMinimized(false) // Reset minimized state
     }
   }
@@ -321,7 +331,7 @@ export default function DashboardPage() {
       clientZipCreator.abort()
       setIsCreatingClientZip(false)
       setClientZipCreator(null)
-      setClientZipProgress({ current: 0, total: 0, fileName: '', phase: 'downloading', downloadSpeed: '', eta: '' })
+      setClientZipProgress({ current: 0, total: 0, fileName: '', phase: 'downloading', downloadSpeed: '', eta: '', failedFiles: [] })
       setIsDownloadMinimized(false) // Reset minimized state
     }
   }
@@ -905,6 +915,13 @@ export default function DashboardPage() {
                     )}
                   </div>
 
+                  {/* Failed files indicator */}
+                  {clientZipProgress.failedFiles && clientZipProgress.failedFiles.length > 0 && (
+                    <div className="text-xs text-orange-600 dark:text-orange-400 mb-2">
+                      ⚠️ {clientZipProgress.failedFiles.length} filer misslyckades
+                    </div>
+                  )}
+
                   {/* Current file (truncated) */}
                   {clientZipProgress.fileName && (
                     <div className="text-xs text-gray-500 dark:text-gray-400 truncate" title={clientZipProgress.fileName}>
@@ -915,7 +932,9 @@ export default function DashboardPage() {
               )}
             </div>
           </div>
-        )}      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
+        )}
+
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
         {/* Access Status Banner */}
         {accessInfo && (
           <div className="mb-6">
@@ -2112,6 +2131,46 @@ export default function DashboardPage() {
           onClose={closeOrganizeModal}
           onSave={saveFileOrganization}
         />
+      )}
+
+      {/* Failed Files Modal */}
+      {showFailedFilesModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className={`relative p-6 rounded-lg shadow-xl max-w-md w-full mx-4 max-h-96 ${
+            theme === 'dark' ? 'bg-slate-800 text-white' : 'bg-white text-gray-900'
+          }`}>
+            <h3 className="text-lg font-semibold mb-4 text-yellow-600">
+              ⚠️ Vissa filer kunde inte laddas ner
+            </h3>
+            
+            <div className="mb-4">
+              <p className="text-sm mb-2">
+                ZIP-filen skapades framgångsrikt, men följande filer kunde inte inkluderas:
+              </p>
+              
+              <div className="max-h-32 overflow-y-auto border rounded p-2 text-xs">
+                {clientZipProgress.failedFiles.map((fileName, index) => (
+                  <div key={index} className="py-1 border-b last:border-b-0">
+                    {fileName}
+                  </div>
+                ))}
+              </div>
+              
+              <p className="text-xs mt-2 text-gray-500">
+                {clientZipProgress.failedFiles.length} av {clientZipProgress.total} filer misslyckades
+              </p>
+            </div>
+            
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => setShowFailedFilesModal(false)}
+                className="px-4 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Access Popup */}

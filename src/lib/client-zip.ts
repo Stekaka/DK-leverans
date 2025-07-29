@@ -1,7 +1,7 @@
 import JSZip from 'jszip'
 
 export interface ProgressCallback {
-  (progress: number, current: number, total: number, fileName?: string, downloadSpeed?: string, eta?: string): void
+  (progress: number, current: number, total: number, fileName?: string, downloadSpeed?: string, eta?: string, failedFiles?: string[]): void
 }
 
 export interface DownloadProgress {
@@ -67,6 +67,7 @@ export class ClientZipCreator {
   private downloadStartTime: number = 0
   private totalBytesDownloaded: number = 0
   private downloadSpeedHistory: number[] = []
+  private failedFiles: Array<{ file: any; error: string }> = []
 
   constructor() {
     this.zip = new JSZip()
@@ -87,11 +88,22 @@ export class ClientZipCreator {
       this.downloadStartTime = Date.now()
       this.totalBytesDownloaded = 0
       this.downloadSpeedHistory = []
+      this.failedFiles = []
       
       console.log(`🚀 CLIENT-ZIP: Starting download of ${files.length} files`)
       
       // Fase 1: Ladda ner alla filer och lägg till i ZIP
       await this.downloadAndAddFiles(files, onProgress, 2, customerId) // Minska till 2 samtidiga
+      
+      // Kontrollera om det finns misslyckade filer
+      if (this.failedFiles.length > 0) {
+        console.warn(`⚠️ CLIENT-ZIP: ${this.failedFiles.length} files failed to download but continuing with ZIP creation`)
+        const failedFileNames = this.failedFiles.map(f => f.file.original_name)
+        console.warn('Failed files:', failedFileNames)
+      }
+      
+      const successfulFiles = files.length - this.failedFiles.length
+      console.log(`📊 CLIENT-ZIP: ${successfulFiles}/${files.length} files successfully downloaded`)
       
       // Fas 2: Skapa ZIP-blob
       if (onProgress) onProgress(95, files.length, files.length, 'Skapar ZIP-fil...')
@@ -163,13 +175,24 @@ export class ClientZipCreator {
           const progress = Math.round((completedCount / files.length) * 90) // 90% för download-fasen
           
           if (onProgress) {
-            onProgress(progress, completedCount, files.length, file.original_name, downloadSpeed, eta)
+            onProgress(progress, completedCount, files.length, file.original_name, downloadSpeed, eta, this.failedFiles.map(f => f.file.original_name))
           }
 
           console.log(`✅ CLIENT-ZIP: Added ${file.original_name} to ZIP (${completedCount}/${files.length}) - Speed: ${downloadSpeed}`)
         } else {
-          console.error(`❌ CLIENT-ZIP: Failed to download ${file.original_name}:`, result.reason)
-          throw new Error(`Failed to download ${file.original_name}: ${result.reason.message}`)
+          // Samla misslyckade filer istället för att kasta fel
+          const errorMessage = result.reason.message || 'Okänt fel'
+          this.failedFiles.push({ file, error: errorMessage })
+          console.error(`❌ CLIENT-ZIP: Failed to download ${file.original_name}:`, errorMessage)
+          
+          // Uppdatera progress även för misslyckade filer
+          const totalProcessed = completedCount + this.failedFiles.length
+          const progress = Math.round((totalProcessed / files.length) * 90)
+          const { downloadSpeed, eta } = this.calculateDownloadStats(completedCount, files.length)
+          
+          if (onProgress) {
+            onProgress(progress, totalProcessed, files.length, `❌ ${file.original_name}`, downloadSpeed, eta, this.failedFiles.map(f => f.file.original_name))
+          }
         }
       }
       
@@ -318,6 +341,13 @@ export class ClientZipCreator {
   }
 
   /**
+   * Få lista över misslyckade filer
+   */
+  getFailedFiles(): Array<{ file: any; error: string }> {
+    return this.failedFiles
+  }
+
+  /**
    * Avbryt pågående nedladdning
    */
   abort(): void {
@@ -326,6 +356,7 @@ export class ClientZipCreator {
       this.downloadStartTime = 0
       this.totalBytesDownloaded = 0
       this.downloadSpeedHistory = []
+      this.failedFiles = []
       console.log('🛑 CLIENT-ZIP: Download aborted by user')
     }
   }
