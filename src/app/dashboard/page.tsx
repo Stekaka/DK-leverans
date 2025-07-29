@@ -11,6 +11,7 @@ import AccessPopup from '@/components/AccessPopup'
 import { useTheme } from '@/contexts/ThemeContext'
 import { CustomerFile, Customer } from '@/types/customer'
 import ClientZipCreator, { ProgressCallback } from '@/lib/client-zip'
+import ProgressiveDownloader, { ProgressiveDownloadCallback, ProgressiveDownloadProgress } from '@/lib/progressive-downloader'
 
 export default function DashboardPage() {
   const { theme } = useTheme()
@@ -57,6 +58,20 @@ export default function DashboardPage() {
   const [clientZipCreator, setClientZipCreator] = useState<ClientZipCreator | null>(null)
   const [isDownloadMinimized, setIsDownloadMinimized] = useState(false)
   const [showFailedFilesModal, setShowFailedFilesModal] = useState(false)
+
+  // Progressive Download state
+  const [isProgressiveDownloading, setIsProgressiveDownloading] = useState(false)
+  const [progressiveDownloadProgress, setProgressiveDownloadProgress] = useState<ProgressiveDownloadProgress>({
+    currentFile: 0,
+    totalFiles: 0,
+    currentFileName: '',
+    downloadSpeed: '',
+    eta: '',
+    failedFiles: [],
+    completedFiles: [],
+    phase: 'downloading'
+  })
+  const [progressiveDownloader, setProgressiveDownloader] = useState<ProgressiveDownloader | null>(null)
 
   const router = useRouter()
 
@@ -325,6 +340,99 @@ export default function DashboardPage() {
     }
   }
 
+  // Progressive Download (filer laddas ner en efter en direkt till Downloads)
+  const createProgressiveDownload = async (filesToDownload: CustomerFile[]) => {
+    try {
+      setIsProgressiveDownloading(true)
+      setProgressiveDownloadProgress({
+        currentFile: 0,
+        totalFiles: filesToDownload.length,
+        currentFileName: '',
+        downloadSpeed: '',
+        eta: '',
+        failedFiles: [],
+        completedFiles: [],
+        phase: 'downloading'
+      })
+
+      // Skapa progressive downloader
+      const downloader = new ProgressiveDownloader()
+      setProgressiveDownloader(downloader)
+
+      // Progress callback
+      const onProgress: ProgressiveDownloadCallback = (progress) => {
+        setProgressiveDownloadProgress(progress)
+      }
+
+      // Förbered filer för nedladdning
+      const downloadableFiles = filesToDownload.map(file => ({
+        id: file.id,
+        original_name: file.original_name,
+        file_size: file.file_size
+      }))
+
+      console.log(`🚀 PROGRESSIVE-DOWNLOAD: Starting download of ${filesToDownload.length} files`)
+      
+      // Starta progressive nedladdning
+      const result = await downloader.downloadFiles(
+        downloadableFiles,
+        onProgress,
+        customer?.id
+      )
+
+      if (result.success) {
+        console.log(`✅ PROGRESSIVE-DOWNLOAD: Completed ${result.completed}/${filesToDownload.length} files`)
+        
+        if (result.failed > 0) {
+          alert(`${result.completed} filer laddades ner framgångsrikt.\n${result.failed} filer misslyckades.`)
+        } else {
+          alert(`Alla ${result.completed} filer laddades ner framgångsrikt!`)
+        }
+        
+        return true
+      } else {
+        throw new Error('Progressive download failed')
+      }
+
+    } catch (error) {
+      console.error('❌ PROGRESSIVE-DOWNLOAD: Error:', error)
+      alert(`Ett fel uppstod vid nedladdning: ${error instanceof Error ? error.message : 'Okänt fel'}`)
+      return false
+    } finally {
+      setIsProgressiveDownloading(false)
+      setProgressiveDownloader(null)
+      setProgressiveDownloadProgress({
+        currentFile: 0,
+        totalFiles: 0,
+        currentFileName: '',
+        downloadSpeed: '',
+        eta: '',
+        failedFiles: [],
+        completedFiles: [],
+        phase: 'completed'
+      })
+    }
+  }
+
+  // Avbryt progressive download
+  const cancelProgressiveDownload = () => {
+    if (progressiveDownloader) {
+      progressiveDownloader.abort()
+      setIsProgressiveDownloading(false)
+      setProgressiveDownloader(null)
+      setProgressiveDownloadProgress({
+        currentFile: 0,
+        totalFiles: 0,
+        currentFileName: '',
+        downloadSpeed: '',
+        eta: '',
+        failedFiles: [],
+        completedFiles: [],
+        phase: 'cancelled'
+      })
+    }
+  }
+
   // Avbryt client-side ZIP creation
   const cancelClientZip = () => {
     if (clientZipCreator) {
@@ -338,7 +446,7 @@ export default function DashboardPage() {
 
   const downloadSelected = async () => {
     // Förhindra parallella nedladdningar
-    if (isCreatingClientZip) {
+    if (isCreatingClientZip || isProgressiveDownloading) {
       alert('En nedladdning pågår redan. Vänta tills den är klar.')
       return
     }
@@ -361,30 +469,102 @@ export default function DashboardPage() {
     
     console.log(`Download request: ${selectedFiles.length} files, ${totalSizeGB.toFixed(1)} GB`)
 
-    // ANVÄND CLIENT-SIDE ZIP för ALLA multi-file downloads
-    const confirmDownload = confirm(
-      `Ladda ner ${selectedFiles.length} filer som EN enda ZIP-fil?\n\n` +
-      `Total storlek: ${totalSizeGB.toFixed(1)} GB\n\n` +
-      `ZIP-filen skapas lokalt i din webbläsare för bästa prestanda och tillförlitlighet.`
+    // Ge användaren val mellan ZIP och Progressive nedladdning
+    const downloadChoice = confirm(
+      `Välj nedladdningsmetod för ${selectedFiles.length} filer (${totalSizeGB.toFixed(1)} GB):\n\n` +
+      `🔄 KLICKA OK för SEPARATA FILER (rekommenderas)\n` +
+      `   → Filerna laddas ner direkt en efter en\n` +
+      `   → Ingen väntetid, filerna sparas direkt\n` +
+      `   → Mer tillförlitligt för stora nedladdningar\n\n` +
+      `❌ KLICKA AVBRYT för ZIP-FIL\n` +
+      `   → Alla filer i en enda ZIP-fil\n` +
+      `   → Kräver mer minne och kan ta längre tid`
     )
     
-    if (!confirmDownload) return
+    if (downloadChoice) {
+      // Progressive download
+      await createProgressiveDownload(selectedFiles)
+      if (progressiveDownloadProgress.phase === 'completed') {
+        setSelectedItems([]) // Rensa val efter framgångsrik nedladdning
+      }
+    } else {
+      // ZIP download
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:]/g, '-')
+      const zipFileName = `valda_filer_${timestamp}.zip`
+      const success = await createClientZip(selectedFiles, zipFileName)
+      if (success) {
+        setSelectedItems([]) // Rensa val efter framgångsrik nedladdning
+      }
+    }
+  }
 
-    // Skapa ZIP-filnamn
-    const timestamp = new Date().toISOString().slice(0, 19).replace(/[:]/g, '-')
-    const zipFileName = `valda_filer_${timestamp}.zip`
+  // 🎯 Funktion för att försöka använda förbyggd ZIP
+  const tryDownloadPrebuiltZip = async (): Promise<{ success: boolean; reason?: string }> => {
+    try {
+      console.log('🔍 Checking prebuilt ZIP availability...')
+      
+      if (!customer?.id) {
+        return { success: false, reason: 'No customer ID' }
+      }
 
-    // Använd client-side ZIP creation
-    const success = await createClientZip(selectedFiles, zipFileName)
-    
-    if (success) {
-      setSelectedItems([]) // Rensa val efter framgångsrik nedladdning
+      // Kontrollera om förbyggd ZIP finns
+      const checkResponse = await fetch(`/api/admin/prebuilt-zip?customerId=${customer.id}`)
+      
+      if (!checkResponse.ok) {
+        return { success: false, reason: 'Failed to check ZIP status' }
+      }
+
+      const checkResult = await checkResponse.json()
+      
+      if (!checkResult.exists) {
+        return { success: false, reason: 'No prebuilt ZIP exists' }
+      }
+
+      if (checkResult.expired) {
+        return { success: false, reason: 'Prebuilt ZIP has expired' }
+      }
+
+      const metadata = checkResult.metadata
+      
+      // Fråga användaren om de vill använda den förbyggda ZIP:en
+      const usePrebuilt = confirm(
+        `🎉 SNABBNEDLADDNING TILLGÄNGLIG!\n\n` +
+        `En färdig ZIP-fil med alla dina ${metadata.file_count} filer finns redan klar.\n` +
+        `ZIP-storlek: ${(metadata.zip_size / 1024 / 1024).toFixed(1)} MB\n` +
+        `Skapad: ${new Date(metadata.built_at).toLocaleString('sv-SE')}\n\n` +
+        `🚀 KLICKA OK för OMEDELBAR NEDLADDNING\n` +
+        `   → ZIP-filen börjar ladda ner direkt\n` +
+        `   → Ingen väntetid eller bearbetning\n` +
+        `   → Alla filer inkluderade med mappstruktur\n\n` +
+        `❌ KLICKA AVBRYT för att välja annan metod`
+      )
+
+      if (!usePrebuilt) {
+        return { success: false, reason: 'User declined prebuilt ZIP' }
+      }
+
+      // Ladda ner den förbyggda ZIP:en
+      console.log('🚀 Downloading prebuilt ZIP...')
+      
+      const zipUrl = `/api/customer/download/prebuilt?customerId=${customer.id}`
+      const link = document.createElement('a')
+      link.href = zipUrl
+      link.download = `${customer.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'customer'}_complete_archive.zip`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      return { success: true }
+
+    } catch (error) {
+      console.error('❌ Error checking prebuilt ZIP:', error)
+      return { success: false, reason: 'Error checking ZIP' }
     }
   }
 
   const downloadAll = async () => {
     // Förhindra parallella nedladdningar
-    if (isCreatingClientZip) {
+    if (isCreatingClientZip || isProgressiveDownloading) {
       alert('En nedladdning pågår redan. Vänta tills den är klar.')
       return
     }
@@ -405,23 +585,42 @@ export default function DashboardPage() {
     
     console.log(`Download ALL request: ${filteredFiles.length} files, ${totalSizeGB.toFixed(1)} GB`)
 
-    // ANVÄND CLIENT-SIDE ZIP för ALLA multi-file downloads
-    const confirmDownload = confirm(
-      `Ladda ner ALLA ${filteredFiles.length} filer som EN enda ZIP-fil?\n\n` +
-      `Total storlek: ${totalSizeGB.toFixed(1)} GB\n\n` +
-      `⚡ PERFEKT för stora nedladdningar! ⚡\n` +
-      `ZIP-filen skapas lokalt i din webbläsare för bästa prestanda.\n\n` +
-      `Fortsätt?`
+    // 🎯 SMART LOGIK: Försök använda förbyggd ZIP först (endast för "alla filer")
+    if (viewType === 'all' && currentFolder === '') {
+      console.log('🔍 Checking for prebuilt ZIP for all files...')
+      
+      const prebuiltResult = await tryDownloadPrebuiltZip()
+      if (prebuiltResult.success) {
+        console.log('✅ Used prebuilt ZIP successfully')
+        return
+      } else {
+        console.log('⚠️ Prebuilt ZIP not available:', prebuiltResult.reason)
+      }
+    }
+
+    // Ge användaren val mellan ZIP och Progressive nedladdning
+    const downloadChoice = confirm(
+      `Välj nedladdningsmetod för ALLA ${filteredFiles.length} filer (${totalSizeGB.toFixed(1)} GB):\n\n` +
+      `🔄 KLICKA OK för SEPARATA FILER (rekommenderas för stora nedladdningar)\n` +
+      `   → Filerna laddas ner direkt en efter en till Downloads-mappen\n` +
+      `   → Ingen väntetid, filerna sparas direkt när de är klara\n` +
+      `   → Mer tillförlitligt och snabbare för stora mängder data\n` +
+      `   → Mindre minnesanvändning\n\n` +
+      `❌ KLICKA AVBRYT för EN ZIP-FIL\n` +
+      `   → Alla filer packas i en enda ZIP-fil\n` +
+      `   → Kräver mer minne och längre väntetid\n` +
+      `   → Kan misslyckas vid mycket stora nedladdningar`
     )
     
-    if (!confirmDownload) return
-
-    // Skapa ZIP-filnamn
-    const timestamp = new Date().toISOString().slice(0, 19).replace(/[:]/g, '-')
-    const zipFileName = `alla_filer_${timestamp}.zip`
-
-    // Använd client-side ZIP creation
-    await createClientZip(filteredFiles, zipFileName)
+    if (downloadChoice) {
+      // Progressive download
+      await createProgressiveDownload(filteredFiles)
+    } else {
+      // ZIP download
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:]/g, '-')
+      const zipFileName = `alla_filer_${timestamp}.zip`
+      await createClientZip(filteredFiles, zipFileName)
+    }
   }
 
   // Hantera mappnavigering
@@ -942,6 +1141,95 @@ export default function DashboardPage() {
                   )}
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Progressive Download Progress Widget */}
+        {isProgressiveDownloading && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className={`w-full max-w-lg rounded-xl shadow-2xl p-6 ${
+              theme === 'dark' 
+                ? 'bg-gray-800 border border-gray-700' 
+                : 'bg-white border border-gray-200'
+            }`}>
+              <h3 className={`text-lg font-semibold mb-4 flex items-center space-x-2 ${
+                theme === 'dark' ? 'text-white' : 'text-gray-900'
+              }`}>
+                <div className="w-5 h-5 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full 
+                               flex items-center justify-center flex-shrink-0">
+                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <span>Laddar ner filer</span>
+              </h3>
+
+              <div className="space-y-4">
+                {/* Progress bar */}
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className={theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}>
+                      Nedladdning pågår...
+                    </span>
+                    <span className={`font-mono ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                      {progressiveDownloadProgress.completed}/{progressiveDownloadProgress.total}
+                    </span>
+                  </div>
+                  
+                  <div className={`w-full h-2 rounded-full overflow-hidden ${
+                    theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
+                  }`}>
+                    <div 
+                      className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-300 ease-out"
+                      style={{ 
+                        width: `${progressiveDownloadProgress.total > 0 
+                          ? (progressiveDownloadProgress.completed / progressiveDownloadProgress.total) * 100 
+                          : 0}%` 
+                      }}
+                    />
+                  </div>
+
+                  <div className="flex justify-between text-xs">
+                    <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>
+                      {progressiveDownloadProgress.total > 0 
+                        ? Math.round((progressiveDownloadProgress.completed / progressiveDownloadProgress.total) * 100) 
+                        : 0}%
+                    </span>
+                    <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>
+                      {formatFileSize(progressiveDownloadProgress.downloadedBytes)} / {formatFileSize(progressiveDownloadProgress.totalBytes)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Failed files indicator */}
+                {progressiveDownloadProgress.failedFiles && progressiveDownloadProgress.failedFiles.length > 0 && (
+                  <div className="text-xs text-orange-600 dark:text-orange-400 mb-2">
+                    ⚠️ {progressiveDownloadProgress.failedFiles.length} filer misslyckades
+                  </div>
+                )}
+
+                {/* Current file (truncated) */}
+                {progressiveDownloadProgress.currentFile && (
+                  <div className="text-xs text-gray-500 dark:text-gray-400 truncate" title={progressiveDownloadProgress.currentFile}>
+                    {progressiveDownloadProgress.currentFile}
+                  </div>
+                )}
+
+                {/* Action buttons */}
+                <div className="flex justify-end space-x-3 pt-2">
+                  <button
+                    onClick={cancelProgressiveDownload}
+                    className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                      theme === 'dark'
+                        ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                        : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                    }`}
+                  >
+                    Avbryt
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}

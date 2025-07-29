@@ -12,6 +12,34 @@ interface UploadCallbackRequest {
   }[]
 }
 
+// Hjälpfunktion för att trigga ZIP-ombyggnad i bakgrunden
+async function triggerPrebuiltZipUpdate(customerId: string, adminPassword: string) {
+  try {
+    console.log(`🔄 Triggering ZIP rebuild for customer: ${customerId}`)
+    
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/admin/prebuilt-zip`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-admin-password': adminPassword
+      },
+      body: JSON.stringify({
+        customerId,
+        forceRebuild: true
+      })
+    })
+
+    if (response.ok) {
+      const result = await response.json()
+      console.log(`✅ ZIP rebuild triggered: ${result.fileCount} files`)
+    } else {
+      console.warn(`⚠️ ZIP rebuild failed: ${response.status}`)
+    }
+  } catch (error) {
+    console.warn('⚠️ ZIP rebuild request failed:', error)
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     console.log('🚀 === SIMPLE UPLOAD CALLBACK ===')
@@ -65,6 +93,12 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('✅ Successfully inserted:', insertedFiles?.length || 0, 'files')
+
+    // 🎯 TRIGGER: Bygg förbestämd ZIP för kunden (async i bakgrunden)
+    triggerPrebuiltZipUpdate(customerId, adminPassword).catch((zipError: any) => {
+      console.warn('⚠️ Failed to trigger ZIP rebuild:', zipError)
+      // Inte kritiskt - filerna är sparade
+    })
 
     return NextResponse.json({
       success: true,
