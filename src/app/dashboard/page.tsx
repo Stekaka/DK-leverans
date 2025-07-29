@@ -13,6 +13,15 @@ import { CustomerFile, Customer } from '@/types/customer'
 import ClientZipCreator, { ProgressCallback } from '@/lib/client-zip'
 import ProgressiveDownloader, { ProgressiveDownloadCallback, ProgressiveDownloadProgress } from '@/lib/progressive-downloader'
 
+// Utility function for formatting file sizes
+function formatFileSize(bytes: number): string {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
+}
+
 export default function DashboardPage() {
   const { theme } = useTheme()
   
@@ -64,12 +73,16 @@ export default function DashboardPage() {
   const [progressiveDownloadProgress, setProgressiveDownloadProgress] = useState<ProgressiveDownloadProgress>({
     currentFile: 0,
     totalFiles: 0,
+    completed: 0, // Alias for backward compatibility
+    total: 0, // Alias for backward compatibility
     currentFileName: '',
     downloadSpeed: '',
     eta: '',
     failedFiles: [],
     completedFiles: [],
-    phase: 'downloading'
+    phase: 'downloading',
+    downloadedBytes: 0,
+    totalBytes: 0
   })
   const [progressiveDownloader, setProgressiveDownloader] = useState<ProgressiveDownloader | null>(null)
 
@@ -347,12 +360,16 @@ export default function DashboardPage() {
       setProgressiveDownloadProgress({
         currentFile: 0,
         totalFiles: filesToDownload.length,
+        completed: 0,
+        total: filesToDownload.length,
         currentFileName: '',
         downloadSpeed: '',
         eta: '',
         failedFiles: [],
         completedFiles: [],
-        phase: 'downloading'
+        phase: 'downloading',
+        downloadedBytes: 0,
+        totalBytes: 0
       })
 
       // Skapa progressive downloader
@@ -404,12 +421,16 @@ export default function DashboardPage() {
       setProgressiveDownloadProgress({
         currentFile: 0,
         totalFiles: 0,
+        completed: 0,
+        total: 0,
         currentFileName: '',
         downloadSpeed: '',
         eta: '',
         failedFiles: [],
         completedFiles: [],
-        phase: 'completed'
+        phase: 'completed',
+        downloadedBytes: 0,
+        totalBytes: 0
       })
     }
   }
@@ -423,12 +444,16 @@ export default function DashboardPage() {
       setProgressiveDownloadProgress({
         currentFile: 0,
         totalFiles: 0,
+        completed: 0,
+        total: 0,
         currentFileName: '',
         downloadSpeed: '',
         eta: '',
         failedFiles: [],
         completedFiles: [],
-        phase: 'cancelled'
+        phase: 'cancelled',
+        downloadedBytes: 0,
+        totalBytes: 0
       })
     }
   }
@@ -1197,7 +1222,7 @@ export default function DashboardPage() {
                         : 0}%
                     </span>
                     <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>
-                      {formatFileSize(progressiveDownloadProgress.downloadedBytes)} / {formatFileSize(progressiveDownloadProgress.totalBytes)}
+                      {formatFileSize(progressiveDownloadProgress.downloadedBytes || 0)} / {formatFileSize(progressiveDownloadProgress.totalBytes || 0)}
                     </span>
                   </div>
                 </div>
@@ -1210,9 +1235,9 @@ export default function DashboardPage() {
                 )}
 
                 {/* Current file (truncated) */}
-                {progressiveDownloadProgress.currentFile && (
-                  <div className="text-xs text-gray-500 dark:text-gray-400 truncate" title={progressiveDownloadProgress.currentFile}>
-                    {progressiveDownloadProgress.currentFile}
+                {progressiveDownloadProgress.currentFileName && (
+                  <div className="text-xs text-gray-500 dark:text-gray-400 truncate" title={progressiveDownloadProgress.currentFileName}>
+                    {progressiveDownloadProgress.currentFileName}
                   </div>
                 )}
 
