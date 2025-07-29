@@ -288,7 +288,8 @@ export default function DashboardPage() {
         downloadableFiles,
         zipName,
         onProgress,
-        6 // Parallellism: 6 filer samtidigt
+        6, // Parallellism: 6 filer samtidigt
+        customer?.id // Skicka med customer ID för authentication
       )
 
       if (success) {

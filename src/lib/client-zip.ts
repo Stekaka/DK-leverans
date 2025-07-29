@@ -31,7 +31,8 @@ export class ClientZipCreator {
     files: Array<{ id: string; original_name: string; download_url: string | null }>,
     zipFileName: string = 'files.zip',
     onProgress?: ProgressCallback,
-    concurrency: number = 6
+    concurrency: number = 6,
+    customerId?: string
   ): Promise<boolean> {
     try {
       this.abortController = new AbortController()
@@ -39,7 +40,7 @@ export class ClientZipCreator {
       console.log(`🚀 CLIENT-ZIP: Starting download of ${files.length} files`)
       
       // Fase 1: Ladda ner alla filer och lägg till i ZIP
-      await this.downloadAndAddFiles(files, onProgress, concurrency)
+      await this.downloadAndAddFiles(files, onProgress, concurrency, customerId)
       
       // Fas 2: Skapa ZIP-blob
       if (onProgress) onProgress(95, files.length, files.length, 'Skapar ZIP-fil...')
@@ -71,7 +72,8 @@ export class ClientZipCreator {
   private async downloadAndAddFiles(
     files: Array<{ id: string; original_name: string; download_url: string | null }>,
     onProgress?: ProgressCallback,
-    concurrency: number = 6
+    concurrency: number = 6,
+    customerId?: string
   ): Promise<void> {
     const downloadPromises: Promise<void>[] = []
     let completedCount = 0
@@ -82,19 +84,27 @@ export class ClientZipCreator {
       
       const chunkPromises = chunk.map(async (file) => {
         try {
-          if (!file.download_url) {
-            console.warn(`⚠️ CLIENT-ZIP: No download URL for file: ${file.original_name}`)
-            return
-          }
-
           console.log(`📥 CLIENT-ZIP: Downloading ${file.original_name}`)
           
-          const response = await fetch(file.download_url, {
+          // Skapa URL med customer_id som query parameter
+          let downloadUrl = `/api/customer/files/${file.id}/download`
+          if (customerId) {
+            downloadUrl += `?customer_id=${encodeURIComponent(customerId)}`
+          }
+          
+          console.log(`🔗 CLIENT-ZIP: Using download URL: ${downloadUrl}`)
+          console.log(`🔗 CLIENT-ZIP: customer_id: ${customerId}`)
+          console.log(`🔗 CLIENT-ZIP: file.id: ${file.id}`)
+          
+          // Använd vårt API som proxy istället för direkt R2-access
+          const response = await fetch(downloadUrl, {
+            method: 'GET',
+            credentials: 'include', // Inkludera cookies för authentication
             signal: this.abortController?.signal
           })
 
           if (!response.ok) {
-            throw new Error(`Failed to download ${file.original_name}: ${response.status}`)
+            throw new Error(`Failed to download ${file.original_name}: ${response.status} ${response.statusText}`)
           }
 
           const fileBlob = await response.blob()
