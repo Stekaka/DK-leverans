@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { r2Service } from '../../../../../lib/cloudflare-r2'
-import archiver from 'archiver'
+import JSZip from 'jszip'
 
 // Service för att skapa och hantera förbyggda ZIP-filer för kunder
 export async function POST(request: NextRequest) {
@@ -101,27 +101,8 @@ export async function POST(request: NextRequest) {
 
     console.log(`📁 Found ${files.length} files to archive`)
 
-    // Skapa ZIP
-    const archive = archiver('zip', {
-      zlib: { level: 6 } // Balans mellan hastighet och komprimering
-    })
-
-    const chunks: Buffer[] = []
-    let archiveFinished = false
-
-    archive.on('data', (chunk: Buffer) => {
-      chunks.push(chunk)
-    })
-    
-    archive.on('end', () => {
-      archiveFinished = true
-    })
-    
-    archive.on('error', (err) => {
-      throw err
-    })
-
-    // Lägg till alla filer i ZIP:en
+    // Skapa ZIP med JSZip istället för archiver
+    const zip = new JSZip()
     let processedFiles = 0
     let totalSize = 0
 
@@ -137,7 +118,7 @@ export async function POST(request: NextRequest) {
           zipEntryName = `${file.folder_path}/${file.original_name}`
         }
         
-        archive.append(fileBuffer, { name: zipEntryName })
+        zip.file(zipEntryName, fileBuffer)
         
         processedFiles++
         totalSize += file.file_size || 0
@@ -153,16 +134,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Finalisera ZIP
-    console.log(`🔄 Finalizing ZIP with ${processedFiles} files...`)
-    archive.finalize()
+    // Generera ZIP
+    console.log(`🔄 Generating ZIP with ${processedFiles} files...`)
+    const zipBuffer = await zip.generateAsync({
+      type: 'nodebuffer',
+      compression: 'DEFLATE',
+      compressionOptions: { level: 6 } // Balans mellan hastighet och storlek
+    })
 
-    // Vänta på att ZIP ska bli klar
-    while (!archiveFinished) {
-      await new Promise(resolve => setTimeout(resolve, 100))
-    }
-
-    const zipBuffer = Buffer.concat(chunks)
     console.log(`✅ ZIP created: ${zipBuffer.length} bytes (${(zipBuffer.length / 1024 / 1024).toFixed(2)} MB)`)
 
     // Ladda upp ZIP till R2
