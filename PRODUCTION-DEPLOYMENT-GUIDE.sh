@@ -8,7 +8,7 @@ echo "📅 $(date)"
 echo ""
 
 # Konfiguration för produktion
-PROD_URL="https://dronarkompaniet-leverans.vercel.app"  # Byt till din riktiga produktions-URL
+PROD_URL="https://dk-leverans.vercel.app"  # Byt till din riktiga produktions-URL
 ADMIN_PASSWORD="DronarkompanietAdmin2025!"
 
 echo "🌐 Production URL: $PROD_URL"
