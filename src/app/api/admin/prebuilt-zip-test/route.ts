@@ -2,22 +2,26 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 // MINIMAL TEST VERSION - utan archiver
+export async function GET(request: NextRequest) {
+  const customerId = request.nextUrl.searchParams.get('customerId') || 'eeda2d3b-0ed6-4e21-b307-7b41da72c401'
+  return await testPrebuiltZip(customerId)
+}
+
 export async function POST(request: NextRequest) {
   try {
-    console.log('🧪 === PREBUILT ZIP TEST ===')
-    
-    // Auth check
-    const adminPassword = request.headers.get('x-admin-password')
-    if (adminPassword !== 'DronarkompanietAdmin2025!') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
     const { customerId } = await request.json()
-    
     if (!customerId) {
       return NextResponse.json({ error: 'Customer ID required' }, { status: 400 })
     }
+    return await testPrebuiltZip(customerId)
+  } catch (error) {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+  }
+}
 
+async function testPrebuiltZip(customerId: string) {
+  try {
+    console.log('🧪 === PREBUILT ZIP TEST ===')
     console.log(`🔍 Testing for customer: ${customerId}`)
 
     // Test 1: Environment variables
