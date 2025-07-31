@@ -20,7 +20,11 @@
     
     <h3>🎯 KOMPLETT ZIP (EN fil med ALLA filer)</h3>
     <button onclick="testCompleteZip('eeda2d3b-0ed6-4e21-b307-7b41da72c401')">
-        🗜️ Skapa KOMPLETT ZIP (alla filer under 100MB)
+        🗜️ Skapa KOMPLETT ZIP (ALLA filer, inga begränsningar)
+    </button>
+    
+    <button onclick="testBackgroundZip('eeda2d3b-0ed6-4e21-b307-7b41da72c401')">
+        🚀 Starta Background ZIP (för stora dataset)
     </button>
     
     <h3>⚡ Snabb ZIP (bara små filer)</h3>
@@ -190,7 +194,7 @@
             const responseDiv = document.getElementById('response');
             
             resultDiv.style.display = 'block';
-            statusDiv.innerHTML = '<div class="loading">🎯 Skapar KOMPLETT ZIP med alla filer... Detta kan ta 2-3 minuter...</div>';
+            statusDiv.innerHTML = '<div class="loading">🎯 Skapar KOMPLETT ZIP med ALLA filer (inga storleksbegränsningar)... Detta kan ta 2-3 minuter...</div>';
             responseDiv.textContent = '';
             
             const startTime = Date.now();
@@ -203,8 +207,7 @@
                         'x-admin-password': 'DronarkompanietAdmin2025!'
                     },
                     body: JSON.stringify({
-                        customerId: customerId,
-                        maxFileSizeMB: 100
+                        customerId: customerId
                     })
                 });
                 
@@ -214,9 +217,50 @@
                 if (response.ok) {
                     statusDiv.innerHTML = `<div class="success">✅ KOMPLETT ZIP skapad! (${duration}s)</div>`;
                     statusDiv.innerHTML += `<div class="success">🎉 ${data.fileCount} filer, ${data.zipSizeMB.toFixed(2)} MB</div>`;
-                    if (data.skippedFiles > 0) {
-                        statusDiv.innerHTML += `<div style="color: orange;">⚠️ ${data.skippedFiles} stora filer hoppades över</div>`;
-                    }
+                    statusDiv.innerHTML += `<div class="success">📦 ALLA filer inkluderade - inga begränsningar</div>`;
+                } else {
+                    statusDiv.innerHTML = `<div class="error">❌ Fel (${duration}s): ${data.error}</div>`;
+                }
+                
+                responseDiv.textContent = JSON.stringify(data, null, 2);
+                
+            } catch (error) {
+                const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+                statusDiv.innerHTML = `<div class="error">❌ Nätverksfel (${duration}s): ${error.message}</div>`;
+                responseDiv.textContent = error.toString();
+            }
+        }
+
+        async function testBackgroundZip(customerId) {
+            const resultDiv = document.getElementById('result');
+            const statusDiv = document.getElementById('status');
+            const responseDiv = document.getElementById('response');
+            
+            resultDiv.style.display = 'block';
+            statusDiv.innerHTML = '<div class="loading">🚀 Startar background ZIP job för ALLA filer...</div>';
+            responseDiv.textContent = '';
+            
+            const startTime = Date.now();
+            
+            try {
+                const response = await fetch('/api/admin/background-zip', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-admin-password': 'DronarkompanietAdmin2025!'
+                    },
+                    body: JSON.stringify({
+                        customerId: customerId
+                    })
+                });
+                
+                const data = await response.json();
+                const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+                
+                if (response.ok) {
+                    statusDiv.innerHTML = `<div class="success">✅ Background job startat! (${duration}s)</div>`;
+                    statusDiv.innerHTML += `<div class="success">📊 ${data.totalFiles} filer kommer att processas</div>`;
+                    statusDiv.innerHTML += `<div style="color: blue;">⏱️ Uppskattad tid: ${data.estimatedTime}</div>`;
                 } else {
                     statusDiv.innerHTML = `<div class="error">❌ Fel (${duration}s): ${data.error}</div>`;
                 }
