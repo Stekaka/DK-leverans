@@ -17,12 +17,20 @@
     <h1>🧪 Test Prebuilt ZIP API</h1>
     
     <h2>Marc Zorjan (GotEvent) - 306 filer</h2>
-    <button onclick="testPrebuiltZip('eeda2d3b-0ed6-4e21-b307-7b41da72c401', true)">
-        🚀 Skapa Prebuilt ZIP (Force Rebuild)
+    
+    <h3>🚀 Edge Runtime (längre timeout)</h3>
+    <button onclick="testPrebuiltZip('eeda2d3b-0ed6-4e21-b307-7b41da72c401', true, '/api/admin/prebuilt-zip')">
+        Skapa Full ZIP (Edge Runtime)
     </button>
     
-    <button onclick="testPrebuiltZip('eeda2d3b-0ed6-4e21-b307-7b41da72c401', false)">
-        📦 Hämta befintlig ZIP
+    <h3>⚡ Snabb ZIP (bara små filer)</h3>
+    <button onclick="testPrebuiltZip('eeda2d3b-0ed6-4e21-b307-7b41da72c401', true, '/api/admin/prebuilt-zip-fast')">
+        Skapa Snabb ZIP (små filer)
+    </button>
+    
+    <h3>📦 Test befintlig</h3>
+    <button onclick="testPrebuiltZip('eeda2d3b-0ed6-4e21-b307-7b41da72c401', false, '/api/admin/prebuilt-zip')">
+        Hämta befintlig ZIP
     </button>
 
     <div id="result" class="result" style="display: none;">
@@ -32,7 +40,7 @@
     </div>
 
     <script>
-        async function testPrebuiltZip(customerId, forceRebuild) {
+        async function testPrebuiltZip(customerId, forceRebuild, endpoint = '/api/admin/prebuilt-zip') {
             const resultDiv = document.getElementById('result');
             const statusDiv = document.getElementById('status');
             const responseDiv = document.getElementById('response');
@@ -44,7 +52,7 @@
             const startTime = Date.now();
             
             try {
-                const response = await fetch('/api/admin/prebuilt-zip', {
+                const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
