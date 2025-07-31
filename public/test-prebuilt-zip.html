@@ -28,6 +28,15 @@
         Skapa Snabb ZIP (små filer)
     </button>
     
+    <h3>📦 Batch Strategy (för stora dataset)</h3>
+    <button onclick="testBatchPlan('eeda2d3b-0ed6-4e21-b307-7b41da72c401')">
+        📊 Skapa Batch Plan (Marc's 306 filer)
+    </button>
+    
+    <button onclick="testBatchCreate('eeda2d3b-0ed6-4e21-b307-7b41da72c401', 1)">
+        🔨 Skapa Batch 1 ZIP
+    </button>
+    
     <h3>📦 Test befintlig</h3>
     <button onclick="testPrebuiltZip('eeda2d3b-0ed6-4e21-b307-7b41da72c401', false, '/api/admin/prebuilt-zip')">
         Hämta befintlig ZIP
@@ -75,6 +84,93 @@
                     } else if (data.action === 'used_existing') {
                         statusDiv.innerHTML += `<div class="success">♻️ Använde befintlig ZIP: ${data.fileCount} filer</div>`;
                     }
+                } else {
+                    statusDiv.innerHTML = `<div class="error">❌ Fel (${duration}s): ${data.error}</div>`;
+                }
+                
+                responseDiv.textContent = JSON.stringify(data, null, 2);
+                
+            } catch (error) {
+                const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+                statusDiv.innerHTML = `<div class="error">❌ Nätverksfel (${duration}s): ${error.message}</div>`;
+                responseDiv.textContent = error.toString();
+            }
+        }
+
+        async function testBatchPlan(customerId) {
+            const resultDiv = document.getElementById('result');
+            const statusDiv = document.getElementById('status');
+            const responseDiv = document.getElementById('response');
+            
+            resultDiv.style.display = 'block';
+            statusDiv.innerHTML = '<div class="loading">📊 Skapar batch plan för Marc\'s 306 filer...</div>';
+            responseDiv.textContent = '';
+            
+            const startTime = Date.now();
+            
+            try {
+                const response = await fetch('/api/admin/batch-zip-plan', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-admin-password': 'DronarkompanietAdmin2025!'
+                    },
+                    body: JSON.stringify({
+                        customerId: customerId,
+                        batchSize: 50
+                    })
+                });
+                
+                const data = await response.json();
+                const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+                
+                if (response.ok) {
+                    statusDiv.innerHTML = `<div class="success">✅ Batch plan skapad! (${duration}s)</div>`;
+                    statusDiv.innerHTML += `<div class="success">📊 ${data.totalFiles} filer → ${data.numberOfBatches} batches</div>`;
+                } else {
+                    statusDiv.innerHTML = `<div class="error">❌ Fel (${duration}s): ${data.error}</div>`;
+                }
+                
+                responseDiv.textContent = JSON.stringify(data, null, 2);
+                
+            } catch (error) {
+                const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+                statusDiv.innerHTML = `<div class="error">❌ Nätverksfel (${duration}s): ${error.message}</div>`;
+                responseDiv.textContent = error.toString();
+            }
+        }
+
+        async function testBatchCreate(customerId, batchNumber) {
+            const resultDiv = document.getElementById('result');
+            const statusDiv = document.getElementById('status');
+            const responseDiv = document.getElementById('response');
+            
+            resultDiv.style.display = 'block';
+            statusDiv.innerHTML = `<div class="loading">🔨 Skapar batch ${batchNumber} ZIP...</div>`;
+            responseDiv.textContent = '';
+            
+            const startTime = Date.now();
+            
+            try {
+                const response = await fetch('/api/admin/batch-zip-create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-admin-password': 'DronarkompanietAdmin2025!'
+                    },
+                    body: JSON.stringify({
+                        customerId: customerId,
+                        batchNumber: batchNumber,
+                        batchSize: 50
+                    })
+                });
+                
+                const data = await response.json();
+                const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+                
+                if (response.ok) {
+                    statusDiv.innerHTML = `<div class="success">✅ Batch ${batchNumber} skapad! (${duration}s)</div>`;
+                    statusDiv.innerHTML += `<div class="success">🎉 ${data.fileCount} filer, ${(data.zipSize / 1024 / 1024).toFixed(2)} MB</div>`;
                 } else {
                     statusDiv.innerHTML = `<div class="error">❌ Fel (${duration}s): ${data.error}</div>`;
                 }
