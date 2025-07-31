@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { customerId, maxFileSizeMB = 100 } = await request.json()
+    const { customerId, skipLargeFiles = false } = await request.json()
     
     if (!customerId) {
       return NextResponse.json({ error: 'Customer ID required' }, { status: 400 })
@@ -42,24 +42,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
     }
 
-    const maxFileSize = maxFileSizeMB * 1024 * 1024 // Convert to bytes
-
-    // Hämta ALLA filer (men skippa extremt stora)
+    // Hämta ALLA filer utan begränsningar
     const { data: files, error: filesError } = await supabase
       .from('files')
       .select('id, filename, original_name, file_size, folder_path')
       .eq('customer_id', customerId)
       .eq('is_deleted', false)
       .eq('is_trashed', false)
-      .lt('file_size', maxFileSize) // Bara filer under size limit
       .order('folder_path', { ascending: true })
       .order('original_name', { ascending: true })
 
     if (filesError || !files || files.length === 0) {
       return NextResponse.json({ 
-        error: 'No suitable files found',
-        customer: customer.name,
-        note: `Only files under ${maxFileSizeMB}MB are included`
+        error: 'No files found',
+        customer: customer.name
       }, { status: 404 })
     }
 
@@ -76,7 +72,7 @@ export async function POST(request: NextRequest) {
       const file = files[i]
       
       try {
-        console.log(`📄 Adding ${i + 1}/${files.length}: ${file.original_name}`)
+        console.log(`📄 Adding ${i + 1}/${files.length}: ${file.original_name} (${(file.file_size / 1024 / 1024).toFixed(2)} MB)`)
         
         const fileBuffer = await r2Service.getFile(file.filename)
         
@@ -138,7 +134,6 @@ export async function POST(request: NextRequest) {
       skipped_files: skippedFiles,
       total_files_size: totalSize,
       zip_size: zipBuffer.length,
-      max_file_size_limit: maxFileSize,
       built_at: new Date().toISOString(),
       expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       type: 'COMPLETE_ZIP'
@@ -183,7 +178,7 @@ export async function POST(request: NextRequest) {
       totalFileSize: totalSize,
       metadata,
       downloadUrl: `https://dk-leverans.vercel.app/api/customer/download/prebuilt?customerId=${customerId}`,
-      note: `COMPLETE ZIP with ALL ${processedFiles} files (under ${maxFileSizeMB}MB each)`
+      note: `COMPLETE ZIP with ALL ${processedFiles} files - no size restrictions`
     })
 
   } catch (error) {
