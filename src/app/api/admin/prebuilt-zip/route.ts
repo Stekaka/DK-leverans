@@ -3,6 +3,9 @@ import { createClient } from '@supabase/supabase-js'
 import { r2Service } from '../../../../../lib/cloudflare-r2'
 import JSZip from 'jszip'
 
+// Använd Edge Runtime för längre timeout
+export const runtime = 'edge'
+
 // Service för att skapa och hantera förbyggda ZIP-filer för kunder
 export async function POST(request: NextRequest) {
   try {
